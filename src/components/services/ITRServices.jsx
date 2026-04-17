@@ -88,7 +88,13 @@ export default function ITRServices() {
           <p style={ctaText}>
             Ensure accurate filing and maximize your tax benefits with expert assistance.
           </p>
-          <button style={ctaBtn}>File Your ITR</button>
+           <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-10 py-4 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-semibold text-lg shadow-lg"
+          >
+            File Your ITR ✨
+          </motion.button>
         </div>
       </div>
     </section>

@@ -108,181 +108,195 @@ export default function AuthPage() {
   };
 
   return (
-    <section className={styles.authPage}>
-      <div className={styles.shell}>
-        <div className={styles.showcase}>
-          <span className={styles.badge}>Secure Access</span>
-          <h1>Login or Create Your NCJ Account</h1>
-          <p>
-            Track your enquiries, auto-fill forms, and keep your consultation
-            details connected across pages.
-          </p>
-          <ul className={styles.featureList}>
-            <li>
-              <span>1</span>
-              Fast onboarding in under a minute
-            </li>
-            <li>
-              <span>2</span>
-              Enquiry form auto-filled after login
-            </li>
-            <li>
-              <span>3</span>
-              Session persists while you browse
-            </li>
-          </ul>
-        </div>
-
-        <div className={styles.formWrap}>
-          <div className={styles.tabs}>
-            <button
-              type="button"
-              className={`${styles.tabBtn} ${
-                mode === "login" ? styles.tabBtnActive : ""
-              }`}
-              onClick={() => {
-                setMode("login");
-                setMessage({ type: "", text: "" });
-              }}
-            >
-              Login
-            </button>
-            <button
-              type="button"
-              className={`${styles.tabBtn} ${
-                mode === "signup" ? styles.tabBtnActive : ""
-              }`}
-              onClick={() => {
-                setMode("signup");
-                setMessage({ type: "", text: "" });
-              }}
-            >
-              Sign Up
-            </button>
+    <div>
+      <section className={styles.authPage}>
+        <div className={styles.shell}>
+          <div className={styles.showcase}>
+            <span className={styles.badge}>Secure Access</span>
+            <h1>Login or Create Your NCJ Account</h1>
+            <p>
+              Track your enquiries, auto-fill forms, and keep your consultation
+              details connected across pages.
+            </p>
+            <ul className={styles.featureList}>
+              <li>
+                <span>1</span>
+                Fast onboarding in under a minute
+              </li>
+              <li>
+                <span>2</span>
+                Enquiry form auto-filled after login
+              </li>
+              <li>
+                <span>3</span>
+                Session persists while you browse
+              </li>
+            </ul>
           </div>
 
-          {mode === "login" ? (
-            <form className={styles.form} onSubmit={onLogin}>
-              <h2>Welcome back</h2>
-              <div className={styles.field}>
-                <label htmlFor="login-email">Email</label>
-                <input
-                  id="login-email"
-                  type="email"
-                  value={loginForm.email}
-                  onChange={(event) =>
-                    setLoginForm((prev) => ({ ...prev, email: event.target.value }))
-                  }
-                  required
-                />
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="login-password">Password</label>
-                <input
-                  id="login-password"
-                  type="password"
-                  value={loginForm.password}
-                  onChange={(event) =>
-                    setLoginForm((prev) => ({
-                      ...prev,
-                      password: event.target.value,
-                    }))
-                  }
-                  required
-                />
-              </div>
-              <button type="submit" className={styles.submitBtn}>
+          <div className={styles.formWrap}>
+            <div className={styles.tabs}>
+              <button
+                type="button"
+                className={`${styles.tabBtn} ${
+                  mode === "login" ? styles.tabBtnActive : ""
+                }`}
+                onClick={() => {
+                  setMode("login");
+                  setMessage({ type: "", text: "" });
+                }}
+              >
                 Login
               </button>
-              {message.text ? (
-                <p
-                  className={`${styles.message} ${
-                    message.type === "error" ? styles.error : styles.success
-                  }`}
-                >
-                  {message.text}
-                </p>
-              ) : null}
-              <p className={styles.helper}>
-                No account yet? <Link href="/auth?mode=signup">Sign up</Link>
-              </p>
-            </form>
-          ) : (
-            <form className={styles.form} onSubmit={onSignup}>
-              <h2>Create account</h2>
-              <div className={styles.field}>
-                <label htmlFor="signup-name">Full Name</label>
-                <input
-                  id="signup-name"
-                  type="text"
-                  value={signupForm.name}
-                  onChange={(event) =>
-                    setSignupForm((prev) => ({ ...prev, name: event.target.value }))
-                  }
-                  required
-                />
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="signup-email">Email</label>
-                <input
-                  id="signup-email"
-                  type="email"
-                  value={signupForm.email}
-                  onChange={(event) =>
-                    setSignupForm((prev) => ({ ...prev, email: event.target.value }))
-                  }
-                  required
-                />
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="signup-password">Password</label>
-                <input
-                  id="signup-password"
-                  type="password"
-                  value={signupForm.password}
-                  onChange={(event) =>
-                    setSignupForm((prev) => ({
-                      ...prev,
-                      password: event.target.value,
-                    }))
-                  }
-                  required
-                />
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="signup-confirm-password">Confirm Password</label>
-                <input
-                  id="signup-confirm-password"
-                  type="password"
-                  value={signupForm.confirmPassword}
-                  onChange={(event) =>
-                    setSignupForm((prev) => ({
-                      ...prev,
-                      confirmPassword: event.target.value,
-                    }))
-                  }
-                  required
-                />
-              </div>
-              <button type="submit" className={styles.submitBtn}>
-                Create Account
+              <button
+                type="button"
+                className={`${styles.tabBtn} ${
+                  mode === "signup" ? styles.tabBtnActive : ""
+                }`}
+                onClick={() => {
+                  setMode("signup");
+                  setMessage({ type: "", text: "" });
+                }}
+              >
+                Sign Up
               </button>
-              {message.text ? (
-                <p
-                  className={`${styles.message} ${
-                    message.type === "error" ? styles.error : styles.success
-                  }`}
-                >
-                  {message.text}
+            </div>
+
+            {mode === "login" ? (
+              <form className={styles.form} onSubmit={onLogin}>
+                <h2>Login</h2>
+                <div className={styles.field}>
+                  <label htmlFor="login-email">Email</label>
+                  <input
+                    id="login-email"
+                    type="email"
+                    value={loginForm.email}
+                    onChange={(event) =>
+                      setLoginForm((prev) => ({ ...prev, email: event.target.value }))
+                    }
+                    required
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="login-password">Password</label>
+                  <input
+                    id="login-password"
+                    type="password"
+                    value={loginForm.password}
+                    onChange={(event) =>
+                      setLoginForm((prev) => ({
+                        ...prev,
+                        password: event.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </div>
+                <button type="submit" className={styles.submitBtn}>
+                  Login
+                </button>
+                {message.text ? (
+                  <p
+                    className={`${styles.message} ${
+                      message.type === "error" ? styles.error : styles.success
+                    }`}
+                  >
+                    {message.text}
+                  </p>
+                ) : null}
+                <p className={styles.helper}>
+                  No account yet? <Link href="/auth?mode=signup">Sign up</Link>
                 </p>
-              ) : null}
-              <p className={styles.helper}>
-                Already have an account? <Link href="/auth">Login</Link>
-              </p>
-            </form>
-          )}
+              </form>
+            ) : (
+              <form className={styles.form} onSubmit={onSignup}>
+                <h2>Create account</h2>
+                <div className={styles.field}>
+                  <label htmlFor="signup-name">Full Name</label>
+                  <input
+                    id="signup-name"
+                    type="text"
+                    value={signupForm.name}
+                    onChange={(event) =>
+                      setSignupForm((prev) => ({ ...prev, name: event.target.value }))
+                    }
+                    required
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="signup-email">Email</label>
+                  <input
+                    id="signup-email"
+                    type="email"
+                    value={signupForm.email}
+                    onChange={(event) =>
+                      setSignupForm((prev) => ({ ...prev, email: event.target.value }))
+                    }
+                    required
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="Mobile">Mobile Number</label>
+                  <input
+                    id="Mobile"
+                    type="tel"
+                    value={signupForm.mobile}
+                    onChange={(event) =>
+                      setSignupForm((prev) => ({ ...prev, mobile: event.target.value }))
+                    }
+                    required
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="signup-password">Password</label>
+                  <input
+                    id="signup-password"
+                    type="password"
+                    value={signupForm.password}
+                    onChange={(event) =>
+                      setSignupForm((prev) => ({
+                        ...prev,
+                        password: event.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="signup-confirm-password">Confirm Password</label>
+                  <input
+                    id="signup-confirm-password"
+                    type="password"
+                    value={signupForm.confirmPassword}
+                    onChange={(event) =>
+                      setSignupForm((prev) => ({
+                        ...prev,
+                        confirmPassword: event.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </div>
+                <button type="submit" className={styles.submitBtn}>
+                  Create Account
+                </button>
+                {message.text ? (
+                  <p
+                    className={`${styles.message} ${
+                      message.type === "error" ? styles.error : styles.success
+                    }`}
+                  >
+                    {message.text}
+                  </p>
+                ) : null}
+                <p className={styles.helper}>
+                  Already have an account? <Link href="/auth">Login</Link>
+                </p>
+              </form>
+            )}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }

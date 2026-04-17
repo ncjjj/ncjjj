@@ -44,7 +44,7 @@ const services = [
 export default function ServicesOverview() {
   return (
     <section 
-      className="panel"
+      // className="panel"
       style={{
         position: "relative",
         minHeight: "100vh",
@@ -54,7 +54,7 @@ export default function ServicesOverview() {
         flexDirection: "column",
         justifyContent: "center",
         overflow: "hidden",
-        zIndex: 4,
+        zIndex: 99,
         width: "100%",
       }}
     >

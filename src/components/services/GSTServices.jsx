@@ -82,7 +82,13 @@ export default function GSTServices() {
             Need help with GST compliance? Our experts ensure error-free filings and timely submissions.
           </p>
 
-          <button style={ctaBtn}>Get Consultation</button>
+            <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-10 py-4 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-semibold text-lg shadow-lg"
+          >
+            Get Consultation ✨
+          </motion.button>
         </motion.div>
       </div>
     </section>

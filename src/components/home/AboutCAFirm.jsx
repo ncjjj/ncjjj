@@ -19,7 +19,7 @@ export default function AboutCAFirm() {
         // LINE GROW
         gsap.from(".line", {
           height: 0,
-          duration: 1.2,
+          duration: 1.0,
           delay: 0.3,
           scrollTrigger: {
             trigger: ".vision-section",

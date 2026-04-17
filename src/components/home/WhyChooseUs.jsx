@@ -59,6 +59,7 @@ export default function WhyChooseUs() {
 
   return (
     <section
+    className="panel"
       style={{
         zIndex: 6,
         minHeight: "100vh",

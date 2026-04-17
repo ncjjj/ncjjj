@@ -6,7 +6,7 @@
   padding: 0;
   display: block;
   position: relative;
-  z-index: 112;
+  z-index: 999999;
 }
 
 .main-layout {

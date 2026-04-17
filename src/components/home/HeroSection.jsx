@@ -102,7 +102,7 @@ export default function HeroSection() {
             }}
           >
             {[
-              "500+ Clients Served",
+              "2000+ Clients Served",
               "Certified Experts",
               "Secure & Confidential",
             ].map((item, i) => (
@@ -112,9 +112,9 @@ export default function HeroSection() {
                   padding: "8px 16px",
                   borderRadius: "999px",
                   background: "rgba(212,175,55,0.15)",
-                  border: "1px solid rgba(212,175,55,0.3)",
+                  border: "2px solid rgba(212,175,55,0.3)",
                   fontSize: "13px",
-                  color: "#7a5c00",
+                  color: "#D4AF37",
                 }}
               >
                 {item}
@@ -133,7 +133,7 @@ export default function HeroSection() {
               color: "#D4AF37",
             }}
           >
-            Smart Legal & Financial Guidance
+           Focus on Business Leave the rest to us
           </h1>
 
           {/* GOLD LINE */}

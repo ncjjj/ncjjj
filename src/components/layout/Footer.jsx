@@ -141,7 +141,7 @@ export default function Footer() {
                   fontSize: "14px",
                 }}>
                   <span>📍</span>
-                  <span>123, Business Hub, Sector 5,<br />New Delhi - 110001</span>
+                  <span>Mainpuri<br />Mainpuri - 205001</span>
                 </div>
               </div>
             </motion.div>

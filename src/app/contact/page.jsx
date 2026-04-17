@@ -20,7 +20,7 @@ export default function ContactPage() {
           textAlign: "center",
         }}
       >
-        <h1 style={{ marginBottom: "10px", color: "#2c2416" }}>Contact Us</h1>
+       
         {user ? (
           <p style={{ margin: 0, color: "#5a5040" }}>
             Signed in as {user.email}. Your enquiry details can be auto-filled.
