@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { signOut, useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useAuth } from "../../context/AuthContext";
 
 const navItems = [
   { href: "/", label: "Home" },
@@ -22,8 +22,10 @@ const services = [
 
 export default function Header() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { data: session } = useSession();
+  const user = session?.user ?? null;
   const [scrolled, setScrolled] = useState(false);
+  const [avatarSignedUrl, setAvatarSignedUrl] = useState("");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,6 +35,37 @@ export default function Header() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    let refreshTimer;
+
+    const loadSignedAvatar = async () => {
+      if (!user) {
+        setAvatarSignedUrl("");
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/uploads/avatar", { cache: "no-store" });
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload?.message || "Unable to load avatar.");
+        }
+
+        setAvatarSignedUrl(payload?.avatarSignedUrl || "");
+      } catch (error) {
+        setAvatarSignedUrl("");
+      }
+    };
+
+    loadSignedAvatar();
+    refreshTimer = setInterval(loadSignedAvatar, 50 * 60 * 1000);
+
+    return () => {
+      clearInterval(refreshTimer);
+    };
+  }, [user?.id]);
 
   return (
     <header
@@ -117,7 +150,7 @@ export default function Header() {
           {/* 🔥 SERVICES DROPDOWN */}
           <div
           className="mt-3"          
-            style={{ position: "relative inset-block-start: 0;" }}
+            style={{ position: "relative", insetBlockStart: 0 }}
             onMouseEnter={(e) => {
               const dropdown = e.currentTarget.querySelector(".dropdown");
               dropdown.style.opacity = "1";
@@ -211,11 +244,49 @@ export default function Header() {
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           {user ? (
             <>
+              <Link
+                href={user.role === "admin" ? "/admin/dashboard" : "/dashboard"}
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: "999px",
+                  border: "1px solid rgba(212,175,55,0.35)",
+                  background: "rgba(212,175,55,0.15)",
+                  color: "#f5e6a5",
+                  textDecoration: "none",
+                }}
+              >
+                Dashboard
+              </Link>
               <span style={{ color: "#d4af37", fontSize: "13px" }}>
                 Hi, {user.name}
               </span>
+              <div
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "999px",
+                  overflow: "hidden",
+                  border: "1px solid rgba(212,175,55,0.45)",
+                  background: "rgba(212,175,55,0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {avatarSignedUrl ? (
+                  <img
+                    src={avatarSignedUrl}
+                    alt={user.name || "User avatar"}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                ) : (
+                  <span style={{ color: "#f5e6a5", fontWeight: 700 }}>
+                    {user.name?.charAt(0)?.toUpperCase() || "U"}
+                  </span>
+                )}
+              </div>
               <button
-                onClick={logout}
+                onClick={() => signOut({ callbackUrl: "/" })}
                 style={{
                   padding: "10px 16px",
                   borderRadius: "999px",
@@ -230,7 +301,7 @@ export default function Header() {
             </>
           ) : (
             <Link
-              href="/auth"
+              href="/login"
               style={{
                 padding: "10px 18px",
                 borderRadius: "999px",

@@ -5,10 +5,11 @@ import OfficeAddress from "../../components/contact/OfficeAddress";
 import ContactDetails from "../../components/contact/ContactDetails";
 import WhatsAppIntegration from "../../components/contact/WhatsAppIntegration";
 import EnquiryForm from "../../components/contact/EnquiryForm";
-import { useAuth } from "../../context/AuthContext";
+import { useSession } from "next-auth/react";
 
 export default function ContactPage() {
-  const { user } = useAuth();
+  const { data: session } = useSession();
+  const user = session?.user ?? null;
 
   return (
     <main>
@@ -27,7 +28,7 @@ export default function ContactPage() {
           </p>
         ) : (
           <p style={{ margin: 0, color: "#5a5040" }}>
-            Want faster enquiry submission? <Link href="/auth">Login or Sign Up</Link>
+            Want faster enquiry submission? <Link href="/login">Login or Sign Up</Link>
           </p>
         )}
       </section>

@@ -1,3 +1,5 @@
 {
-    "folder-color.pathColors": []
+    "folder-color.pathColors": [],
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true
 }

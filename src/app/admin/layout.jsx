@@ -1,13 +1,18 @@
-import { AdminProvider, AuthProvider, ThemeProvider } from "./context";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "../../lib/auth";
+import AdminClientProviders from "./AdminClientProviders";
 
-export default function AdminLayout({ children }) {
+export default async function AdminLayout({ children }) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || session.user?.role !== "admin") {
+    redirect("/login?error=AccessDenied");
+  }
+
   return (
-    <AuthProvider>
-      <AdminProvider>
-        <ThemeProvider>
-          <div className="admin-layout">{children}</div>
-        </ThemeProvider>
-      </AdminProvider>
-    </AuthProvider>
+    <AdminClientProviders>
+      {children}
+    </AdminClientProviders>
   );
 }

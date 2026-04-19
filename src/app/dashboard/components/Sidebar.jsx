@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
 
 const navItems = [
   { name: 'Dashboard Overview', path: '/dashboard' },
-  { name: 'My Consultations', path: '/dashboard/consultations' },
+  { name: 'My Requests', path: '/dashboard/consultations' },
   { name: 'Book Appointment', path: '/dashboard/book-appointment' },
   { name: 'Documents', path: '/dashboard/documents' },
   { name: 'Payments', path: '/dashboard/payments' },
@@ -16,12 +17,10 @@ const navItems = [
 ];
 
 export default function Sidebar() {
-  const router = useRouter();
   const pathname = usePathname();
 
   const handleLogout = () => {
-    alert('You have been logged out.');
-    router.push('/auth');
+    signOut({ callbackUrl: '/login' });
   };
 
   return (

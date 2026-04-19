@@ -5,27 +5,44 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "seed:admin": "node scripts/seed-admin.cjs",
+    "migrate:storage-paths": "node scripts/migrate-storage-paths.cjs"
   },
   "dependencies": {
     "@heroicons/react": "^1.0.6",
     "@studio-freight/lenis": "^1.0.42",
+    "@supabase/supabase-js": "^2.57.4",
+    "bcryptjs": "^3.0.3",
     "chart.js": "^4.5.1",
+    "drizzle-orm": "^0.45.2",
     "framer-motion": "^12.38.0",
     "gsap": "^3.14.2",
     "heroicons": "^2.2.0",
     "lenis": "^1.3.21",
     "lucide-react": "^1.8.0",
+    "multer": "^2.0.2",
     "next": "^14.2.5",
+    "next-auth": "^4.24.14",
+    "pg": "^8.20.0",
+    "postgres": "^3.4.9",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^3.8.1",
-    "three": "^0.183.2"
+    "three": "^0.183.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/node": "24.12.2",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "^19.1.9",
     "autoprefixer": "^10.4.27",
+    "drizzle-kit": "^0.31.10",
     "postcss": "^8.5.9",
-    "tailwindcss": "^3.4.19"
+    "tailwindcss": "^3.4.19",
+    "typescript": "5.9.3"
   }
 }

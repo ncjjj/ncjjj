@@ -1,5 +1,7 @@
 "use client";
 
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import sup from "../../../public/images/sup.jpg";
 import sup2 from "../../../public/images/sup2.jpg";
@@ -8,8 +10,11 @@ import sup3 from "../../../public/images/sup3.jpg";
 const banners = [sup, sup2, sup3];
 
 export default function HeroSection() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [actionMessage, setActionMessage] = useState("");
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -22,6 +27,49 @@ export default function HeroSection() {
   useEffect(() => {
     setTimeout(() => setLoaded(true), 200);
   }, []);
+
+  const ensureAuthenticated = () => {
+    if (status !== "authenticated" || !session?.user) {
+      router.push("/login?callbackUrl=/");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleGetConsultant = async () => {
+    if (!ensureAuthenticated()) {
+      return;
+    }
+
+    const response = await fetch("/api/actions/get-consultant", { method: "POST" });
+    const payload = await response.json();
+
+    if (!response.ok) {
+      setActionMessage(payload?.message || "Unable to process consultant request right now.");
+      return;
+    }
+
+    setActionMessage("Consultant assigned successfully. Opening dashboard...");
+    router.push("/dashboard");
+  };
+
+  const handleBookCall = async () => {
+    if (!ensureAuthenticated()) {
+      return;
+    }
+
+    const response = await fetch("/api/actions/book-call", { method: "POST" });
+    const payload = await response.json();
+
+    if (!response.ok) {
+      setActionMessage(payload?.message || "Unable to book call right now.");
+      return;
+    }
+
+    setActionMessage("Booking started. Redirecting to appointment page...");
+    router.push("/dashboard/book");
+  };
 
   return (
     <div
@@ -164,6 +212,7 @@ export default function HeroSection() {
           {/* BUTTONS */}
           <div style={{ display: "flex", gap: "15px" }}>
             <button
+              onClick={handleGetConsultant}
               style={{
                 padding: "14px 30px",
                 borderRadius: "8px",
@@ -175,10 +224,11 @@ export default function HeroSection() {
                 boxShadow: "0 10px 30px rgba(212,175,55,0.4)",
               }}
             >
-              Start Consultation
+              Get Consultant
             </button>
 
             <button
+              onClick={handleBookCall}
               style={{
                 padding: "14px 28px",
                 borderRadius: "8px",
@@ -189,9 +239,20 @@ export default function HeroSection() {
                 cursor: "pointer",
               }}
             >
-              Explore Services
+              Book Call
             </button>
           </div>
+          {actionMessage ? (
+            <p
+              style={{
+                marginTop: "14px",
+                color: "#D4AF37",
+                fontSize: "14px",
+              }}
+            >
+              {actionMessage}
+            </p>
+          ) : null}
         </div>
 
         {/* RIGHT SIDE */}

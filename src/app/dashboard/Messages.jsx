@@ -2,23 +2,8 @@
 
 import React, { useState, useRef, useEffect } from "react";
 
-const initialMessages = [
-  {
-    id: 1,
-    sender: "Consultant",
-    text: "Hello! How can I assist you today?",
-    timestamp: "10:00 AM",
-  },
-  {
-    id: 2,
-    sender: "You",
-    text: "I have a question about my tax filing.",
-    timestamp: "10:05 AM",
-  },
-];
-
 export default function Messages() {
-  const [messages, setMessages] = useState(initialMessages);
+  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const chatRef = useRef(null);
 
@@ -59,7 +44,6 @@ export default function Messages() {
         {/* CONTENT */}
         <div className="flex flex-col h-[650px]">
 
-          {/* CHAT HEADER */}
           <div className="px-6 py-4 border-b border-[#e8dcc0] flex items-center gap-4 bg-[#faf6ed]">
             
             <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#d6b86a] to-[#b89b5e] flex items-center justify-center text-white font-bold text-lg shadow">
@@ -75,11 +59,16 @@ export default function Messages() {
 
           </div>
 
-          {/* MESSAGES */}
           <div
             ref={chatRef}
             className="flex-1 overflow-y-auto px-6 py-6 space-y-5 bg-[#fffaf0]"
           >
+            {messages.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-[#d9c9a4] p-6 text-center bg-white">
+                <p className="text-sm font-medium text-[#3b2f1c]">No messages yet</p>
+                <p className="text-xs text-[#7a6a4f] mt-2">Start a conversation and your chat history will appear here.</p>
+              </div>
+            ) : null}
             {messages.map((message) => (
               <div
                 key={message.id}

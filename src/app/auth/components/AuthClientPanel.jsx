@@ -1,0 +1,365 @@
+"use client";
+
+import Link from "next/link";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import styles from "../AuthPage.module.css";
+
+const initialLogin = {
+  email: "",
+  password: "",
+};
+
+const initialSignup = {
+  name: "",
+  mobileNumber: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+};
+
+export default function AuthClientPanel({ initialMode = "login" }) {
+  const router = useRouter();
+  const { data: session, status } = useSession();
+
+  const [mode, setMode] = useState(initialMode);
+  const [loginForm, setLoginForm] = useState(initialLogin);
+  const [signupForm, setSignupForm] = useState(initialSignup);
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
+  const [nextRoute, setNextRoute] = useState("");
+
+  const setError = (text) => setMessage({ type: "error", text });
+  const setSuccess = (text) => setMessage({ type: "success", text });
+
+  if (status === "authenticated" && session?.user) {
+    return (
+      <section className={styles.authPage}>
+        <div className={styles.shell}>
+          <div className={styles.showcase}>
+            <span className={styles.badge}>Welcome Back</span>
+            <h1>You are already signed in.</h1>
+            <p>
+              You can continue exploring services or open your dashboard.
+            </p>
+          </div>
+          <div className={styles.formWrap}>
+            <p className={`${styles.message} ${styles.success}`}>
+              Logged in as {session.user.email}
+            </p>
+            <div className={styles.form}>
+              <button
+                type="button"
+                className={styles.submitBtn}
+                onClick={() =>
+                  router.push(
+                    session.user.role === "admin" ? "/admin/dashboard" : "/dashboard"
+                  )
+                }
+              >
+                Continue
+              </button>
+              <p className={styles.helper}>
+                Or return to <Link href="/">Home</Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const onLogin = async (event) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setMessage({ type: "", text: "" });
+
+    const result = await signIn("credentials", {
+      email: loginForm.email.trim().toLowerCase(),
+      password: loginForm.password,
+      redirect: false,
+    });
+
+    if (!result || result.error) {
+      setError("Invalid email or password.");
+      setNextRoute("");
+      setSubmitting(false);
+      return;
+    }
+
+    const sessionResult = await fetch("/api/auth/session", { method: "GET" });
+    const currentSession = await sessionResult.json();
+
+    const destination = currentSession?.user?.role === "admin" ? "/admin/dashboard" : "/dashboard";
+
+    setSuccess("Login successful. Click below to open your dashboard.");
+    setNextRoute(destination);
+    setSubmitting(false);
+  };
+
+  const onSignup = async (event) => {
+    event.preventDefault();
+
+    if (signupForm.password !== signupForm.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setSubmitting(true);
+    setMessage({ type: "", text: "" });
+
+    const response = await fetch("/api/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: signupForm.name,
+        mobileNumber: signupForm.mobileNumber,
+        email: signupForm.email,
+        password: signupForm.password,
+      }),
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      setError(payload?.message || "Unable to register right now.");
+      setNextRoute("");
+      setSubmitting(false);
+      return;
+    }
+
+    const signInResult = await signIn("credentials", {
+      email: signupForm.email.trim().toLowerCase(),
+      password: signupForm.password,
+      redirect: false,
+    });
+
+    if (signInResult?.error) {
+      setSuccess("Account created. Please login now.");
+      setNextRoute("");
+      setMode("login");
+      setSubmitting(false);
+      return;
+    }
+
+    setSuccess("Account created successfully. Click below to open your dashboard.");
+    setNextRoute("/dashboard");
+    setSubmitting(false);
+  };
+
+  return (
+    <section className={styles.authPage}>
+      <div className={styles.shell}>
+        <div className={styles.showcase}>
+          <span className={styles.badge}>Secure Access</span>
+          <h1>Login or Create Your NCJ Account</h1>
+          <p>
+            Track your enquiries, auto-fill forms, and keep your consultation
+            details connected across pages.
+          </p>
+          <ul className={styles.featureList}>
+            <li>
+              <span>1</span>
+              Fast onboarding in under a minute
+            </li>
+            <li>
+              <span>2</span>
+              Enquiry form auto-filled after login
+            </li>
+            <li>
+              <span>3</span>
+              Session persists while you browse
+            </li>
+          </ul>
+        </div>
+
+        <div className={styles.formWrap}>
+          <div className={styles.tabs}>
+            <button
+              type="button"
+              className={`${styles.tabBtn} ${
+                mode === "login" ? styles.tabBtnActive : ""
+              }`}
+              onClick={() => {
+                setMode("login");
+                setMessage({ type: "", text: "" });
+                setNextRoute("");
+              }}
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              className={`${styles.tabBtn} ${
+                mode === "signup" ? styles.tabBtnActive : ""
+              }`}
+              onClick={() => {
+                setMode("signup");
+                setMessage({ type: "", text: "" });
+                setNextRoute("");
+              }}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          {mode === "login" ? (
+            <form className={styles.form} onSubmit={onLogin}>
+              <h2>Login</h2>
+              <div className={styles.field}>
+                <label htmlFor="login-email">Email</label>
+                <input
+                  id="login-email"
+                  type="email"
+                  value={loginForm.email}
+                  onChange={(event) =>
+                    setLoginForm((prev) => ({ ...prev, email: event.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="login-password">Password</label>
+                <input
+                  id="login-password"
+                  type="password"
+                  value={loginForm.password}
+                  onChange={(event) =>
+                    setLoginForm((prev) => ({
+                      ...prev,
+                      password: event.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+              <button type="submit" className={styles.submitBtn} disabled={submitting}>
+                {submitting ? "Please wait..." : "Login"}
+              </button>
+              {message.text ? (
+                <p
+                  className={`${styles.message} ${
+                    message.type === "error" ? styles.error : styles.success
+                  }`}
+                >
+                  {message.text}
+                </p>
+              ) : null}
+              {nextRoute ? (
+                <button
+                  type="button"
+                  className={styles.submitBtn}
+                  onClick={() => router.push(nextRoute)}
+                >
+                  Continue to Dashboard
+                </button>
+              ) : null}
+              <p className={styles.helper}>
+                No account yet? <Link href="/login?mode=signup">Sign up</Link>
+              </p>
+            </form>
+          ) : (
+            <form className={styles.form} onSubmit={onSignup}>
+              <h2>Create account</h2>
+              <div className={styles.field}>
+                <label htmlFor="signup-name">Full Name</label>
+                <input
+                  id="signup-name"
+                  type="text"
+                  value={signupForm.name}
+                  onChange={(event) =>
+                    setSignupForm((prev) => ({ ...prev, name: event.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="signup-mobile-number">Phone Number</label>
+                <input
+                  id="signup-mobile-number"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={signupForm.mobileNumber}
+                  onChange={(event) =>
+                    setSignupForm((prev) => ({ ...prev, mobileNumber: event.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="signup-email">Email</label>
+                <input
+                  id="signup-email"
+                  type="email"
+                  value={signupForm.email}
+                  onChange={(event) =>
+                    setSignupForm((prev) => ({ ...prev, email: event.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="signup-password">Password</label>
+                <input
+                  id="signup-password"
+                  type="password"
+                  value={signupForm.password}
+                  onChange={(event) =>
+                    setSignupForm((prev) => ({
+                      ...prev,
+                      password: event.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="signup-confirm-password">Confirm Password</label>
+                <input
+                  id="signup-confirm-password"
+                  type="password"
+                  value={signupForm.confirmPassword}
+                  onChange={(event) =>
+                    setSignupForm((prev) => ({
+                      ...prev,
+                      confirmPassword: event.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+              <button type="submit" className={styles.submitBtn} disabled={submitting}>
+                {submitting ? "Please wait..." : "Create Account"}
+              </button>
+              {message.text ? (
+                <p
+                  className={`${styles.message} ${
+                    message.type === "error" ? styles.error : styles.success
+                  }`}
+                >
+                  {message.text}
+                </p>
+              ) : null}
+              {nextRoute ? (
+                <button
+                  type="button"
+                  className={styles.submitBtn}
+                  onClick={() => router.push(nextRoute)}
+                >
+                  Continue to Dashboard
+                </button>
+              ) : null}
+              <p className={styles.helper}>
+                Already have an account? <Link href="/login">Login</Link>
+              </p>
+            </form>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}

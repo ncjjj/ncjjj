@@ -76,7 +76,7 @@ export default function StartupHero() {
         </div>
 
         {/* CTA */}
-        <Link href="/auth">
+        <Link href="/login">
           <button className="px-10 py-4 rounded-full bg-yellow-400 text-black font-semibold text-lg 
             shadow-[0_0_20px_rgba(250,204,21,0.7)] 
             hover:shadow-[0_0_40px_rgba(250,204,21,1)] 

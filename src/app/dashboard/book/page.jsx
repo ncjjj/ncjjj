@@ -2,19 +2,16 @@
 
 import React, { useState } from "react";
 
-const consultants = [
-  { name: "John Doe", role: "Tax Expert" },
-  { name: "Jane Smith", role: "Legal Advisor" },
-  { name: "Michael Brown", role: "Finance Consultant" },
-];
-
-const timeSlots = ["10:00 AM", "11:00 AM", "2:00 PM", "3:00 PM", "4:00 PM"];
-
 export default function BookAppointment() {
   const [selectedConsultant, setSelectedConsultant] = useState("");
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
+  const [selectedDateTime, setSelectedDateTime] = useState("");
   const [notes, setNotes] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    setSubmitted(true);
+  };
 
   return (
     
@@ -41,77 +38,50 @@ export default function BookAppointment() {
             </p>
           </div>
 
-          {/* CONSULTANTS */}
-          <div>
-            <p className="text-sm text-[#6b5b3e] mb-3">Select Consultant</p>
-
-            <div className="flex flex-wrap gap-4">
-              {consultants.map((c, i) => (
-                <div
-                  key={i}
-                  onClick={() => setSelectedConsultant(c.name)}
-                  className={`p-4 rounded-2xl cursor-pointer transition border ${
-                    selectedConsultant === c.name
-                      ? "bg-[#faf6ed] border-[#d6b86a] shadow-md"
-                      : "border-[#e8dcc0] hover:shadow"
-                  }`}
-                >
-                  <p className="font-medium text-[#3b2f1c]">{c.name}</p>
-                  <p className="text-xs text-[#7a6a4f]">{c.role}</p>
-                </div>
-              ))}
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div>
+              <p className="text-sm text-[#6b5b3e] mb-2">Consultant Name</p>
+              <input
+                type="text"
+                value={selectedConsultant}
+                onChange={(e) => setSelectedConsultant(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-[#e5d7b6] bg-[#faf6ed]"
+                placeholder="Type consultant name"
+                required
+              />
             </div>
-          </div>
 
-          {/* DATE */}
-          <div>
-            <p className="text-sm text-[#6b5b3e] mb-2">Select Date</p>
-
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-4 py-3 rounded-xl border border-[#e5d7b6] bg-[#faf6ed]"
-            />
-          </div>
-
-          {/* TIME */}
-          <div>
-            <p className="text-sm text-[#6b5b3e] mb-3">Select Time Slot</p>
-
-            <div className="flex flex-wrap gap-3">
-              {timeSlots.map((time, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedTime(time)}
-                  className={`px-4 py-2 rounded-xl border transition ${
-                    selectedTime === time
-                      ? "bg-gradient-to-r from-[#d6b86a] to-[#b89b5e] text-white"
-                      : "bg-[#faf6ed] border-[#e5d7b6]"
-                  }`}
-                >
-                  {time}
-                </button>
-              ))}
+            <div>
+              <p className="text-sm text-[#6b5b3e] mb-2">Preferred Date & Time</p>
+              <input
+                type="datetime-local"
+                value={selectedDateTime}
+                onChange={(e) => setSelectedDateTime(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-[#e5d7b6] bg-[#faf6ed]"
+                required
+              />
             </div>
-          </div>
 
-          {/* NOTES */}
-          <div>
-            <p className="text-sm text-[#6b5b3e] mb-2">Notes</p>
+            <div>
+              <p className="text-sm text-[#6b5b3e] mb-2">Notes</p>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-[#e5d7b6] bg-[#faf6ed]"
+                rows="3"
+              />
+            </div>
 
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-[#e5d7b6] bg-[#faf6ed]"
-              rows="3"
-            />
-          </div>
+            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-[#d6b86a] to-[#b89b5e] text-white font-semibold shadow hover:scale-[1.03] transition" type="submit">
+              Confirm Booking
+            </button>
+          </form>
 
-          {/* BUTTON */}
-          <button className="w-full py-3 rounded-xl bg-gradient-to-r from-[#d6b86a] to-[#b89b5e] text-white font-semibold shadow hover:scale-[1.03] transition">
-            Confirm Booking
-          </button>
+          {submitted ? (
+            <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl p-3">
+              Booking request submitted. Your real appointment details will appear in consultations.
+            </p>
+          ) : null}
 
         </div>
       </div>

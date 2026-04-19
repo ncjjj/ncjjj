@@ -1,8 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 export default function ITRServices() {
+  const router = useRouter();
+
   return (
     <section
       style={{
@@ -92,6 +95,7 @@ export default function ITRServices() {
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
             className="px-10 py-4 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-semibold text-lg shadow-lg"
+            onClick={() => router.push("/services/itr-filing")}
           >
             File Your ITR ✨
           </motion.button>

@@ -1,11 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { useAuth } from "../../context/AuthContext";
 
 export default function EnquiryForm() {
-  const { user } = useAuth();
+  const { data: session } = useSession();
+  const user = session?.user ?? null;
   const [formData, setFormData] = useState({
     name: "",
     email: "",

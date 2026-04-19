@@ -2,27 +2,11 @@
 
 import React, { useState } from "react";
 
-const faqs = [
-  {
-    question: "How can I book an appointment?",
-    answer:
-      "Go to the Book Appointment section and choose your consultant, date, and time.",
-  },
-  {
-    question: "How do I upload documents?",
-    answer:
-      "Navigate to the Documents section and use the upload feature to add files.",
-  },
-  {
-    question: "How can I contact support?",
-    answer:
-      "You can raise a ticket or email us directly for urgent queries.",
-  },
-];
-
 export default function SupportCenter() {
   const [ticket, setTicket] = useState({ subject: "", description: "" });
   const [activeFAQ, setActiveFAQ] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
+  const faqs = [];
 
   const handleChange = (e) => {
     setTicket({ ...ticket, [e.target.name]: e.target.value });
@@ -30,6 +14,7 @@ export default function SupportCenter() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setSubmitted(true);
     setTicket({ subject: "", description: "" });
   };
 
@@ -96,6 +81,13 @@ export default function SupportCenter() {
               FAQs
             </h3>
 
+            {faqs.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-[#d9c9a4] p-6 text-center bg-[#fffaf0]">
+                <p className="text-sm font-medium text-[#3b2f1c]">No predefined FAQs</p>
+                <p className="text-xs text-[#7a6a4f] mt-2">Support updates and FAQs will be added based on real requests.</p>
+              </div>
+            ) : null}
+
             {faqs.map((faq, index) => (
               <div
                 key={index}
@@ -126,6 +118,12 @@ export default function SupportCenter() {
 
               </div>
             ))}
+
+            {submitted ? (
+              <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl p-3">
+                Ticket submitted successfully. Our support team will respond shortly.
+              </p>
+            ) : null}
 
           </div>
 

@@ -1,8 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 export default function Accounting() {
+  const router = useRouter();
+
   const features = [
     {
       title: "Bookkeeping",
@@ -109,6 +112,7 @@ export default function Accounting() {
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
             className="px-10 py-4 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-semibold text-lg shadow-lg"
+            onClick={() => router.push("/services/accounting-support")}
           >
             Get Started with Accounting ✨
           </motion.button>
