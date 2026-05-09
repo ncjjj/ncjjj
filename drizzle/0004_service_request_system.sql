@@ -1,6 +1,23 @@
-CREATE TYPE service_request_status AS ENUM ('pending', 'approved', 'rejected');
-CREATE TYPE admin_action AS ENUM ('pending', 'approved', 'rejected');
-CREATE TYPE payment_status AS ENUM ('pending', 'received');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'service_request_status') THEN
+    CREATE TYPE service_request_status AS ENUM ('pending', 'approved', 'rejected');
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'admin_action') THEN
+    CREATE TYPE admin_action AS ENUM ('pending', 'approved', 'rejected');
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_status') THEN
+    CREATE TYPE payment_status AS ENUM ('pending', 'received');
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS service_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -159,6 +159,11 @@
   margin-top: 6px;
 }
 
+.submitBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .message {
   margin: 0;
   font-size: 13px;

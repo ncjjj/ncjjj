@@ -1,4 +1,22 @@
-ALTER TABLE users RENAME COLUMN avatar_url TO avatar_path;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'users'
+      AND column_name = 'avatar_url'
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'users'
+      AND column_name = 'avatar_path'
+  ) THEN
+    ALTER TABLE users RENAME COLUMN avatar_url TO avatar_path;
+  END IF;
+END $$;
 
 ALTER TABLE service_documents ADD COLUMN IF NOT EXISTS file_path text;
 

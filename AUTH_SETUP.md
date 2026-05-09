@@ -10,24 +10,29 @@ Create `.env.local` from `.env.example` and set real values:
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_STORAGE_BUCKET`
+- `SUPABASE_STORAGE_PUBLIC` (`true` for public bucket, `false` for private bucket)
 
-Use a public Supabase storage bucket for profile photos and document uploads so the uploaded files can be rendered directly in the UI.
+For private buckets, the app serves signed URLs for avatars at runtime. For public buckets, it stores and serves public URLs.
 
 ## 2) Create Users Table
 
-Generate and push schema:
+Run migrations and push schema (if needed):
 
 ```bash
+npm run db:migrate
 npm run db:generate
 npm run db:push
 ```
+
+`db:migrate` applies SQL files from `drizzle/*.sql` in order and tracks them in `public._app_migrations`.
 
 The app uses a single `users` table with:
 
 - `id` (primary key)
 - `name` (required)
 - `mobile_number` (required)
-- `avatar_url` (optional)
+- `avatar_path` (optional, storage object path)
+- `avatar_url` (optional, persisted public URL when bucket is public)
 - `email` (required, unique)
 - `password` (required, bcrypt hash)
 - `role` (`user` or `admin`)
@@ -69,11 +74,11 @@ For production, change these values in `scripts/seed-admin.js` and rotate creden
 
 ## 5) Storage Uploads
 
-- `POST /api/uploads/avatar` uploads a profile photo to Supabase Storage and updates `avatar_url`.
+- `POST /api/uploads/avatar` uploads a profile photo to Supabase Storage and updates `avatar_path` plus `avatar_url` (when bucket is public).
 - `POST /api/uploads/document` uploads selected documents to Supabase Storage, saves a `documents` record, and returns a public URL.
 - `GET /api/documents` loads the authenticated user's uploaded documents.
 - `DELETE /api/documents` removes a document record for the authenticated user.
-- The navbar shows the uploaded avatar when available, otherwise it falls back to initials.
+- The navbar and dashboard use the database-backed profile image URL (or signed URL for private bucket) with a default avatar fallback.
 
 ## 6) Route Protection
 

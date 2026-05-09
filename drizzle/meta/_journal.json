@@ -29,6 +29,27 @@
       "when": 1776459930054,
       "tag": "0003_flawless_psynapse",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776461000000,
+      "tag": "0004_service_request_system",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1776461100000,
+      "tag": "0005_private_storage_paths",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776461200000,
+      "tag": "0006_admin_accounts",
+      "breakpoints": true
     }
   ]
 }

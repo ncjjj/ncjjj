@@ -27,6 +27,14 @@ type ExistingDocument = {
   signedUrl?: string | null;
 };
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 const formSchema = z.object({
   name: z.string().trim().min(2, "Name is required."),
   phone: z.string().trim().min(6, "Valid phone number is required."),
@@ -92,11 +100,15 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
       setError("");
 
       try {
-        const response = await fetch(`/api/service-request?serviceId=${serviceId}`);
-        const payload = await response.json();
+        const [response, docsResponse] = await Promise.all([
+          fetch(`/api/service-request?serviceId=${serviceId}&scope=form`, { cache: "no-store" }),
+          fetch("/api/documents", { cache: "no-store" }),
+        ]);
 
-        const docsResponse = await fetch("/api/documents", { cache: "no-store" });
-        const docsPayload = await docsResponse.json();
+        const [payload, docsPayload] = await Promise.all([
+          response.json(),
+          docsResponse.json(),
+        ]);
 
         if (!response.ok) {
           throw new Error(payload?.message || "Unable to load profile details.");
@@ -118,12 +130,12 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
         if (docsResponse.ok) {
           setExistingDocuments(docsPayload.documents || []);
         }
-      } catch (fetchError: any) {
+      } catch (fetchError: unknown) {
         if (!isMounted) {
           return;
         }
 
-        setError(fetchError?.message || "Unable to load service form.");
+        setError(getErrorMessage(fetchError, "Unable to load service form."));
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -254,8 +266,8 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
       setMessage("Request submitted. Admin verification has started.");
       setRequiredFiles({ panCard: null, aadhaarCard: null, photo: null, signature: null });
       setAdditionalFiles([]);
-    } catch (submitError: any) {
-      setError(submitError?.message || "Unable to submit your request.");
+    } catch (submitError: unknown) {
+      setError(getErrorMessage(submitError, "Unable to submit your request."));
     } finally {
       setSubmitting(false);
     }
