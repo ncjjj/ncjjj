@@ -28,20 +28,12 @@ export const config = {
   },
 };
 
-const allowedMimeTypes = ["application/pdf", "image/jpeg", "image/png"];
+// Accept all file types for service documents
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 8 * 1024 * 1024,
-    files: 10,
-  },
-  fileFilter: (_req, file, cb) => {
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-      cb(new Error("Only PDF, JPG, and PNG files are allowed."));
-      return;
-    }
-
-    cb(null, true);
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+    files: 20, // Allow up to 20 files
   },
 });
 

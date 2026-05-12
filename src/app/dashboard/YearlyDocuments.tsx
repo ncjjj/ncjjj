@@ -73,12 +73,12 @@ export default function YearlyDocuments() {
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<"neutral" | "success" | "error">("neutral");
   const bulkInputRefs = useRef<Record<YearlyDocumentSlot, HTMLInputElement | null>>({
-    itr: null,
+    bank_statement: null,
     document_2: null,
     document_3: null,
   });
   const replaceInputsRef = useRef<Record<YearlyDocumentSlot, HTMLInputElement | null>>({
-    itr: null,
+    bank_statement: null,
     document_2: null,
     document_3: null,
   });
@@ -252,7 +252,7 @@ export default function YearlyDocuments() {
 
         <div className="dashboard-page-body p-8 space-y-8">
           <div>
-            <h2 className="text-2xl font-semibold text-[#3b2f1c]">Year-wise Documents</h2>
+            <h2 className="text-2xl font-semibold text-[#3b2f1c]">Required Documents</h2>
             <p className="text-sm text-[#7a6a4f]">
               Upload, replace, and review the 3 required documents for each financial year.
             </p>
@@ -260,7 +260,7 @@ export default function YearlyDocuments() {
 
           <div className="dashboard-subcard bg-[#faf6ed] p-5 rounded-2xl border border-[#e8dcc0]">
             <div className="flex flex-col gap-2 mb-5">
-              <h3 className="text-lg font-semibold text-[#3b2f1c]">Upload Documents</h3>
+                <h3 className="text-lg font-semibold text-[#3b2f1c]">Upload Required Documents</h3>
               <p className="text-sm text-[#7a6a4f]">
                 Select a year and upload any combination of the required documents. PDF and image files only, up to {formatFileSize(maxYearlyDocumentSizeBytes)} each.
               </p>
@@ -372,7 +372,7 @@ export default function YearlyDocuments() {
           <div className="dashboard-subcard bg-white p-5 rounded-2xl border border-[#e8dcc0] shadow-sm">
             <div className="flex items-center justify-between gap-4 mb-5">
               <div>
-                <h3 className="text-lg font-semibold text-[#3b2f1c]">Documents by Year</h3>
+                <h3 className="text-lg font-semibold text-[#3b2f1c]">Required Documents by Year</h3>
                 <p className="text-sm text-[#7a6a4f]">Each year keeps one slot per required document.</p>
               </div>
               {loading ? <span className="text-sm text-[#7a6a4f]">Loading...</span> : null}

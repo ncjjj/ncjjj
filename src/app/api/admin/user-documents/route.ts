@@ -1,15 +1,34 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
+import { and, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "../../../../../src/lib/adminAuth";
-import { listSupabaseObjects, createSignedSupabaseObjectUrls } from "../../../../../src/lib/supabaseStorage";
+import { createSignedSupabaseObjectUrls } from "../../../../../src/lib/supabaseStorage";
 import { getDb } from "../../../../../src/db/index";
-import { users, documents } from "../../../../../src/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { documents, users } from "../../../../../src/db/schema";
 import { permanentDocumentTypeSet } from "../../../../../src/lib/permanentDocumentTypes";
 import { yearlyDocumentSlotSet } from "../../../../../src/lib/yearlyDocumentTypes";
 
 export const runtime = "nodejs";
+
+type DocumentCategory = "general" | "yearly" | "permanent";
+
+type UserDocumentRow = {
+  id: string;
+  documentType: string;
+  documentYear: number | null;
+  documentSlot: string | null;
+  fileName: string;
+  filePath: string;
+  storagePath: string;
+  mimeType: string | null;
+  aadharNumber: string | null;
+  panNumber: string | null;
+  accountNumber: string | null;
+  gstNumber: string | null;
+  uploadDescription: string | null;
+  createdAt: Date;
+};
 
 function hasAdminSession(request: NextRequest): boolean {
   const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
@@ -22,6 +41,28 @@ const querySchema = z.object({
   offset: z.string().optional(),
   category: z.union([z.literal("all"), z.literal("yearly"), z.literal("permanent")]).optional(),
 });
+
+const permanentDocumentTypeValues = Array.from(permanentDocumentTypeSet);
+
+function getDocumentCategory(row: UserDocumentRow): DocumentCategory {
+  if (
+    row.documentYear !== null &&
+    row.documentSlot !== null &&
+    yearlyDocumentSlotSet.has(row.documentSlot as any)
+  ) {
+    return "yearly";
+  }
+
+  if (permanentDocumentTypeSet.has(row.documentType as any)) {
+    return "permanent";
+  }
+
+  return "general";
+}
+
+function matchesCategory(row: UserDocumentRow, category: "all" | "yearly" | "permanent") {
+  return category === "all" || getDocumentCategory(row) === category;
+}
 
 export async function GET(request: NextRequest) {
   if (!hasAdminSession(request)) {
@@ -40,101 +81,38 @@ export async function GET(request: NextRequest) {
   const category = parsed.data.category || "all";
 
   try {
-    // Try storage-first: list objects under yearly-documents/{userId} and permanent-documents/{userId}
-    const yearlyPrefix = `yearly-documents/${userId}`;
-    const permanentPrefix = `permanent-documents/${userId}`;
+    const db = getDb();
 
-    try {
-      const yearly = category !== "permanent" ? await listSupabaseObjects(yearlyPrefix, { limit, offset }) : [];
-      const permanent = category !== "yearly" ? await listSupabaseObjects(permanentPrefix, { limit, offset }) : [];
-      const all = [...yearly, ...permanent];
+    const [userRow] = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        mobileNumber: users.mobileNumber,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
-      if (all.length > 0) {
-        const entries: Array<any> = [];
-
-        for (const obj of all) {
-          const path = String(obj.path || obj.name || "").replace(/^\/+/, "");
-          const parts = path.split("/");
-          if (parts.length < 3) continue;
-
-          const prefix = parts[0];
-          const uid = parts[1];
-          if (uid !== userId) continue;
-
-          if (prefix === "yearly-documents" && parts.length >= 4) {
-            const yearPart = parts[2];
-            const slot = parts[3];
-            if (!yearPart || !slot) continue;
-
-            const parsedYear = Number.parseInt(yearPart, 10);
-            const year = Number.isNaN(parsedYear) ? null : parsedYear;
-            entries.push({
-              documentType: slot,
-              documentCategory: year !== null ? "yearly" : "general",
-              documentYear: year,
-              documentSlot: slot,
-              fileName: obj.name,
-              filePath: path,
-              storagePath: path,
-              mimeType: obj.metadata?.contentType || null,
-              createdAt: obj.createdAt ? new Date(obj.createdAt).toISOString() : new Date().toISOString(),
-            });
-          } else if (prefix === "permanent-documents" && parts.length >= 3) {
-            const type = parts[2];
-            if (!type) continue;
-
-            entries.push({
-              documentType: type,
-              documentCategory: permanentDocumentTypeSet.has(type as any) ? "permanent" : "general",
-              documentYear: null,
-              documentSlot: null,
-              fileName: obj.name,
-              filePath: path,
-              storagePath: path,
-              mimeType: obj.metadata?.contentType || null,
-              createdAt: obj.createdAt ? new Date(obj.createdAt).toISOString() : new Date().toISOString(),
-            });
-          }
-        }
-
-        // Fetch user info
-        const db = getDb();
-        const [userRow] = await db.select({ id: users.id, name: users.name, email: users.email, mobileNumber: users.mobileNumber }).from(users).where(eq(users.id, userId));
-
-        const signedMap = await createSignedSupabaseObjectUrls(entries.map((e) => e.filePath || e.storagePath), 3600);
-
-        const documentsResult = entries.map((e) => ({
-          id: "",
-          userId,
-          userName: userRow?.name || "(unknown)",
-          userEmail: userRow?.email || "",
-          userPhone: userRow?.mobileNumber || "",
-          documentType: e.documentType,
-          documentCategory: e.documentCategory,
-          documentYear: e.documentYear,
-          documentSlot: e.documentSlot,
-          fileName: e.fileName,
-          filePath: String(e.filePath || e.storagePath || "").replace(/^\/+/, ""),
-          signedUrl: signedMap[String(e.filePath || e.storagePath || "")] || null,
-          mimeType: e.mimeType || null,
-          createdAt: e.createdAt,
-        }));
-
-        return NextResponse.json({
-          user: { id: userId, name: userRow?.name || "(unknown)", email: userRow?.email || "", mobileNumber: userRow?.mobileNumber || "" },
-          documents: documentsResult,
-          nextOffsets: {
-            yearly: yearly.length === limit ? offset + yearly.length : null,
-            permanent: permanent.length === limit ? offset + permanent.length : null,
-          },
-        });
-      }
-    } catch (err) {
-      console.warn("[api/admin/user-documents] storage listing failed, falling back to DB", err);
+    if (!userRow) {
+      return NextResponse.json({ message: "User not found." }, { status: 404 });
     }
 
-    // Fallback to DB query
-    const db = getDb();
+    const whereClause =
+      category === "yearly"
+        ? and(
+            eq(documents.userId, userId),
+            isNotNull(documents.documentYear),
+            isNotNull(documents.documentSlot)
+          )
+        : category === "permanent"
+          ? and(
+              eq(documents.userId, userId),
+              isNull(documents.documentYear),
+              isNull(documents.documentSlot),
+              inArray(documents.documentType, permanentDocumentTypeValues)
+            )
+          : eq(documents.userId, userId);
 
     const rows = await db
       .select({
@@ -146,34 +124,62 @@ export async function GET(request: NextRequest) {
         filePath: documents.fileUrl,
         storagePath: documents.storagePath,
         mimeType: documents.mimeType,
+        aadharNumber: documents.aadharNumber,
+        panNumber: documents.panNumber,
+        accountNumber: documents.accountNumber,
+        gstNumber: documents.gstNumber,
+        uploadDescription: documents.uploadDescription,
         createdAt: documents.createdAt,
       })
       .from(documents)
-      .where(eq(documents.userId, userId))
-      .orderBy(desc(documents.createdAt));
+      .where(whereClause)
+      .orderBy(desc(documents.createdAt))
+      .limit(limit + 1)
+      .offset(offset);
 
-    const [userRow] = await db.select({ id: users.id, name: users.name, email: users.email, mobileNumber: users.mobileNumber }).from(users).where(eq(users.id, userId));
+    const visibleRows = (rows as UserDocumentRow[]).filter((row) => matchesCategory(row, category));
+    const pageRows = visibleRows.slice(0, limit);
+    const signedMap = await createSignedSupabaseObjectUrls(
+      pageRows.map((row) => row.filePath || row.storagePath),
+      3600
+    );
 
-    const signedMap = await createSignedSupabaseObjectUrls(rows.map((r) => r.filePath || r.storagePath), 3600);
+    const documentsResult = pageRows.map((row) => {
+      const normalizedPath = String(row.filePath || row.storagePath || "").replace(/^\/+/, "");
 
-    const documentsResult = rows.map((row: any) => ({
-      id: row.id,
-      userId,
-      userName: userRow?.name || "(unknown)",
-      userEmail: userRow?.email || "",
-      userPhone: userRow?.mobileNumber || "",
-      documentType: row.documentType,
-      documentCategory: row.documentYear !== null && row.documentSlot !== null && yearlyDocumentSlotSet.has(row.documentSlot) ? "yearly" : permanentDocumentTypeSet.has(row.documentType as any) ? "permanent" : "general",
-      documentYear: row.documentYear,
-      documentSlot: row.documentSlot,
-      fileName: row.fileName,
-      filePath: String(row.filePath || row.storagePath || "").replace(/^\/+/, ""),
-      signedUrl: signedMap[String(row.filePath || row.storagePath || "")] || null,
-      mimeType: row.mimeType,
-      createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
-    }));
+      return {
+        id: row.id,
+        userId,
+        userName: userRow.name,
+        userEmail: userRow.email,
+        userPhone: userRow.mobileNumber,
+        documentType: row.documentType,
+        documentCategory: getDocumentCategory(row),
+        documentYear: row.documentYear,
+        documentSlot: row.documentSlot,
+        fileName: row.fileName,
+        filePath: normalizedPath,
+        signedUrl: signedMap[normalizedPath] || null,
+        mimeType: row.mimeType,
+        aadharNumber: row.aadharNumber,
+        panNumber: row.panNumber,
+        accountNumber: row.accountNumber,
+        gstNumber: row.gstNumber,
+        uploadDescription: row.uploadDescription,
+        createdAt: row.createdAt.toISOString(),
+      };
+    });
 
-    return NextResponse.json({ user: { id: userId, name: userRow?.name || "(unknown)", email: userRow?.email || "", mobileNumber: userRow?.mobileNumber || "" }, documents: documentsResult, nextOffsets: { yearly: null, permanent: null } });
+    const nextOffset = visibleRows.length > limit ? offset + limit : null;
+
+    return NextResponse.json({
+      user: userRow,
+      documents: documentsResult,
+      nextOffsets: {
+        yearly: category === "all" || category === "yearly" ? nextOffset : null,
+        permanent: category === "all" || category === "permanent" ? nextOffset : null,
+      },
+    });
   } catch (error) {
     console.error("[api/admin/user-documents] GET failed", error);
     return NextResponse.json({ message: "Unable to load user documents." }, { status: 500 });

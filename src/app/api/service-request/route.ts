@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { z } from "zod";
 import { authOptions } from "../../../lib/auth";
 import {
@@ -10,6 +11,7 @@ import {
 import { findUserById } from "../../../db/queries/users";
 import { getServiceMeta } from "../../../lib/serviceCatalog";
 import { createSignedSupabaseObjectUrls } from "../../../lib/supabaseStorage";
+import { emitToAdminRoom, emitToUserRoom } from "../../../lib/socketServer";
 import type { ServiceRequestView } from "../../../types/domain";
 
 const documentSchema = z.object({
@@ -24,7 +26,7 @@ const serviceRequestSchema = z.object({
   pan: z.string().trim().min(10).max(20),
   aadhaar: z.string().trim().min(12).max(20),
   gstNumber: z.string().trim().max(30).optional().or(z.literal("")),
-  documents: z.array(documentSchema).min(4, "PAN, Aadhaar, photo and signature are required."),
+  documents: z.array(documentSchema).min(3, "Bank Statement, PAN and Aadhaar documents are required."),
 });
 
 export async function GET(request: NextRequest) {
@@ -118,14 +120,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: issue }, { status: 400 });
     }
 
-    const requiredTypes = ["pan", "aadhaar", "photo", "signature"];
+    const requiredTypes = ["bank_statement", "pan", "aadhaar"];
     const missingType = requiredTypes.find(
       (type) => !parsed.data.documents.some((doc) => doc.type === type)
     );
 
     if (missingType) {
       return NextResponse.json(
-        { message: `${missingType.toUpperCase()} document is required.` },
+        { message: `${missingType.replace(/_/g, " ").toUpperCase()} document is required.` },
         { status: 400 }
       );
     }
@@ -138,13 +140,27 @@ export async function POST(request: NextRequest) {
       gstNumber: parsed.data.gstNumber || null,
       documents: parsed.data.documents,
     });
+    const serviceName = getServiceMeta(createdRequest.serviceId).name;
+
+    const serviceRequestCreatedPayload = {
+      eventId: randomUUID(),
+      requestId: createdRequest.id,
+      userId: createdRequest.userId,
+      serviceId: createdRequest.serviceId,
+      serviceName,
+      status: createdRequest.status,
+      occurredAt: createdRequest.createdAt.toISOString(),
+    };
+
+    emitToAdminRoom("serviceRequestCreated", serviceRequestCreatedPayload);
+    emitToUserRoom(createdRequest.userId, "serviceRequestCreated", serviceRequestCreatedPayload);
 
     return NextResponse.json(
       {
         request: {
           id: createdRequest.id,
           serviceId: createdRequest.serviceId,
-          serviceName: getServiceMeta(createdRequest.serviceId).name,
+          serviceName,
           status: createdRequest.status,
           createdAt: createdRequest.createdAt,
         },

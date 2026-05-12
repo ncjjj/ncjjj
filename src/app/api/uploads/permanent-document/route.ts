@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { randomUUID } from "crypto";
 import { authOptions } from "../../../../lib/auth";
 import {
   createPermanentDocument,
@@ -20,6 +21,7 @@ import {
   permanentDocumentTypeSet,
   type PermanentDocumentType,
 } from "../../../../lib/permanentDocumentTypes";
+import { emitToAdminRoom } from "../../../../lib/socketServer";
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -40,6 +42,16 @@ function normalizeDocumentType(value: FormDataEntryValue | null): PermanentDocum
   return value as PermanentDocumentType;
 }
 
+function getOptionalText(formData: FormData, fieldName: string): string | null {
+  const value = formData.get(fieldName);
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  return value.trim() || null;
+}
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
@@ -51,6 +63,13 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file");
     const documentType = normalizeDocumentType(formData.get("documentType"));
+    const documentDetails = {
+      aadharNumber: getOptionalText(formData, "aadharNumber"),
+      panNumber: getOptionalText(formData, "panNumber"),
+      accountNumber: getOptionalText(formData, "accountNumber"),
+      gstNumber: getOptionalText(formData, "gstNumber"),
+      uploadDescription: getOptionalText(formData, "uploadDescription"),
+    };
 
     if (!(file instanceof File)) {
       return NextResponse.json({ message: "Document file is required." }, { status: 400 });
@@ -60,16 +79,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Valid document type is required." }, { status: 400 });
     }
 
-    if (!isAllowedPermanentDocumentMimeType(file.type)) {
+    if (!isAllowedPermanentDocumentMimeType(file.type || "application/octet-stream")) {
       return NextResponse.json(
-        { message: "Only PDF and image files are allowed." },
+        { message: "This file type is not supported." },
         { status: 400 }
       );
     }
 
     if (file.size > maxPermanentDocumentSizeBytes) {
       return NextResponse.json(
-        { message: "File size must be 10 MB or smaller." },
+        { message: "File size must be 50 MB or smaller." },
         { status: 400 }
       );
     }
@@ -87,6 +106,7 @@ export async function POST(request: NextRequest) {
           fileUrl: uploaded.path,
           storagePath: uploaded.path,
           mimeType: uploaded.mimeType,
+          ...documentDetails,
         })
       : await createPermanentDocument({
           userId: session.user.id,
@@ -95,6 +115,7 @@ export async function POST(request: NextRequest) {
           fileUrl: uploaded.path,
           storagePath: uploaded.path,
           mimeType: uploaded.mimeType,
+          ...documentDetails,
         });
 
     if (!savedDocument) {
@@ -120,6 +141,14 @@ export async function POST(request: NextRequest) {
       console.warn("[uploads/permanent-document] signed URL generation failed", error);
     }
 
+    emitToAdminRoom("documentsUpdated", {
+      eventId: randomUUID(),
+      userId: session.user.id,
+      documentType: savedDocument.documentType,
+      documentCategory: "permanent",
+      occurredAt: new Date().toISOString(),
+    });
+
     return NextResponse.json({
       id: savedDocument.id,
       documentType: savedDocument.documentType,
@@ -130,6 +159,11 @@ export async function POST(request: NextRequest) {
       documentSignedUrl,
       storagePath: savedDocument.storagePath,
       mimeType: savedDocument.mimeType,
+      aadharNumber: savedDocument.aadharNumber,
+      panNumber: savedDocument.panNumber,
+      accountNumber: savedDocument.accountNumber,
+      gstNumber: savedDocument.gstNumber,
+      uploadDescription: savedDocument.uploadDescription,
       createdAt: savedDocument.createdAt,
     });
   } catch (error: unknown) {
@@ -184,6 +218,11 @@ export async function GET(request: NextRequest) {
       documentSignedUrl,
       storagePath: document.storagePath,
       mimeType: document.mimeType,
+      aadharNumber: document.aadharNumber,
+      panNumber: document.panNumber,
+      accountNumber: document.accountNumber,
+      gstNumber: document.gstNumber,
+      uploadDescription: document.uploadDescription,
       createdAt: document.createdAt,
     });
   } catch (error: unknown) {

@@ -3,9 +3,11 @@ import type { NextApiResponse } from "next";
 import { Server as IOServer } from "socket.io";
 
 export type RealtimeEventName =
+  | "serviceRequestCreated"
   | "serviceUpdated"
   | "servicePreview"
   | "adminNoteAdded"
+  | "documentsUpdated"
   | "consultantRegistered"
   | "consultantStatusUpdated"
   | "appointmentSlotUpdated"

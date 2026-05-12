@@ -34,6 +34,7 @@ export const consultantRegistrationStatusEnum = pgEnum("consultant_registration_
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
+  firmName: text("firm_name"),
   mobileNumber: text("mobile_number").notNull(),
   email: text("email").notNull().unique(),
   avatarPath: text("avatar_path"),
@@ -57,6 +58,12 @@ export const documents = pgTable("documents", {
   fileUrl: text("file_url").notNull(),
   storagePath: text("storage_path").notNull().unique(),
   mimeType: text("mime_type"),
+  // Metadata for permanent documents
+  aadharNumber: text("aadhar_number"),
+  panNumber: text("pan_number"),
+  accountNumber: text("account_number"),
+  gstNumber: text("gst_number"),
+  uploadDescription: text("upload_description"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

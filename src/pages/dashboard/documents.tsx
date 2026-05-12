@@ -1,4 +1,5 @@
 import YearlyDocuments from '../../app/dashboard/YearlyDocuments';
+import PermanentDocuments from '../../app/dashboard/PermanentDocuments';
 import Sidebar from "../../app/dashboard/components/Sidebar";
 import TopNavbar from "../../app/dashboard/components/TopNavbar";
 export default function DocumentsPage() {
@@ -14,7 +15,8 @@ export default function DocumentsPage() {
             <TopNavbar />
     
             {/* Main Content */}
-            <div className="dashboard-content p-6">
+            <div className="dashboard-content space-y-8 p-6">
+              <PermanentDocuments />
               <YearlyDocuments />
             </div>
           </div>

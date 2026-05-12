@@ -7,7 +7,7 @@ type DbUser = InferSelectModel<typeof users>;
 type NewUser = InferInsertModel<typeof users>;
 type UserPublic = Pick<
   DbUser,
-  "id" | "name" | "mobileNumber" | "email" | "avatarPath" | "avatarUrl" | "role"
+  "id" | "name" | "firmName" | "mobileNumber" | "email" | "avatarPath" | "avatarUrl" | "role"
 >;
 
 interface CreateUserInput {
@@ -22,6 +22,7 @@ interface UpdateUserProfileInput {
   name: string;
   email: string;
   mobileNumber: string;
+  firmName?: string | null;
 }
 
 export async function findUserByEmail(email: string): Promise<DbUser | null> {
@@ -51,6 +52,7 @@ export async function createUser({
     .returning({
       id: users.id,
       name: users.name,
+      firmName: users.firmName,
       mobileNumber: users.mobileNumber,
       email: users.email,
       avatarPath: users.avatarPath,
@@ -76,6 +78,7 @@ export async function updateUserAvatarPath(
     .returning({
       id: users.id,
       name: users.name,
+      firmName: users.firmName,
       mobileNumber: users.mobileNumber,
       email: users.email,
       avatarPath: users.avatarPath,
@@ -88,7 +91,7 @@ export async function updateUserAvatarPath(
 
 export async function updateUserProfile(
   userId: string,
-  { name, email, mobileNumber }: UpdateUserProfileInput
+  { name, email, mobileNumber, firmName }: UpdateUserProfileInput
 ): Promise<UserPublic | null> {
   const db = getDb();
 
@@ -98,11 +101,13 @@ export async function updateUserProfile(
       name,
       email,
       mobileNumber,
+      ...(firmName !== undefined && { firmName }),
     })
     .where(eq(users.id, userId))
     .returning({
       id: users.id,
       name: users.name,
+      firmName: users.firmName,
       mobileNumber: users.mobileNumber,
       email: users.email,
       avatarPath: users.avatarPath,

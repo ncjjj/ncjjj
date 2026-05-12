@@ -1,31 +1,29 @@
 export const permanentDocumentTypes = [
   {
     type: "aadhar",
-    label: "Aadhar Card",
-    description: "Aadhar Card (Permanent)",
+    label: "Aadhaar Card",
+    description: "Aadhaar card used across services",
   },
   {
     type: "pan",
     label: "PAN Card",
-    description: "PAN Card (Permanent)",
-  },
-  {
-    type: "photo",
-    label: "Photo",
-    description: "Passport Photo (Permanent)",
+    description: "PAN card used across services",
   },
 ] as const;
 
 export type PermanentDocumentType = (typeof permanentDocumentTypes)[number]["type"];
 
+export const requiredPermanentDocumentTypes = ["aadhar", "pan"] as const;
+export type RequiredPermanentDocumentType = (typeof requiredPermanentDocumentTypes)[number];
+
 export const permanentDocumentTypeSet = new Set<PermanentDocumentType>(
   permanentDocumentTypes.map((item) => item.type)
 );
 
-export const maxPermanentDocumentSizeBytes = 10 * 1024 * 1024;
+export const maxPermanentDocumentSizeBytes = 50 * 1024 * 1024;
 
 export function isAllowedPermanentDocumentMimeType(mimeType: string): boolean {
-  return mimeType === "application/pdf" || mimeType.startsWith("image/");
+  return Boolean(mimeType || "application/octet-stream");
 }
 
 export function getPermanentDocumentLabel(type: PermanentDocumentType): string {

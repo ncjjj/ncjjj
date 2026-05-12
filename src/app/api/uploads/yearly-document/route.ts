@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { randomUUID } from "crypto";
 import { authOptions } from "../../../../lib/auth";
 import {
   createYearlyDocument,
@@ -21,6 +22,7 @@ import {
   yearlyDocumentSlotSet,
   type YearlyDocumentSlot,
 } from "../../../../lib/yearlyDocumentTypes";
+import { emitToAdminRoom } from "../../../../lib/socketServer";
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -128,6 +130,15 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.warn("[uploads/yearly-document] signed URL generation failed", error);
     }
+
+    emitToAdminRoom("documentsUpdated", {
+      eventId: randomUUID(),
+      userId: session.user.id,
+      documentType: savedDocument.documentSlot,
+      documentCategory: "yearly",
+      documentYear: savedDocument.documentYear,
+      occurredAt: new Date().toISOString(),
+    });
 
     return NextResponse.json({
       id: savedDocument.id,

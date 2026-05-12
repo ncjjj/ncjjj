@@ -8,7 +8,7 @@ const loadAboutPageData = unstable_cache(
       yearsOfExperience: 12,
       activeClients: 320,
       supportEmail: "support@ncjassociates.com",
-      consultationPath: "/dashboard/book",
+      consultationPath: "/contact",
     };
   },
   ["about-page-data"],

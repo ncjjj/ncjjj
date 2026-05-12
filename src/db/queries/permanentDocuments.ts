@@ -1,8 +1,7 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { getDb } from "../index";
 import { documents } from "../schema";
 import {
-  getPermanentDocumentLabel,
   permanentDocumentTypeSet,
   type PermanentDocumentType,
 } from "../../lib/permanentDocumentTypes";
@@ -14,7 +13,45 @@ export interface PermanentDocumentRecord {
   fileUrl: string;
   storagePath: string;
   mimeType: string | null;
+  aadharNumber: string | null;
+  panNumber: string | null;
+  accountNumber: string | null;
+  gstNumber: string | null;
+  uploadDescription: string | null;
   createdAt: Date;
+}
+
+export interface PermanentDocumentNumbers {
+  aadharNumber: string;
+  panNumber: string;
+  accountNumber: string;
+  gstNumber: string;
+}
+
+export interface CreatePermanentDocumentInput {
+  userId: string;
+  documentType: PermanentDocumentType;
+  fileName: string;
+  fileUrl: string;
+  storagePath: string;
+  mimeType?: string | null;
+  aadharNumber?: string | null;
+  panNumber?: string | null;
+  accountNumber?: string | null;
+  gstNumber?: string | null;
+  uploadDescription?: string | null;
+}
+
+export interface UpdatePermanentDocumentInput {
+  fileName?: string;
+  fileUrl?: string;
+  storagePath?: string;
+  mimeType?: string | null;
+  aadharNumber?: string | null;
+  panNumber?: string | null;
+  accountNumber?: string | null;
+  gstNumber?: string | null;
+  uploadDescription?: string | null;
 }
 
 type PermanentDocumentRow = {
@@ -24,6 +61,11 @@ type PermanentDocumentRow = {
   fileUrl: string;
   storagePath: string;
   mimeType: string | null;
+  aadharNumber: string | null;
+  panNumber: string | null;
+  accountNumber: string | null;
+  gstNumber: string | null;
+  uploadDescription: string | null;
   createdAt: Date;
 };
 
@@ -39,24 +81,36 @@ function normalizePermanentDocumentRow(row: PermanentDocumentRow): PermanentDocu
     fileUrl: row.fileUrl,
     storagePath: row.storagePath,
     mimeType: row.mimeType,
+    aadharNumber: row.aadharNumber,
+    panNumber: row.panNumber,
+    accountNumber: row.accountNumber,
+    gstNumber: row.gstNumber,
+    uploadDescription: row.uploadDescription,
     createdAt: row.createdAt,
   };
 }
 
-interface CreatePermanentDocumentInput {
-  userId: string;
-  documentType: PermanentDocumentType;
-  fileName: string;
-  fileUrl: string;
-  storagePath: string;
-  mimeType?: string | null;
+function firstNonEmptyValue(values: Array<string | null | undefined>): string {
+  return values.find((value) => Boolean(value?.trim()))?.trim() || "";
 }
 
-interface UpdatePermanentDocumentInput {
-  fileName: string;
-  fileUrl: string;
-  storagePath: string;
-  mimeType?: string | null;
+export function getPermanentDocumentNumbers(
+  permanentDocuments: PermanentDocumentRecord[]
+): PermanentDocumentNumbers {
+  const byType = new Map(permanentDocuments.map((item) => [item.documentType, item]));
+
+  return {
+    aadharNumber: firstNonEmptyValue([
+      byType.get("aadhar")?.aadharNumber,
+      ...permanentDocuments.map((item) => item.aadharNumber),
+    ]),
+    panNumber: firstNonEmptyValue([
+      byType.get("pan")?.panNumber,
+      ...permanentDocuments.map((item) => item.panNumber),
+    ]),
+    accountNumber: firstNonEmptyValue(permanentDocuments.map((item) => item.accountNumber)),
+    gstNumber: firstNonEmptyValue(permanentDocuments.map((item) => item.gstNumber)),
+  };
 }
 
 export async function listPermanentDocumentsForUser(
@@ -72,6 +126,11 @@ export async function listPermanentDocumentsForUser(
       fileUrl: documents.fileUrl,
       storagePath: documents.storagePath,
       mimeType: documents.mimeType,
+      aadharNumber: documents.aadharNumber,
+      panNumber: documents.panNumber,
+      accountNumber: documents.accountNumber,
+      gstNumber: documents.gstNumber,
+      uploadDescription: documents.uploadDescription,
       createdAt: documents.createdAt,
     })
     .from(documents)
@@ -81,7 +140,8 @@ export async function listPermanentDocumentsForUser(
         isNull(documents.documentYear),
         isNull(documents.documentSlot)
       )
-    );
+    )
+    .orderBy(desc(documents.createdAt));
 
   return rows
     .map((row) => normalizePermanentDocumentRow(row as PermanentDocumentRow))
@@ -102,6 +162,11 @@ export async function getPermanentDocumentForUser(
       fileUrl: documents.fileUrl,
       storagePath: documents.storagePath,
       mimeType: documents.mimeType,
+      aadharNumber: documents.aadharNumber,
+      panNumber: documents.panNumber,
+      accountNumber: documents.accountNumber,
+      gstNumber: documents.gstNumber,
+      uploadDescription: documents.uploadDescription,
       createdAt: documents.createdAt,
     })
     .from(documents)
@@ -112,14 +177,12 @@ export async function getPermanentDocumentForUser(
         isNull(documents.documentYear),
         isNull(documents.documentSlot)
       )
-    );
+    )
+    .limit(1);
 
-  if (!document) {
-    return undefined;
-  }
-
-  const result = normalizePermanentDocumentRow(document as PermanentDocumentRow);
-  return result || undefined;
+  return document
+    ? normalizePermanentDocumentRow(document as PermanentDocumentRow) || undefined
+    : undefined;
 }
 
 export async function createPermanentDocument(
@@ -135,7 +198,12 @@ export async function createPermanentDocument(
       fileName: input.fileName,
       fileUrl: input.fileUrl,
       storagePath: input.storagePath,
-      mimeType: input.mimeType || null,
+      mimeType: input.mimeType ?? null,
+      aadharNumber: input.aadharNumber?.trim() || null,
+      panNumber: input.panNumber?.trim() || null,
+      accountNumber: input.accountNumber?.trim() || null,
+      gstNumber: input.gstNumber?.trim() || null,
+      uploadDescription: input.uploadDescription?.trim() || null,
       documentYear: null,
       documentSlot: null,
     })
@@ -146,6 +214,11 @@ export async function createPermanentDocument(
       fileUrl: documents.fileUrl,
       storagePath: documents.storagePath,
       mimeType: documents.mimeType,
+      aadharNumber: documents.aadharNumber,
+      panNumber: documents.panNumber,
+      accountNumber: documents.accountNumber,
+      gstNumber: documents.gstNumber,
+      uploadDescription: documents.uploadDescription,
       createdAt: documents.createdAt,
     });
 
@@ -170,10 +243,25 @@ export async function updatePermanentDocument(
   const [document] = await db
     .update(documents)
     .set({
-      fileName: input.fileName,
-      fileUrl: input.fileUrl,
-      storagePath: input.storagePath,
-      mimeType: input.mimeType || null,
+      ...(input.fileName !== undefined && { fileName: input.fileName }),
+      ...(input.fileUrl !== undefined && { fileUrl: input.fileUrl }),
+      ...(input.storagePath !== undefined && { storagePath: input.storagePath }),
+      ...(input.mimeType !== undefined && { mimeType: input.mimeType ?? null }),
+      ...(input.aadharNumber !== undefined && {
+        aadharNumber: input.aadharNumber?.trim() || null,
+      }),
+      ...(input.panNumber !== undefined && {
+        panNumber: input.panNumber?.trim() || null,
+      }),
+      ...(input.accountNumber !== undefined && {
+        accountNumber: input.accountNumber?.trim() || null,
+      }),
+      ...(input.gstNumber !== undefined && {
+        gstNumber: input.gstNumber?.trim() || null,
+      }),
+      ...(input.uploadDescription !== undefined && {
+        uploadDescription: input.uploadDescription?.trim() || null,
+      }),
     })
     .where(eq(documents.id, id))
     .returning({
@@ -183,6 +271,11 @@ export async function updatePermanentDocument(
       fileUrl: documents.fileUrl,
       storagePath: documents.storagePath,
       mimeType: documents.mimeType,
+      aadharNumber: documents.aadharNumber,
+      panNumber: documents.panNumber,
+      accountNumber: documents.accountNumber,
+      gstNumber: documents.gstNumber,
+      uploadDescription: documents.uploadDescription,
       createdAt: documents.createdAt,
     });
 

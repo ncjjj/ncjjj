@@ -11,12 +11,14 @@ type ProfileForm = {
   name: string;
   email: string;
   phone: string;
+  firmName: string;
 };
 
 type ProfileApiResponse = {
   user: {
     name: string | null;
     email: string | null;
+    firmName?: string | null;
     mobileNumber: string;
   };
 };
@@ -59,12 +61,14 @@ export default function ProfileSettings() {
     name: "",
     email: "",
     phone: "",
+    firmName: "",
   });
   const [hasHydratedProfile, setHasHydratedProfile] = useState(false);
 
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState("");
   const { profileImageUrl, applyAvatarPayload } = useProfileImage({
     userId: session?.user?.id ?? null,
@@ -76,6 +80,7 @@ export default function ProfileSettings() {
         name: profileResponse.user.name || "",
         email: profileResponse.user.email || "",
         phone: profileResponse.user.mobileNumber || "",
+        firmName: profileResponse.user.firmName || "",
       });
       setHasHydratedProfile(true);
       return;
@@ -89,6 +94,7 @@ export default function ProfileSettings() {
       name: session?.user?.name || "",
       email: session?.user?.email || "",
       phone: session?.user?.mobileNumber || "",
+      firmName: "",
     });
   }, [
     hasHydratedProfile,
@@ -147,6 +153,7 @@ export default function ProfileSettings() {
         name: updatedUser?.name || "",
         email: updatedUser?.email || "",
         phone: updatedUser?.mobileNumber || "",
+        firmName: updatedUser?.firmName || "",
       });
 
       if (update) {
@@ -154,6 +161,7 @@ export default function ProfileSettings() {
           name: updatedUser?.name,
           email: updatedUser?.email,
           mobileNumber: updatedUser?.mobileNumber,
+          firmName: updatedUser?.firmName,
         });
       }
 
@@ -224,6 +232,45 @@ export default function ProfileSettings() {
     }
   };
 
+  const handleDeleteProfilePicture = async () => {
+    if (!window.confirm("Are you sure you want to delete your profile picture?")) {
+      return;
+    }
+
+    setDeleting(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/uploads/avatar", {
+        method: "DELETE",
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload?.message || "Unable to delete profile photo.");
+      }
+
+      setMessage("Profile photo deleted successfully.");
+      applyAvatarPayload({ avatarUrl: null, avatarPath: null, avatarVersion: null });
+      notifyProfileImageUpdated({
+        avatarUrl: null,
+        avatarVersion: null,
+      });
+
+      if (update) {
+        await update({
+          avatarPath: null,
+          avatarUrl: null,
+        });
+      }
+    } catch (error: unknown) {
+      setMessage(getErrorMessage(error) || "Unable to delete profile photo.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="dashboard-page dashboard-profile min-h-screen flex justify-center p-6">
 
@@ -247,6 +294,9 @@ export default function ProfileSettings() {
               {profile.name}
             </h2>
             <p className="text-sm text-[#7a6a4f]">{profile.email}</p>
+            {profile.firmName && (
+              <p className="text-sm font-medium text-[#3b2f1c]">{profile.firmName}</p>
+            )}
           </div>
 
         </div>
@@ -286,6 +336,14 @@ export default function ProfileSettings() {
               className="px-4 py-2.5 rounded-xl border border-[#e5d7b6] bg-[#faf6ed]"
             />
 
+            <input
+              name="firmName"
+              value={profile.firmName}
+              onChange={handleChange}
+              placeholder="Firm Name (Optional)"
+              className="px-4 py-2.5 rounded-xl border border-[#e5d7b6] bg-[#faf6ed]"
+            />
+
           </div>
 
             <button
@@ -302,22 +360,44 @@ export default function ProfileSettings() {
             <h3 className="text-md font-medium text-[#3b2f1c] mb-0">
               Profile Picture
             </h3>
+            <p className="text-xs text-[#6b5b3e]">JPG, PNG format only. Maximum 5MB.</p>
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 const selectedFile = e.target.files?.[0] ?? null;
                 setProfilePicture(selectedFile);
               }}
               className="w-full px-4 py-2.5 rounded-xl border border-[#e5d7b6] bg-[#faf6ed]"
             />
-            <button
-              type="submit"
-              disabled={uploading}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#d6b86a] to-[#b89b5e] text-white font-semibold shadow-md hover:scale-[1.03] transition disabled:opacity-70"
-            >
-              {uploading ? "Uploading..." : "Upload to Supabase Bucket"}
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={uploading}
+                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#d6b86a] to-[#b89b5e] text-white font-semibold shadow-md hover:scale-[1.03] transition disabled:opacity-70"
+              >
+                {uploading ? "Uploading..." : "Upload Photo"}
+              </button>
+              {profileImageUrl && !profileImageUrl.includes("undefined") && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => window.open(profileImageUrl, "_blank")}
+                    className="px-4 py-2.5 rounded-xl bg-blue-100 text-blue-700 font-semibold shadow-md hover:scale-[1.03] transition"
+                  >
+                    View Photo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteProfilePicture}
+                    disabled={deleting}
+                    className="px-4 py-2.5 rounded-xl bg-red-100 text-red-700 font-semibold shadow-md hover:scale-[1.03] transition disabled:opacity-70"
+                  >
+                    {deleting ? "Deleting..." : "Delete Photo"}
+                  </button>
+                </>
+              )}
+            </div>
           </form>
 
           {message ? (

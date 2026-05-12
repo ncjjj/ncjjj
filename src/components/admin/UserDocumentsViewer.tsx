@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { AdminDocumentUserGroup, AdminDocumentView } from "../../types/domain";
+import { getUserSocketClient } from "../../lib/socketClient";
 
 type Props = { userId: string };
 
@@ -10,7 +11,7 @@ export default function UserDocumentsViewer({ userId }: Props) {
   const [loading, setLoading] = useState(false);
   const [nextOffsets, setNextOffsets] = useState<{ yearly: number | null; permanent: number | null }>({ yearly: null, permanent: null });
 
-  const fetchPage = async (opts: { category?: "all" | "yearly" | "permanent"; offset?: number; append?: boolean; limit?: number } = {}) => {
+  const fetchPage = useCallback(async (opts: { category?: "all" | "yearly" | "permanent"; offset?: number; append?: boolean; limit?: number } = {}) => {
     setLoading(true);
     try {
       const category = opts.category || "all";
@@ -37,8 +38,12 @@ export default function UserDocumentsViewer({ userId }: Props) {
 
       setNextOffsets({ yearly: payload.nextOffsets?.yearly ?? null, permanent: payload.nextOffsets?.permanent ?? null });
 
-      if (opts.append && group) {
-        setGroup({ ...group, documents: [...group.documents, ...incoming.documents] });
+      if (opts.append) {
+        setGroup((current) =>
+          current
+            ? { ...current, documents: [...current.documents, ...incoming.documents] }
+            : incoming
+        );
       } else {
         setGroup(incoming);
       }
@@ -47,12 +52,67 @@ export default function UserDocumentsViewer({ userId }: Props) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     fetchPage({ limit: 20, offset: 0 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [fetchPage]);
+
+  useEffect(() => {
+    let disposed = false;
+    let cleanup: (() => void) | undefined;
+
+    async function setupSocket() {
+      const socket = await getUserSocketClient();
+
+      if (!socket || disposed) {
+        return;
+      }
+
+      const handleDocumentsUpdated = (event: { userId?: string }) => {
+        if (event?.userId === userId) {
+          void fetchPage({ limit: 20, offset: 0 });
+        }
+      };
+
+      socket.on("documentsUpdated", handleDocumentsUpdated);
+
+      cleanup = () => {
+        socket.off("documentsUpdated", handleDocumentsUpdated);
+      };
+    }
+
+    setupSocket();
+
+    return () => {
+      disposed = true;
+      cleanup?.();
+    };
+  }, [fetchPage, userId]);
+
+  const renderPermanentMeta = (document: AdminDocumentView) => {
+    const entries = [
+      ["Aadhaar", document.aadharNumber],
+      ["PAN", document.panNumber],
+      ["Account", document.accountNumber],
+      ["GST", document.gstNumber],
+      ["Name", document.uploadDescription],
+    ].filter((entry): entry is [string, string] => Boolean(entry[1]));
+
+    if (entries.length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="mt-2 space-y-1 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] p-2">
+        {entries.map(([label, value]) => (
+          <p key={label} className="text-xs text-[#4b5563]">
+            <span className="font-medium">{label}:</span> {value}
+          </p>
+        ))}
+      </div>
+    );
+  };
 
   if (!group) return <p className="text-sm text-[#6b7280]">Loading documents...</p>;
 
@@ -61,7 +121,7 @@ export default function UserDocumentsViewer({ userId }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-[#111827]">{group.userName}</h3>
-          <p className="text-xs text-[#6b7280]">{group.userEmail} · {group.userPhone}</p>
+          <p className="text-xs text-[#6b7280]">{group.userEmail} - {group.userPhone}</p>
         </div>
         <span className="text-xs font-semibold uppercase text-[#6b7280]">{group.documents.length} documents</span>
       </div>
@@ -84,6 +144,7 @@ export default function UserDocumentsViewer({ userId }: Props) {
                     </div>
 
                     <p className="mt-2 text-xs text-[#6b7280]">File: {document.fileName}</p>
+                    {renderPermanentMeta(document)}
 
                     {document.signedUrl ? (
                       <a href={document.signedUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-lg border border-[#d1d5db] bg-[#111827] px-3 py-1.5 text-xs font-medium text-white">View Document</a>
@@ -157,6 +218,7 @@ export default function UserDocumentsViewer({ userId }: Props) {
                   </div>
 
                   <p className="mt-2 text-xs text-[#6b7280]">File: {document.fileName}</p>
+                  {renderPermanentMeta(document)}
 
                   {document.signedUrl ? (
                     <a href={document.signedUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-lg border border-[#d1d5db] bg-[#111827] px-3 py-1.5 text-xs font-medium text-white">View Document</a>

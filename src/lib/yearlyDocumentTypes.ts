@@ -1,8 +1,8 @@
 export const yearlyDocumentTypes = [
   {
-    slot: "itr",
-    label: "ITR",
-    description: "Income Tax Return",
+    slot: "bank_statement",
+    label: "Bank Statement",
+    description: "Bank statement for the selected year",
   },
   {
     slot: "document_2",

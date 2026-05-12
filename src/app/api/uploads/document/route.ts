@@ -1,12 +1,14 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { randomUUID } from "crypto";
 import { authOptions } from "../../../../lib/auth";
 import { createDocument } from "../../../../db/queries/documents";
 import {
   createSignedSupabaseObjectUrl,
   uploadFileToSupabase,
 } from "../../../../lib/supabaseStorage";
+import { emitToAdminRoom } from "../../../../lib/socketServer";
 
 const allowedDocumentTypes = [
   "Aadhaar Card",
@@ -76,6 +78,14 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.warn("[uploads/document] signed URL generation failed", error);
     }
+
+    emitToAdminRoom("documentsUpdated", {
+      eventId: randomUUID(),
+      userId: session.user.id,
+      documentType: savedDocument.documentType,
+      documentCategory: "general",
+      occurredAt: new Date().toISOString(),
+    });
 
     return NextResponse.json({
       id: savedDocument.id,

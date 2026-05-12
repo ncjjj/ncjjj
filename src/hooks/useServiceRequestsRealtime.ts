@@ -6,6 +6,7 @@ import { getUserSocketClient } from "../lib/socketClient";
 import type {
   AdminNoteAddedRealtimeEvent,
   ApiMessageResponse,
+  ServiceRequestCreatedRealtimeEvent,
   ServicePreviewRealtimeEvent,
   ServiceRequestStats,
   ServiceUpdatedRealtimeEvent,
@@ -104,7 +105,7 @@ export function useServiceRequestsRealtime() {
         return {
           ...request,
           status: event.status,
-          adminRemarks: event.adminRemarks,
+          adminRemarks: event.adminRemarks ?? request.adminRemarks,
           paymentStatus: event.paymentStatus,
           paymentNote: event.paymentNote ?? request.paymentNote,
         };
@@ -180,6 +181,14 @@ export function useServiceRequestsRealtime() {
         applyServiceUpdate(event);
       };
 
+      const handleServiceRequestCreated = (event: ServiceRequestCreatedRealtimeEvent) => {
+        if (!event || event.userId !== userId || isDuplicateEvent(event.eventId)) {
+          return;
+        }
+
+        void loadRequests();
+      };
+
       const handleAdminNoteAdded = (event: AdminNoteAddedRealtimeEvent) => {
         if (!event || event.userId !== userId || isDuplicateEvent(event.eventId)) {
           return;
@@ -197,6 +206,7 @@ export function useServiceRequestsRealtime() {
       };
 
       socket.on("connect", handleConnect);
+      socket.on("serviceRequestCreated", handleServiceRequestCreated);
       socket.on("serviceUpdated", handleServiceUpdated);
       socket.on("adminNoteAdded", handleAdminNoteAdded);
       socket.on("servicePreview", handleServicePreview);
@@ -207,6 +217,7 @@ export function useServiceRequestsRealtime() {
 
       cleanup = () => {
         socket.off("connect", handleConnect);
+        socket.off("serviceRequestCreated", handleServiceRequestCreated);
         socket.off("serviceUpdated", handleServiceUpdated);
         socket.off("adminNoteAdded", handleAdminNoteAdded);
         socket.off("servicePreview", handleServicePreview);

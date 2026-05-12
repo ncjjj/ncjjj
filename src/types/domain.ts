@@ -52,6 +52,16 @@ export interface ServiceUpdatedRealtimeEvent {
   occurredAt: string;
 }
 
+export interface ServiceRequestCreatedRealtimeEvent {
+  eventId: string;
+  requestId: string;
+  userId: string;
+  serviceId: string;
+  serviceName: string;
+  status: ServiceRequestStatus;
+  occurredAt: string;
+}
+
 export interface AdminNoteAddedRealtimeEvent {
   eventId: string;
   requestId: string;
@@ -170,6 +180,11 @@ export interface AdminDocumentView {
   filePath: string;
   signedUrl: string | null;
   mimeType: string | null;
+  aadharNumber?: string | null;
+  panNumber?: string | null;
+  accountNumber?: string | null;
+  gstNumber?: string | null;
+  uploadDescription?: string | null;
   createdAt: string;
 }
 

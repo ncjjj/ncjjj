@@ -42,9 +42,15 @@ export function getServiceMeta(serviceId: string): {
     return SERVICE_CATALOG[serviceId];
   }
 
+  // For unknown service IDs, return a descriptive name based on the serviceId
+  const formattedName = serviceId
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
   return {
     id: serviceId,
-    name: "Service Request",
+    name: formattedName,
     description: "Submit documents for verification",
   };
 }

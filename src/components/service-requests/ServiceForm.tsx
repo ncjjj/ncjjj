@@ -4,28 +4,84 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { z } from "zod";
-import UploadFields from "./UploadFields";
+import {
+  getPermanentDocumentDescription,
+  getPermanentDocumentLabel,
+  requiredPermanentDocumentTypes,
+  type PermanentDocumentType,
+} from "../../lib/permanentDocumentTypes";
 import { getServiceMeta } from "../../lib/serviceCatalog";
 
 type ServiceFormProps = {
   serviceId: string;
 };
 
-type UploadedFile = {
-  type: string;
-  filePath: string;
-  signedUrl?: string | null;
-  fileName: string;
-  mimeType: string;
+type PermanentDocumentNumbers = {
+  aadharNumber: string;
+  panNumber: string;
+  accountNumber: string;
+  gstNumber: string;
 };
 
-type ExistingDocument = {
+type SavedPermanentDocument = {
   id: string;
+  documentType: PermanentDocumentType;
+  documentLabel: string;
+  documentDescription: string;
   fileName: string;
-  documentType: string;
-  filePath: string;
-  signedUrl?: string | null;
+  fileUrl: string;
+  storagePath: string;
+  signedUrl: string | null;
+  documentSignedUrl?: string | null;
+  mimeType: string | null;
+  aadharNumber: string | null;
+  panNumber: string | null;
+  accountNumber: string | null;
+  gstNumber: string | null;
+  uploadDescription: string | null;
+  createdAt: string;
 };
+
+type PermanentDocumentsPayload = {
+  documents?: SavedPermanentDocument[];
+  numbers?: PermanentDocumentNumbers;
+  message?: string;
+};
+
+type YearlyDocumentItem = {
+  id: string;
+  documentYear: number;
+  documentSlot: string;
+  fileName: string;
+  filePath: string;
+  storagePath?: string;
+  signedUrl: string | null;
+  mimeType: string | null;
+  createdAt: string;
+};
+
+type YearlyDocumentsPayload = {
+  documents?: YearlyDocumentItem[];
+  message?: string;
+};
+
+type AdditionalServiceDocument = {
+  name: string;
+  file: File | null;
+};
+
+const emptyNumbers: PermanentDocumentNumbers = {
+  aadharNumber: "",
+  panNumber: "",
+  accountNumber: "",
+  gstNumber: "",
+};
+
+const emptyAdditionalServiceDocuments: AdditionalServiceDocument[] = [
+  { name: "", file: null },
+  { name: "", file: null },
+  { name: "", file: null },
+];
 
 function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message) {
@@ -38,10 +94,23 @@ function getErrorMessage(error: unknown, fallback: string): string {
 const formSchema = z.object({
   name: z.string().trim().min(2, "Name is required."),
   phone: z.string().trim().min(6, "Valid phone number is required."),
-  pan: z.string().trim().min(10, "Valid PAN is required."),
-  aadhaar: z.string().trim().min(12, "Valid Aadhaar is required."),
+  pan: z.string().trim().min(10, "Update a valid PAN number in Documents."),
+  aadhaar: z.string().trim().min(12, "Update a valid Aadhaar number in Documents."),
+  accountNumber: z.string().trim().min(1, "Update your account number in Documents."),
   gstNumber: z.string().trim().max(30).optional().or(z.literal("")),
 });
+
+function getServiceDocumentType(document: SavedPermanentDocument): string {
+  if (document.documentType === "aadhar") {
+    return "aadhaar";
+  }
+
+  if (document.documentType === "pan") {
+    return "pan";
+  }
+
+  return document.uploadDescription?.trim() || getPermanentDocumentLabel(document.documentType);
+}
 
 export default function ServiceForm({ serviceId }: ServiceFormProps) {
   const [form, setForm] = useState({
@@ -49,16 +118,14 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
     phone: "",
     pan: "",
     aadhaar: "",
+    accountNumber: "",
     gstNumber: "",
   });
-  const [requiredFiles, setRequiredFiles] = useState<Record<string, File | null>>({
-    panCard: null,
-    aadhaarCard: null,
-    photo: null,
-    signature: null,
-  });
-  const [additionalFiles, setAdditionalFiles] = useState<File[]>([]);
-  const [existingDocuments, setExistingDocuments] = useState<ExistingDocument[]>([]);
+  const [permanentDocuments, setPermanentDocuments] = useState<SavedPermanentDocument[]>([]);
+  const [yearlyDocuments, setYearlyDocuments] = useState<YearlyDocumentItem[]>([]);
+  const [additionalServiceDocuments, setAdditionalServiceDocuments] = useState<AdditionalServiceDocument[]>(
+    emptyAdditionalServiceDocuments
+  );
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -66,31 +133,70 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
 
   const service = useMemo(() => getServiceMeta(serviceId), [serviceId]);
 
-  const requiredDocTypeMap = {
-    panCard: "PAN Card",
-    aadhaarCard: "Aadhaar Card",
-    photo: "Passport Size Photo",
-    signature: "Signature",
-  } as const;
+  const documentsByType = useMemo(() => {
+    const map = new Map<PermanentDocumentType, SavedPermanentDocument>();
 
-  const requiredServiceTypeMap = {
-    panCard: "pan",
-    aadhaarCard: "aadhaar",
-    photo: "photo",
-    signature: "signature",
-  } as const;
+    for (const document of permanentDocuments) {
+      if (!map.has(document.documentType)) {
+        map.set(document.documentType, document);
+      }
+    }
 
-  const prefilledRequiredDocs = useMemo(() => {
-    const byType = (docType: string) =>
-      existingDocuments.find((doc) => doc.documentType === docType) || null;
+    return map;
+  }, [permanentDocuments]);
 
-    return {
-      panCard: byType(requiredDocTypeMap.panCard),
-      aadhaarCard: byType(requiredDocTypeMap.aadhaarCard),
-      photo: byType(requiredDocTypeMap.photo),
-      signature: byType(requiredDocTypeMap.signature),
-    };
-  }, [existingDocuments]);
+  const savedServiceDocuments = useMemo(
+    () => {
+      const documents = permanentDocuments.map((document) => ({
+        type: getServiceDocumentType(document),
+        filePath: document.storagePath || document.fileUrl,
+      }));
+
+      const bankStatement = yearlyDocuments
+        .filter((document) => document.documentSlot === "bank_statement")
+        .sort((left, right) => {
+          if (right.documentYear !== left.documentYear) {
+            return right.documentYear - left.documentYear;
+          }
+
+          return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+        })[0];
+
+      if (bankStatement) {
+        documents.push({
+          type: "bank_statement",
+          filePath: bankStatement.filePath || bankStatement.storagePath || "",
+        });
+      }
+
+      return documents;
+    },
+    [permanentDocuments, yearlyDocuments]
+  );
+
+  const latestBankStatement = useMemo(() => {
+    return yearlyDocuments
+      .filter((document) => document.documentSlot === "bank_statement")
+      .sort((left, right) => {
+        if (right.documentYear !== left.documentYear) {
+          return right.documentYear - left.documentYear;
+        }
+
+        return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+      })[0] || null;
+  }, [yearlyDocuments]);
+
+  const missingRequiredDocuments = useMemo(() => {
+    const missing = requiredPermanentDocumentTypes
+      .filter((documentType) => !documentsByType.has(documentType))
+      .map((documentType) => getPermanentDocumentLabel(documentType));
+
+    if (!latestBankStatement) {
+      missing.unshift("Bank Statement");
+    }
+
+    return missing;
+  }, [documentsByType, latestBankStatement]);
 
   useEffect(() => {
     let isMounted = true;
@@ -100,36 +206,48 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
       setError("");
 
       try {
-        const [response, docsResponse] = await Promise.all([
+        const [response, documentsResponse, yearlyResponse] = await Promise.all([
           fetch(`/api/service-request?serviceId=${serviceId}&scope=form`, { cache: "no-store" }),
-          fetch("/api/documents", { cache: "no-store" }),
+          fetch("/api/permanent-documents", { cache: "no-store" }),
+          fetch("/api/yearly-documents", { cache: "no-store" }),
         ]);
 
-        const [payload, docsPayload] = await Promise.all([
+        const [payload, documentsPayload, yearlyPayload] = await Promise.all([
           response.json(),
-          docsResponse.json(),
+          documentsResponse.json(),
+          yearlyResponse.json(),
         ]);
 
         if (!response.ok) {
           throw new Error(payload?.message || "Unable to load profile details.");
         }
 
+        if (!documentsResponse.ok) {
+          throw new Error(documentsPayload?.message || "Unable to load saved documents.");
+        }
+
+        if (!yearlyResponse.ok) {
+          throw new Error(yearlyPayload?.message || "Unable to load year-wise documents.");
+        }
+
         if (!isMounted) {
           return;
         }
 
-        setForm((prev) => ({
-          ...prev,
+        const permanentPayload = documentsPayload as PermanentDocumentsPayload;
+        const numbers = permanentPayload.numbers || emptyNumbers;
+        const yearlyDocumentsPayload = yearlyPayload as YearlyDocumentsPayload;
+
+        setPermanentDocuments(permanentPayload.documents || []);
+        setYearlyDocuments(yearlyDocumentsPayload.documents || []);
+        setForm({
           name: payload?.profile?.name || "",
           phone: payload?.profile?.phone || "",
-          pan: payload?.defaults?.pan || "",
-          aadhaar: payload?.defaults?.aadhaar || "",
-          gstNumber: payload?.defaults?.gstNumber || "",
-        }));
-
-        if (docsResponse.ok) {
-          setExistingDocuments(docsPayload.documents || []);
-        }
+          pan: numbers.panNumber || payload?.defaults?.pan || "",
+          aadhaar: numbers.aadharNumber || payload?.defaults?.aadhaar || "",
+          accountNumber: numbers.accountNumber || "",
+          gstNumber: numbers.gstNumber || payload?.defaults?.gstNumber || "",
+        });
       } catch (fetchError: unknown) {
         if (!isMounted) {
           return;
@@ -150,66 +268,60 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
     };
   }, [serviceId]);
 
-  const onChangeField = (name: string, value: string) => {
+  const onChangeField = (name: "name" | "phone", value: string) => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const onFileChange = (name: string, file: File | null) => {
-    setRequiredFiles((prev) => ({ ...prev, [name]: file }));
+  const onAdditionalDocumentChange = (
+    index: number,
+    field: keyof AdditionalServiceDocument,
+    value: string | File | null
+  ) => {
+    setAdditionalServiceDocuments((previous) =>
+      previous.map((document, documentIndex) =>
+        documentIndex === index ? { ...document, [field]: value } : document
+      )
+    );
   };
 
-  const uploadDocuments = async (): Promise<UploadedFile[]> => {
-    const prefilledFiles: UploadedFile[] = Object.entries(requiredServiceTypeMap)
-      .map(([fieldName, serviceType]) => {
-        const existingDoc = prefilledRequiredDocs[fieldName as keyof typeof requiredServiceTypeMap];
+  const uploadAdditionalDocuments = async () => {
+    const documentsToUpload = additionalServiceDocuments
+      .map((document, index) => ({ ...document, index }))
+      .filter((document) => document.file);
 
-        if (!existingDoc) {
-          return null;
-        }
+    if (documentsToUpload.length === 0) {
+      return [] as Array<{ type: string; filePath: string }>;
+    }
 
-        return {
-          type: serviceType,
-          filePath: existingDoc.filePath,
-          signedUrl: existingDoc.signedUrl || null,
-          fileName: existingDoc.fileName,
-          mimeType: "",
-        };
-      })
-      .filter(Boolean) as UploadedFile[];
+    const unnamedDocument = documentsToUpload.find((document) => !document.name.trim());
+
+    if (unnamedDocument) {
+      throw new Error("Write a name for each additional document before submitting.");
+    }
 
     const uploadPayload = new FormData();
 
-    Object.entries(requiredFiles).forEach(([name, file]) => {
-      if (file) {
-        uploadPayload.append(name, file);
-      }
+    documentsToUpload.forEach((document) => {
+      uploadPayload.append(`additionalDocument_${document.index + 1}`, document.file as File);
     });
-
-    additionalFiles.forEach((file) => {
-      uploadPayload.append("additionalDocuments", file);
-    });
-
-    if (Array.from(uploadPayload.keys()).length === 0) {
-      return prefilledFiles;
-    }
 
     const uploadResponse = await fetch("/api/upload", {
       method: "POST",
       body: uploadPayload,
     });
-
-    const uploadResult = await uploadResponse.json();
+    const uploadResult = (await uploadResponse.json()) as {
+      files?: Array<{ type: string; filePath: string }>;
+      message?: string;
+    };
 
     if (!uploadResponse.ok) {
-      throw new Error(uploadResult?.message || "Unable to upload documents.");
+      throw new Error(uploadResult.message || "Unable to upload additional documents.");
     }
 
-    const uploadedFiles = (uploadResult.files || []) as UploadedFile[];
-    const uploadedByType = new Map(uploadedFiles.map((item) => [item.type, item]));
-
-    const mergedPrefilled = prefilledFiles.filter((item) => !uploadedByType.has(item.type));
-
-    return [...uploadedFiles, ...mergedPrefilled];
+    return (uploadResult.files || []).map((file, index) => ({
+      type: documentsToUpload[index]?.name.trim() || file.type,
+      filePath: file.filePath,
+    }));
   };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -224,23 +336,15 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
       return;
     }
 
-    const requiredMissing = Object.entries(requiredFiles).some(([key, file]) => {
-      if (file) {
-        return false;
-      }
-
-      return !prefilledRequiredDocs[key as keyof typeof requiredServiceTypeMap];
-    });
-
-    if (requiredMissing) {
-      setError("PAN, Aadhaar, photo and signature files are mandatory.");
+    if (missingRequiredDocuments.length > 0) {
+      setError(`Upload ${missingRequiredDocuments.join(", ")} in Documents before submitting this service.`);
       return;
     }
 
     setSubmitting(true);
 
     try {
-      const uploadedFiles = await uploadDocuments();
+      const additionalUploadedDocuments = await uploadAdditionalDocuments();
 
       const response = await fetch("/api/service-request", {
         method: "POST",
@@ -250,10 +354,7 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
         body: JSON.stringify({
           ...parsed.data,
           serviceId,
-          documents: uploadedFiles.map((file) => ({
-            type: file.type,
-            filePath: file.filePath,
-          })),
+          documents: [...savedServiceDocuments, ...additionalUploadedDocuments],
         }),
       });
 
@@ -264,13 +365,109 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
       }
 
       setMessage("Request submitted. Admin verification has started.");
-      setRequiredFiles({ panCard: null, aadhaarCard: null, photo: null, signature: null });
-      setAdditionalFiles([]);
+      setAdditionalServiceDocuments(emptyAdditionalServiceDocuments);
     } catch (submitError: unknown) {
       setError(getErrorMessage(submitError, "Unable to submit your request."));
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const renderSavedDocument = (documentType: PermanentDocumentType) => {
+    const document = documentsByType.get(documentType) || null;
+
+    return (
+      <article key={documentType} className="rounded-2xl border border-[#e8dcc0] bg-white p-4 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="font-semibold text-[#3b2f1c]">{getPermanentDocumentLabel(documentType)}</p>
+            <p className="text-xs text-[#7a6a4f]">{getPermanentDocumentDescription(documentType)}</p>
+          </div>
+          <span
+            className={`shrink-0 rounded-full px-2 py-1 text-xs ${
+              document ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+            }`}
+          >
+            {document ? "Ready" : "Missing"}
+          </span>
+        </div>
+
+        <div className="mt-4">
+          {document ? (
+            <p className="text-sm font-medium text-[#3b2f1c] break-words">{document.fileName}</p>
+          ) : (
+            <p className="text-sm text-[#7a6a4f]">Not uploaded in Documents</p>
+          )}
+        </div>
+
+        <div className="mt-4">
+          {document?.signedUrl ? (
+            <a
+              href={document.signedUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex rounded-lg bg-[#f5e6c8] px-3 py-2 text-sm text-[#6b5b3e] transition hover:bg-[#e8dcc0]"
+            >
+              View
+            </a>
+          ) : (
+            <span className="inline-flex rounded-lg bg-gray-200 px-3 py-2 text-sm text-gray-600">
+              View
+            </span>
+          )}
+        </div>
+      </article>
+    );
+  };
+
+  const renderBankStatement = () => {
+    const document = latestBankStatement;
+
+    return (
+      <article className="rounded-2xl border border-[#e8dcc0] bg-white p-4 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="font-semibold text-[#3b2f1c]">Bank Statement</p>
+            <p className="text-xs text-[#7a6a4f]">Latest uploaded year-wise bank statement</p>
+          </div>
+          <span
+            className={`shrink-0 rounded-full px-2 py-1 text-xs ${
+              document ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+            }`}
+          >
+            {document ? "Ready" : "Missing"}
+          </span>
+        </div>
+
+        <div className="mt-4">
+          {document ? (
+            <>
+              <p className="text-sm font-medium text-[#3b2f1c] break-words">{document.fileName}</p>
+              <p className="text-xs text-[#7a6a4f]">Year: {document.documentYear}</p>
+            </>
+          ) : (
+            <p className="text-sm text-[#7a6a4f]">Not uploaded in Required Documents</p>
+          )}
+        </div>
+
+        <div className="mt-4">
+          {document?.signedUrl ? (
+            <a
+              href={document.signedUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex rounded-lg bg-[#f5e6c8] px-3 py-2 text-sm text-[#6b5b3e] transition hover:bg-[#e8dcc0]"
+            >
+              View
+            </a>
+          ) : (
+            <span className="inline-flex rounded-lg bg-gray-200 px-3 py-2 text-sm text-gray-600">
+              View
+            </span>
+          )}
+        </div>
+      </article>
+    );
   };
 
   if (loading) {
@@ -284,8 +481,8 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
   return (
     <div className="mx-auto w-full max-w-5xl rounded-3xl border border-[#e8dcc0] bg-white/85 p-8 shadow-xl">
       <div className="mb-8 space-y-2">
-        <p className="text-sm uppercase tracking-[0.2em] text-[#7a6a4f]">Service Request</p>
-        <h1 className="text-3xl font-semibold text-[#3b2f1c]">{service.name}</h1>
+        <p className="text-sm uppercase tracking-[0.2em] text-[#7a6a4f]">{service.name}</p>
+        <h1 className="text-3xl font-semibold text-[#3b2f1c]">Submit Your Request</h1>
         <p className="text-sm text-[#6b5b3e]">{service.description}</p>
       </div>
 
@@ -315,8 +512,8 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
             PAN
             <input
               value={form.pan}
-              onChange={(event) => onChangeField("pan", event.target.value)}
-              className="w-full rounded-xl border border-[#e5d7b6] bg-[#faf6ed] px-4 py-3 uppercase"
+              readOnly
+              className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 uppercase text-[#3b2f1c]"
             />
           </label>
 
@@ -324,26 +521,83 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
             Aadhaar
             <input
               value={form.aadhaar}
-              onChange={(event) => onChangeField("aadhaar", event.target.value)}
-              className="w-full rounded-xl border border-[#e5d7b6] bg-[#faf6ed] px-4 py-3"
+              readOnly
+              className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 text-[#3b2f1c]"
+            />
+          </label>
+
+          <label className="space-y-2 text-sm text-[#6b5b3e]">
+            Account Number
+            <input
+              value={form.accountNumber}
+              readOnly
+              className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 text-[#3b2f1c]"
+            />
+          </label>
+
+          <label className="space-y-2 text-sm text-[#6b5b3e]">
+            GST Number (optional)
+            <input
+              value={form.gstNumber}
+              readOnly
+              className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 uppercase text-[#3b2f1c]"
             />
           </label>
         </div>
 
-        <label className="space-y-2 text-sm text-[#6b5b3e]">
-          GST Number (optional)
-          <input
-            value={form.gstNumber}
-            onChange={(event) => onChangeField("gstNumber", event.target.value)}
-            className="w-full rounded-xl border border-[#e5d7b6] bg-[#faf6ed] px-4 py-3 uppercase"
-          />
-        </label>
+        <section className="rounded-2xl border border-[#e8dcc0] bg-[#fffaf0] p-5">
+          <div className="mb-5">
+            <h3 className="text-lg font-semibold text-[#3b2f1c]">Saved Documents</h3>
+            <p className="text-sm text-[#7a6a4f]">
+              Documents are managed from the dashboard and are view-only here.
+            </p>
+          </div>
 
-        <UploadFields
-          onFileChange={onFileChange}
-          onAdditionalFilesChange={setAdditionalFiles}
-          existingRequiredDocs={prefilledRequiredDocs}
-        />
+          <div className="grid gap-4 md:grid-cols-3">
+            {renderBankStatement()}
+            {requiredPermanentDocumentTypes.map((documentType) => renderSavedDocument(documentType))}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-[#e8dcc0] bg-white p-5">
+          <div className="mb-5">
+            <h3 className="text-lg font-semibold text-[#3b2f1c]">Additional Documents</h3>
+            <p className="text-sm text-[#7a6a4f]">
+              Add up to three service-specific documents for this request.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {additionalServiceDocuments.map((document, index) => (
+              <div key={index} className="space-y-3 rounded-2xl border border-[#e8dcc0] bg-[#fffaf0] p-4">
+                <label className="space-y-2 text-sm text-[#6b5b3e]">
+                  Document name
+                  <input
+                    value={document.name}
+                    onChange={(event) => onAdditionalDocumentChange(index, "name", event.target.value)}
+                    placeholder={`Additional Document ${index + 1}`}
+                    className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3"
+                  />
+                </label>
+
+                <label className="space-y-2 text-sm text-[#6b5b3e]">
+                  File
+                  <input
+                    type="file"
+                    onChange={(event) =>
+                      onAdditionalDocumentChange(index, "file", event.target.files?.[0] ?? null)
+                    }
+                    className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3"
+                  />
+                </label>
+
+                {document.file ? (
+                  <p className="text-xs text-[#7a6a4f] break-words">{document.file.name}</p>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </section>
 
         <button
           type="submit"

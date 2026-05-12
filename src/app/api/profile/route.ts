@@ -12,6 +12,7 @@ const profileUpdateSchema = z
     email: z.string().trim().email("Please enter a valid email address."),
     phone: z.string().trim().optional(),
     mobileNumber: z.string().trim().optional(),
+    firmName: z.string().trim().max(120).optional().or(z.literal("")),
   })
   .superRefine((data, ctx) => {
     const rawPhone = (data.phone || data.mobileNumber || "").trim();
@@ -70,6 +71,7 @@ export async function GET() {
         id: user.id,
         name: user.name,
         email: user.email,
+        firmName: user.firmName || "",
         mobileNumber: user.mobileNumber,
         avatarPath: user.avatarPath,
         avatarUrl: user.avatarUrl,
@@ -117,6 +119,7 @@ export async function PATCH(request: NextRequest) {
       name: parsed.data.name,
       email: normalizedEmail,
       mobileNumber: normalizedPhone,
+      firmName: parsed.data.firmName || null,
     });
 
     if (!updatedUser) {
@@ -128,6 +131,7 @@ export async function PATCH(request: NextRequest) {
         id: updatedUser.id,
         name: updatedUser.name,
         email: updatedUser.email,
+        firmName: updatedUser.firmName || "",
         mobileNumber: updatedUser.mobileNumber,
         avatarPath: updatedUser.avatarPath,
         avatarUrl: updatedUser.avatarUrl,

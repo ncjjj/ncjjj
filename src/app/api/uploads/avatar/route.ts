@@ -155,3 +155,28 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE() {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    await updateUserAvatarPath(session.user.id, null, null);
+
+    return NextResponse.json({
+      message: "Profile photo deleted successfully.",
+      avatarPath: null,
+      avatarUrl: null,
+    });
+  } catch (error: unknown) {
+    console.error("[uploads/avatar] DELETE failed", error);
+
+    return NextResponse.json(
+      { message: getErrorMessage(error) || "Unable to delete profile photo." },
+      { status: 500 }
+    );
+  }
+}
