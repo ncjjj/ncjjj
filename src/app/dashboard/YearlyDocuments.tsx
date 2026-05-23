@@ -100,6 +100,7 @@ export default function YearlyDocuments() {
     setLoading(true);
 
     try {
+      // Yearly documents API disabled
       const response = await fetch("/api/yearly-documents", { cache: "no-store" });
       const payload = (await response.json()) as YearlyDocumentsPayload & { message?: string };
 
@@ -267,7 +268,7 @@ export default function YearlyDocuments() {
             </div>
 
             <div className="space-y-5">
-              <div className="grid gap-4 md:grid-cols-[180px_repeat(3,minmax(0,1fr))] items-start">
+              <div className="grid gap-4 grid-cols-[180px_repeat(3,minmax(0,1fr))] items-start">
                 <label className="space-y-2">
                   <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-[#7a6a4f]">
                     Year
@@ -387,15 +388,15 @@ export default function YearlyDocuments() {
               ) : null}
 
               {groupedDocuments.map(({ documentYear, slots }) => (
-                <section key={documentYear} className="rounded-2xl border border-[#e8dcc0] bg-[#fffdf8] p-4 md:p-5">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+                <section key={documentYear} className="rounded-2xl border border-[#e8dcc0] bg-[#fffdf8] p-5">
+                  <div className="flex flex-row items-center justify-between gap-2 mb-4">
                     <div>
                       <h4 className="text-base font-semibold text-[#3b2f1c]">Year: {documentYear}</h4>
                       <p className="text-xs text-[#7a6a4f]">View or replace any of the 3 required documents.</p>
                     </div>
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-3">
+                  <div className="grid gap-4 grid-cols-3">
                     {yearlyDocumentTypes.map((item) => {
                       const document = slots.get(item.slot);
 

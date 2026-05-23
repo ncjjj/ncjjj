@@ -384,159 +384,22 @@
   border-color: rgba(212, 175, 55, 0.5);
 }
 
-/* RESPONSIVE */
-@media (max-width: 1200px) {
-  .main-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .main-layout::before {
-    display: none;
-  }
-
-  .vision-section {
-    border-right: none;
-    border-bottom: 2px solid rgba(212, 175, 55, 0.3);
-  }
-
-  .about {
-    border-left: none;
-    border-top: 2px solid rgba(212, 175, 55, 0.3);
-  }
-
-  .vision-section,
-  .about {
-    min-height: auto;
-  }
-
-  .title {
-    text-align: center;
-  }
-
-  .title::after {
-    margin: 20px auto 0;
-  }
-}
-
+/* Responsive: stack main layout and shrink elements for mobile */
 @media (max-width: 1024px) {
-  .vision-section,
-  .about {
-    padding: 60px 6%;
-  }
-
-  .title {
-    font-size: 2.4rem;
-    margin-bottom: 50px;
-  }
-
-  .vision-card {
-    padding: 25px;
-  }
-
-  .vision-card img {
-    width: 120px;
-    height: 120px;
-  }
+  .main-layout { grid-template-columns: 1fr; min-height: auto; }
+  .main-layout::before { display: none; }
+  .vision-layout { gap: 24px; }
 }
 
 @media (max-width: 768px) {
-  .vision-section,
-  .about {
-    padding: 60px 5%;
-  }
-
-  .title {
-    font-size: 2.2rem;
-    margin-bottom: 50px;
-  }
-
-  .vision-layout {
-    flex-direction: column;
-    gap: 40px;
-  }
-
-  .timeline {
-    width: 100%;
-    height: 60px;
-  }
-
-  .line {
-    width: 80%;
-    height: 4px;
-    max-width: 400px;
-  }
-
-  .line::before,
-  .line::after {
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-
-  .line::after {
-    left: auto;
-    right: 0;
-    bottom: auto;
-  }
-
-  .vision-card {
-    flex-direction: column;
-    text-align: center;
-    padding: 25px 20px;
-  }
-
-  .vision-card img {
-    width: 100px;
-    height: 100px;
-  }
-
-  .about-text,
-  .about-card {
-    padding: 30px;
-  }
-
-  .about-text::before {
-    font-size: 4rem;
-    top: 15px;
-    left: 15px;
-  }
-
-  .about-card h4 {
-    font-size: 1.6rem;
-  }
+  .vision-section { padding: 40px 4%; }
+  .title { font-size: 2rem; margin-bottom: 30px; }
+  .vision-card { padding: 20px; gap: 16px; }
+  .vision-card img { width: 100px; height: 100px; }
+  .cards { gap: 24px; }
 }
 
 @media (max-width: 480px) {
-  .vision-section,
-  .about {
-    padding: 40px 4%;
-  }
-
-  .title {
-    font-size: 1.8rem;
-    margin-bottom: 40px;
-  }
-
-  .vision-card {
-    padding: 20px 15px;
-  }
-
-  .vision-card .content h4 {
-    font-size: 1.3rem;
-  }
-
-  .vision-card .content p,
-  .about-text p,
-  .about-card p {
-    font-size: 0.95rem;
-  }
-
-  .about-text,
-  .about-card {
-    padding: 25px 20px;
-  }
-
-  .about-card h4 {
-    font-size: 1.4rem;
-  }
+  .vision-card { flex-direction: column; align-items: flex-start; }
+  .title { font-size: 1.6rem; }
 }

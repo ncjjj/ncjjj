@@ -45,7 +45,7 @@ export default function SupportCenter() {
         </div>
 
         {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-2 gap-5">
 
           {/* Ticket Section */}
           <div className="dashboard-card-shell dashboard-support-card bg-white/80 backdrop-blur-md p-5 rounded-3xl shadow border border-[#e8dcc0] space-y-4">

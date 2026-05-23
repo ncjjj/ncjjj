@@ -5,50 +5,15 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1776427572336,
-      "tag": "0000_sweet_valeria_richards",
+      "when": 1779485242187,
+      "tag": "0000_initial_schema",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1776429019742,
-      "tag": "0001_dear_lester",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1776459492778,
-      "tag": "0002_icy_kid_colt",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1776459930054,
-      "tag": "0003_flawless_psynapse",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1776461000000,
-      "tag": "0004_service_request_system",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1776461100000,
-      "tag": "0005_private_storage_paths",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1776461200000,
-      "tag": "0006_admin_accounts",
+      "when": 1779491206186,
+      "tag": "0001_wandering_lady_bullseye",
       "breakpoints": true
     }
   ]

@@ -12,6 +12,10 @@ Create `.env.local` from `.env.example` and set real values:
 - `SUPABASE_STORAGE_BUCKET`
 - `SUPABASE_STORAGE_PUBLIC` (`true` for public bucket, `false` for private bucket)
 
+For admin login, the default seeded account is `admin@gmail.com / Admin@124`.
+
+Use `npm run db:admin` after migrations to upsert the admin credential into the `admin_accounts` table. If you want to override the defaults for a different admin, you can still set `ADMIN_ID`, `ADMIN_USERNAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, or `ADMIN_PASSWORD_HASH` before running the script.
+
 For private buckets, the app serves signed URLs for avatars at runtime. For public buckets, it stores and serves public URLs.
 
 ## 2) Create Users Table
@@ -35,7 +39,6 @@ The app uses a single `users` table with:
 - `avatar_url` (optional, persisted public URL when bucket is public)
 - `email` (required, unique)
 - `password` (required, bcrypt hash)
-- `role` (`user` or `admin`)
 - `createdAt` (timestamp)
 
 The app also uses a `documents` table with:
@@ -48,31 +51,14 @@ The app also uses a `documents` table with:
 - `mime_type`
 - `created_at`
 
-## 3) Seed Admin (Manual)
+## 3) Login and Signup Behavior
 
-Admin signup is blocked by API by design.
-Seed pre-created admin account manually:
-
-```bash
-npm run seed:admin
-```
-
-Default seed values:
-
-- `email`: `admin@example.com`
-- `password`: `Admin@123`
-- `role`: `admin`
-
-For production, change these values in `scripts/seed-admin.js` and rotate credentials after first login.
-
-## 4) Login and Signup Behavior
-
-- `/api/register` creates **only** `role = "user"` accounts.
-- Credentials login supports both `user` and `admin` from the same table.
+- `/api/register` creates regular user accounts.
+- Credentials login reads from the `users` table.
 - Passwords are never stored in plain text.
 - The signup form already captures phone number and stores it in `mobile_number`.
 
-## 5) Storage Uploads
+## 4) Storage Uploads
 
 - `POST /api/uploads/avatar` uploads a profile photo to Supabase Storage and updates `avatar_path` plus `avatar_url` (when bucket is public).
 - `POST /api/uploads/document` uploads selected documents to Supabase Storage, saves a `documents` record, and returns a public URL.
@@ -80,7 +66,6 @@ For production, change these values in `scripts/seed-admin.js` and rotate creden
 - `DELETE /api/documents` removes a document record for the authenticated user.
 - The navbar and dashboard use the database-backed profile image URL (or signed URL for private bucket) with a default avatar fallback.
 
-## 6) Route Protection
+## 5) Admin Credentials
 
-- `src/app/admin/layout.jsx` uses `getServerSession()` and blocks non-admin users.
-- `src/middleware.js` adds an additional guard for `/admin/*` routes.
+Use `npm run db:admin` to upsert the admin credential into the database. By default it seeds `admin@gmail.com / Admin@124` and stores a bcrypt hash in `admin_accounts`.

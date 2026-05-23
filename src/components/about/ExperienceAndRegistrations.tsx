@@ -8,7 +8,7 @@ export default function ExperienceAndRegistrations() {
   return (
     <section
       style={{
-        padding: "120px 20px",
+        padding: "64px 20px",
         background:
           "linear-gradient(135deg, #f0ddb0 0%, #f5e6c8 50%, #faf6ed 100%)",
       }}
@@ -130,7 +130,7 @@ const regTitle = {
 
 const regGrid = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
   gap: "15px",
 };
 
@@ -158,7 +158,7 @@ const badge = {
 };
 
 const heading = {
-  fontSize: "clamp(2rem, 5vw, 3rem)",
+  fontSize: "3rem",
   marginTop: "20px",
   fontWeight: "700",
   color: "#2c2416",

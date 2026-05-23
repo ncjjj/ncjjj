@@ -1,0 +1,379 @@
+/* Production responsive layer — scales layout like desktop without breaking structure */
+
+:root {
+  --site-gutter: clamp(12px, 4vw, 24px);
+  --section-pad-y: clamp(40px, 8vw, 80px);
+  --section-pad-x: clamp(16px, 5vw, 80px);
+  --content-max: min(1200px, 100% - 2 * var(--site-gutter));
+  --fluid-h1: clamp(1.75rem, 4vw + 1rem, 3.25rem);
+  --fluid-h2: clamp(1.5rem, 3vw + 0.75rem, 3.5rem);
+  --fluid-h3: clamp(1.125rem, 2vw + 0.5rem, 1.5rem);
+  --fluid-body: clamp(0.9375rem, 1vw + 0.75rem, 1.0625rem);
+}
+
+/* Hero background slider */
+.home-hero-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.home-hero-bg .bg-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home-hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.home-hero h1 {
+  font-size: var(--fluid-h1);
+}
+
+.home-hero p {
+  font-size: var(--fluid-body);
+}
+
+.home-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.home-hero-primary {
+  padding: clamp(10px, 2vw, 14px) clamp(20px, 4vw, 30px);
+  font-size: clamp(0.875rem, 1.5vw, 1rem);
+}
+
+/* Services section */
+.home-services {
+  padding: var(--section-pad-y) var(--site-gutter) !important;
+  min-height: auto !important;
+}
+
+.home-services-header h2 {
+  font-size: var(--fluid-h2) !important;
+}
+
+.home-services-header p {
+  font-size: var(--fluid-body) !important;
+  max-width: min(600px, 100%);
+}
+
+.home-services-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(16px, 2.5vw, 24px);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.home-service-card {
+  min-width: 0;
+}
+
+.home-service-card h3 {
+  font-size: var(--fluid-h3) !important;
+}
+
+/* Why choose us */
+.home-why {
+  padding: var(--section-pad-y) var(--site-gutter) !important;
+  min-height: auto !important;
+}
+
+.home-why h2 {
+  font-size: clamp(1.75rem, 3vw + 1rem, 2.5rem) !important;
+}
+
+.home-why-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(16px, 2.5vw, 30px);
+  width: 100%;
+}
+
+.home-why-card {
+  min-width: 0;
+}
+
+.home-why-stats {
+  display: flex;
+  justify-content: center;
+  gap: clamp(20px, 5vw, 50px);
+  margin-top: clamp(40px, 8vw, 80px);
+  flex-wrap: wrap;
+}
+
+/* CTA section */
+.home-cta {
+  min-height: auto !important;
+  padding: var(--section-pad-y) var(--site-gutter) !important;
+}
+
+.home-cta-heading {
+  font-size: clamp(1.75rem, 5vw + 0.5rem, 4rem) !important;
+}
+
+.home-cta p {
+  font-size: var(--fluid-body) !important;
+}
+
+.home-cta-features,
+.home-cta-actions,
+.home-cta-trust {
+  gap: clamp(12px, 2vw, 24px);
+}
+
+.home-cta-primary,
+.home-cta-secondary {
+  padding: clamp(14px, 2.5vw, 20px) clamp(24px, 5vw, 48px) !important;
+  font-size: clamp(0.9375rem, 1.5vw, 1.125rem) !important;
+}
+
+/* Contact */
+.contact-intro {
+  padding-top: clamp(88px, 12vw, 120px) !important;
+  padding-left: var(--site-gutter) !important;
+  padding-right: var(--site-gutter) !important;
+}
+
+.contact-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: clamp(16px, 3vw, 30px);
+  width: 100%;
+}
+
+.contact-details h2,
+.contact-enquiry h2 {
+  font-size: clamp(1.75rem, 3vw + 1rem, 3rem) !important;
+}
+
+/* My clients carousel */
+.home-clients-section {
+  padding: clamp(48px, 10vw, 112px) var(--site-gutter);
+}
+
+.home-clients-section h2 {
+  font-size: clamp(1.5rem, 4vw + 0.5rem, 3rem);
+  margin-bottom: clamp(24px, 5vw, 64px);
+}
+
+.home-clients-stage {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: min(420px, 92vw);
+  height: min(420px, 70vw);
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.home-clients-stage .client-card-wrap {
+  width: min(240px, 58vw);
+  height: min(340px, 82vw);
+}
+
+/* Panel sections: natural height on touch devices (ScrollStack disabled) */
+@media (max-width: 1023px) {
+  .panel.home-hero,
+  .panel.home-services,
+  .panel.home-why,
+  .panel.home-cta {
+    min-height: auto;
+  }
+
+  .home-hero-section {
+    min-height: min(100vh, 900px);
+    padding: var(--section-pad-y) var(--section-pad-x);
+  }
+}
+
+@media (max-width: 1024px) {
+  .home-services-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-why-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1024px) {
+  .site-user-avatar.desktop-avatar {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .dashboard-shell--profile .dashboard-sidebar,
+  .dashboard-shell--profile .dashboard-topbar-wrap {
+    display: none !important;
+  }
+
+  .dashboard-shell--profile {
+    min-height: 100vh;
+    height: auto !important;
+    flex-direction: column !important;
+  }
+
+  .dashboard-shell--profile .dashboard-main {
+    width: 100%;
+  }
+
+  .dashboard-shell--profile .dashboard-profile-header {
+    display: none !important;
+  }
+
+  .dashboard-shell--profile .dashboard-profile {
+    padding: clamp(12px, 3vw, 16px) !important;
+    min-height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  html {
+    scroll-padding-top: 56px;
+  }
+
+  .page-content {
+    padding-top: 56px;
+  }
+
+  .home-hero-section {
+    flex-direction: column;
+    align-items: flex-start;
+    min-height: auto;
+  }
+
+  .home-hero-visual {
+    width: 100%;
+    min-height: 180px;
+    height: auto;
+  }
+
+  .home-services-grid,
+  .home-why-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-cta-features {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-cta-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-cta-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Dashboard: stack sidebar */
+  .dashboard-shell {
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: 100vh;
+  }
+
+  .dashboard-sidebar {
+    width: 100% !important;
+    height: auto !important;
+    min-height: unset !important;
+    flex-shrink: 0;
+  }
+
+  .dashboard-main {
+    min-height: 0;
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .dashboard-content {
+    padding: clamp(12px, 3vw, 24px) !important;
+  }
+
+  .dashboard-page-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+
+  .dashboard-document-row {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+
+  .dashboard-document-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-hero-badges span {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .home-clients-stage .client-card-wrap {
+    width: min(200px, 72vw);
+    height: min(280px, 95vw);
+  }
+}
+
+/* Auth & legal pages */
+.auth-page-shell,
+.privacy-page,
+.terms-page {
+  padding-left: var(--site-gutter);
+  padding-right: var(--site-gutter);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Generic main content pages */
+main:not(.home-page) {
+  padding-left: var(--site-gutter);
+  padding-right: var(--site-gutter);
+  box-sizing: border-box;
+}
+
+main:not(.home-page) h1 {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+}
+
+/* Startup / process hero (Tailwind section) */
+section.min-h-screen h1.text-6xl {
+  font-size: clamp(1.75rem, 6vw, 3.75rem) !important;
+}
+
+section.min-h-screen .text-lg {
+  font-size: var(--fluid-body) !important;
+}
+
+/* Service cards with fixed padding from inline styles */
+.home-service-card {
+  padding: clamp(16px, 3vw, 22px) !important;
+}
+
+/* Decorative glows — scale down on small screens */
+.home-services > div[style*="position: absolute"] {
+  max-width: 100vw;
+}

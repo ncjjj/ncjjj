@@ -8,14 +8,24 @@ gsap.registerPlugin(ScrollTrigger);
 
 export default function ScrollStack() {
   useEffect(() => {
-    const cleanup = ScrollTrigger.matchMedia({
-      "(min-width: 1025px)": () => {
-        const sections = gsap.utils.toArray<HTMLElement>(".panel");
+    const media = window.matchMedia("(min-width: 1024px)");
+    let triggers: ScrollTrigger[] = [];
 
-        sections.forEach((section, i) => {
-          const nextSection = sections[i + 1];
+    const setup = () => {
+      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
+      triggers = [];
 
-          if (nextSection) {
+      if (!media.matches) {
+        return;
+      }
+
+      const sections = gsap.utils.toArray<HTMLElement>(".panel");
+
+      sections.forEach((section, i) => {
+        const nextSection = sections[i + 1];
+
+        if (nextSection) {
+          triggers.push(
             ScrollTrigger.create({
               trigger: section,
               start: "top top",
@@ -23,18 +33,18 @@ export default function ScrollStack() {
               pinSpacing: false,
               endTrigger: nextSection,
               end: "top top",
-            });
-          }
-        });
+            })
+          );
+        }
+      });
+    };
 
-        return () => {
-          ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-        };
-      },
-    });
+    setup();
+    media.addEventListener("change", setup);
 
     return () => {
-      const c = cleanup as any; if (c && typeof c.revert === "function") c.revert();
+      media.removeEventListener("change", setup);
+      triggers.forEach((trigger) => trigger.kill());
       ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
     };
   }, []);

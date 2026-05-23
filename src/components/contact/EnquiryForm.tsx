@@ -49,23 +49,11 @@ export default function EnquiryForm() {
   };
 
   return (
-    <section
-      className="contact-section contact-enquiry"
-      style={{
-        padding: "120px 20px",
-        background:
-          "linear-gradient(135deg, #faf6ed 0%, #f5e6c8 50%, #f0ddb0 100%)",
-      }}
-    >
+    <section className="contact-section contact-enquiry">
       <div style={{ maxWidth: "650px", margin: "0 auto" }}>
         
         {/* HEADER */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          style={{ textAlign: "center", marginBottom: "50px" }}
-        >
+        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} style={{ textAlign: "center", marginBottom: "50px" }}>
           <span style={badge}>ENQUIRY</span>
 
           <h2 style={heading}>
@@ -78,13 +66,7 @@ export default function EnquiryForm() {
         </motion.div>
 
         {/* FORM */}
-        <motion.form
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          style={formCard}
-          onSubmit={handleSubmit}
-        >
+        <motion.form initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="form-card" onSubmit={handleSubmit}>
           {user ? (
             <p style={signedInTag}>Signed in as {user.email}</p>
           ) : null}
@@ -93,7 +75,7 @@ export default function EnquiryForm() {
             type="text"
             name="name"
             placeholder="Your Name"
-            style={input}
+            className="input"
             value={formData.name}
             onChange={handleChange}
             required
@@ -119,19 +101,9 @@ export default function EnquiryForm() {
             required
           />
 
-          <textarea
-            name="message"
-            placeholder="Your Query"
-            rows={4}
-            style={{ ...input, resize: "none" }}
-            value={formData.message}
-            onChange={handleChange}
-            required
-          />
+          <textarea name="message" placeholder="Your Query" rows={4} className="input" style={{ resize: "none" }} value={formData.message} onChange={handleChange} required />
 
-          <button type="submit" style={submitBtn}>
-            Submit Enquiry
-          </button>
+          <button type="submit" className="submit-btn">Submit Enquiry</button>
 
           {status ? <p style={statusText}>{status}</p> : null}
         </motion.form>
@@ -183,7 +155,7 @@ const badge = {
 };
 
 const heading = {
-  fontSize: "clamp(2rem, 5vw, 2.8rem)",
+  fontSize: "2.8rem",
   marginTop: "20px",
   fontWeight: "700",
   color: "#2c2416",

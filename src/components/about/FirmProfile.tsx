@@ -7,7 +7,7 @@ export default function FirmProfile() {
   return (
     <section
       style={{
-        padding: "120px 20px",
+        padding: "64px 20px",
         background:
           "linear-gradient(135deg, #faf6ed 0%, #f5e6c8 50%, #f0ddb0 100%)",
       }}
@@ -185,7 +185,7 @@ const badge = {
 };
 
 const heading = {
-  fontSize: "clamp(2rem, 5vw, 3rem)",
+  fontSize: "3rem",
   marginTop: "20px",
   fontWeight: "700",
   color: "#2c2416",

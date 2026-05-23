@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { getDb } from "../index";
 import { consultantRegistrations, users } from "../schema";
 
@@ -54,29 +54,6 @@ export async function createConsultantRegistration({
   return created ?? null;
 }
 
-export async function listConsultantRegistrationsForAdmin(): Promise<ConsultantRegistrationView[]> {
-  const db = getDb();
-
-  const rows = await db
-    .select({
-      id: consultantRegistrations.id,
-      userId: consultantRegistrations.userId,
-      userName: users.name,
-      userEmail: users.email,
-      userPhone: users.mobileNumber,
-      consultantName: consultantRegistrations.consultantName,
-      preferredAt: consultantRegistrations.preferredAt,
-      notes: consultantRegistrations.notes,
-      status: consultantRegistrations.status,
-      createdAt: consultantRegistrations.createdAt,
-    })
-    .from(consultantRegistrations)
-    .innerJoin(users, eq(users.id, consultantRegistrations.userId))
-    .orderBy(desc(consultantRegistrations.createdAt));
-
-  return rows;
-}
-
 export async function listConsultantRegistrationsForUser(
   userId: string
 ): Promise<ConsultantRegistrationView[]> {
@@ -101,32 +78,4 @@ export async function listConsultantRegistrationsForUser(
     .orderBy(desc(consultantRegistrations.createdAt));
 
   return rows;
-}
-
-export async function updateConsultantRegistrationStatus(
-  registrationId: string,
-  status: "approved" | "rejected"
-) {
-  const db = getDb();
-
-  const [updated] = await db
-    .update(consultantRegistrations)
-    .set({ status })
-    .where(
-      and(
-        eq(consultantRegistrations.id, registrationId),
-        eq(consultantRegistrations.status, "pending")
-      )
-    )
-    .returning({
-      id: consultantRegistrations.id,
-      userId: consultantRegistrations.userId,
-      consultantName: consultantRegistrations.consultantName,
-      preferredAt: consultantRegistrations.preferredAt,
-      notes: consultantRegistrations.notes,
-      status: consultantRegistrations.status,
-      createdAt: consultantRegistrations.createdAt,
-    });
-
-  return updated ?? null;
 }

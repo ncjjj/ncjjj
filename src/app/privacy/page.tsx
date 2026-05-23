@@ -19,7 +19,7 @@ export default function PrivacyPage() {
           transition={{ duration: 0.6 }}
         >
           <h1 style={{
-            fontSize: "clamp(2rem, 5vw, 3rem)",
+            fontSize: "3rem",
             fontWeight: "700",
             color: "#2c2416",
             marginBottom: "10px",
@@ -100,7 +100,7 @@ export default function PrivacyPage() {
               4. Data Security
             </h2>
             <p>
-              We implement appropriate technical, administrative, and physical security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. Your financial and sensitive data is encrypted and stored securely. However, no transmission over the Internet is 100% secure, and we cannot guarantee absolute security.
+              We implement appropriate technical, organizational, and physical security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. Your financial and sensitive data is encrypted and stored securely. However, no transmission over the Internet is 100% secure, and we cannot guarantee absolute security.
             </p>
           </div>
 

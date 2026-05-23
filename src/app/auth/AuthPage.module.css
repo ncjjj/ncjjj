@@ -43,7 +43,7 @@
 .showcase h1 {
   color: #faedcf;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2rem, 3.8vw, 2.9rem);
+  font-size: 2.9rem;
   line-height: 1.2;
   margin: 18px 0 16px;
 }
@@ -85,6 +85,7 @@
 .formWrap {
   background: linear-gradient(180deg, rgba(255, 245, 224, 0.97), rgba(245, 228, 191, 0.95));
   padding: 44px;
+  min-width: 0;
 }
 
 .tabs {
@@ -94,6 +95,7 @@
   border: 1px solid rgba(44, 36, 22, 0.13);
   border-radius: 999px;
   padding: 5px;
+  flex-wrap: wrap;
 }
 
 .tabBtn {
@@ -164,6 +166,33 @@
   opacity: 0.65;
 }
 
+.whatsappBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  text-align: center;
+  border-radius: 999px;
+  border: 1px solid #25d366;
+  background: #25d366;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 12px 14px;
+  text-decoration: none;
+  margin-top: 10px;
+}
+
+.forgotLink {
+  border: 0;
+  background: transparent;
+  color: #6a4e09;
+  font-weight: 700;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .message {
   margin: 0;
   font-size: 13px;
@@ -193,7 +222,11 @@
   text-decoration: none;
 }
 
-@media (max-width: 920px) {
+@media (max-width: 960px) {
+  .authPage {
+    padding: 80px 16px 50px;
+  }
+
   .shell {
     grid-template-columns: 1fr;
   }
@@ -201,5 +234,25 @@
   .showcase,
   .formWrap {
     padding: 28px;
+  }
+
+  .showcase h1 {
+    font-size: 2.2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .showcase h1 {
+    font-size: 1.9rem;
+  }
+
+  .submitBtn,
+  .whatsappBtn {
+    width: 100%;
+  }
+
+  .tabs {
+    width: 100%;
+    justify-content: center;
   }
 }

@@ -57,76 +57,18 @@ export default function HeroSection() {
 
 
   return (
-    <div
-      className="panel home-hero"
-      style={{
-        width: "100%",
-        marginLeft: "0",
-        marginBottom: "0",
-        position: "relative",
-        zIndex: "2",
-        overflow: "hidden",
-      }}
-    >
+    <div className="panel home-hero">
       {/* BACKGROUND IMAGE SLIDER */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          zIndex: 0,
-        }}
-      >
+      <div className="home-hero-bg">
         {banners.map((img, i) => (
-          <img
-            key={i}
-            src={img.src}
-            alt="banner"
-            style={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              opacity: currentIndex === i ? 1 : 0,
-              transition: "opacity 1s ease-in-out",
-            }}
-          />
+          <img key={i} src={img.src} alt="banner" className="bg-image" style={{ opacity: currentIndex === i ? 1 : 0, transition: "opacity 1s ease-in-out" }} />
         ))}
-
-        {/* OVERLAY GRADIENT */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(135deg, rgba(10,10,10,0.85), rgba(30,25,10,0.8), rgba(15,15,15,0.9))",
-          }}
-        />
+        <div className="home-hero-overlay" style={{ background: "linear-gradient(135deg, rgba(10,10,10,0.85), rgba(30,25,10,0.8), rgba(15,15,15,0.9))", position: 'absolute', inset: 0 }} />
       </div>
 
-      <section
-        className="home-hero-section"
-        style={{
-          width: "100%",
-          minHeight: "100vh",
-          padding: "40px 80px 80px 80px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
+      <section className="home-hero-section">
         {/* LEFT CONTENT */}
-        <div
-          className="home-hero-copy"
-          style={{
-            flex: 1,
-            maxWidth: "600px",
-            transform: loaded ? "translateX(0)" : "translateX(-80px)",
-            opacity: loaded ? 1 : 0,
-            transition: "all 0.8s ease",
-          }}
-        >
+        <div className="home-hero-copy" style={{ transform: loaded ? "translateX(0)" : "translateX(-80px)", opacity: loaded ? 1 : 0, transition: "all 0.8s ease" }}>
           {/* TRUST BADGES */}
           <div
             className="home-hero-badges"
@@ -159,62 +101,17 @@ export default function HeroSection() {
           </div>
 
           {/* MAIN HEADING */}
-          <h1
-            style={{
-              fontSize: "clamp(2.6rem, 5vw, 3.25rem)",
-              fontWeight: "700",
-              lineHeight: "1.2",
-              marginTop: "0",
-              marginBottom: "20px",
-              color: "#D4AF37",
-            }}
-          >
-           Focus on Business Leave the rest to us
-          </h1>
+          <h1>Focus on Business Leave the rest to us</h1>
 
           {/* GOLD LINE */}
-          <div
-            style={{
-              width: "80px",
-              height: "3px",
-              background: "#D4AF37",
-              marginBottom: "20px",
-              borderRadius: "10px",
-            }}
-          />
+          <div style={{ width: "80px", height: "3px", background: "#D4AF37", marginBottom: "20px", borderRadius: "10px" }} />
 
           {/* TEXT */}
-          <p
-            style={{
-              color: "#D4AF37",
-              fontSize: "17px",
-              marginBottom: "35px",
-              lineHeight: "1.6",
-            }}
-          >
-            Navigate complex regulations with clarity. We provide structured
-            advisory, compliance support, and strategic insights tailored to
-            individuals and growing businesses.
-          </p>
+          <p>Navigate complex regulations with clarity. We provide structured advisory, compliance support, and strategic insights tailored to individuals and growing businesses.</p>
 
           {/* BUTTONS */}
-          <div style={{ display: "flex", gap: "15px" }}>
-            <button
-              className="home-hero-primary"
-              onClick={handleGetConsultant}
-              style={{
-                padding: "14px 30px",
-                borderRadius: "8px",
-                border: "none",
-                background: "linear-gradient(90deg,#D4AF37,#F4E5C2)",
-                color: "#000",
-                fontWeight: "600",
-                cursor: "pointer",
-                boxShadow: "0 10px 30px rgba(212,175,55,0.4)",
-              }}
-            >
-              Get Consultant
-            </button>
+          <div className="home-hero-actions" style={{ display: "flex", gap: "15px" }}>
+            <button className="home-hero-primary" onClick={handleGetConsultant}>Get Consultant</button>
           </div>
           {actionMessage ? (
             <p
@@ -230,37 +127,9 @@ export default function HeroSection() {
         </div>
 
         {/* RIGHT SIDE */}
-        <div
-          className="home-hero-visual"
-          style={{
-            flex: 1,
-            height: "clamp(280px, 40vw, 600px)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            transform: loaded ? "translateX(0)" : "translateX(80px)",
-            opacity: loaded ? 1 : 0,
-            transition: "all 1s ease",
-            position: "relative",
-          }}
-        >
+        <div className="home-hero-visual" style={{ transform: loaded ? "translateX(0)" : "translateX(80px)", opacity: loaded ? 1 : 0, transition: "all 1s ease" }}>
           {/* FLOATING CARD */}
-          <div
-            className="home-hero-floating-card"
-            style={{
-              position: "absolute",
-              bottom: "80px",
-              right: "20%",
-              padding: "16px 22px",
-              borderRadius: "12px",
-              background: "linear-gradient(135deg,#D4AF37,#F4E5C2)",
-              color: "#000",
-              fontWeight: "600",
-              boxShadow: "0 15px 40px rgba(212,175,55,0.4)",
-            }}
-          >
-            Trusted by Professionals
-          </div>
+          <div className="home-hero-floating-card">Trusted by Professionals</div>
         </div>
       </section>
     </div>

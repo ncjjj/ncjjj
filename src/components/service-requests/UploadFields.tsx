@@ -30,7 +30,7 @@ export default function UploadFields({
     <div className="space-y-4 rounded-2xl border border-[#e8dcc0] bg-[#fffaf0] p-5">
       <h3 className="text-lg font-semibold text-[#3b2f1c]">Required Documents</h3>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 grid-cols-2">
         <label className="space-y-2 text-sm text-[#6b5b3e]">
           PAN Card (PDF/JPG/PNG)
           {existingRequiredDocs?.panCard ? (

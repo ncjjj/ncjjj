@@ -5,10 +5,7 @@ import { signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 
 const navItems = [
-  { name: 'Dashboard Overview', path: '/dashboard' },
-  { name: 'My Requests', path: '/dashboard/consultations' },
-  { name: 'Documents', path: '/dashboard/documents' },
-  { name: 'Profile Settings', path: '/dashboard/profile' },
+  { name: 'My Requests', path: '/dashboard/consultations', hidden: true },
 ];
 
 export default function Sidebar() {
@@ -44,6 +41,7 @@ export default function Sidebar() {
                       ? 'bg-white shadow-md text-black'
                       : 'text-gray-600 hover:bg-white/70 hover:shadow-sm'
                   }`}
+                  style={{ display: item.hidden ? "none" : undefined }}
                 >
                   {/* Optional icon placeholder */}
                   <span className="text-sm font-medium">

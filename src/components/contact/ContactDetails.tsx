@@ -8,7 +8,7 @@ export default function ContactDetails() {
     <section
       className="contact-section contact-details"
       style={{
-        padding: "120px 20px",
+        padding: "64px 20px",
         background:
           "linear-gradient(135deg, #f0ddb0 0%, #f5e6c8 50%, #faf6ed 100%)",
       }}
@@ -34,7 +34,7 @@ export default function ContactDetails() {
         </motion.div>
 
         {/* CONTACT CARDS */}
-        <div style={grid}>
+        <div className="contact-details-grid">
           
           {/* PHONE */}
           <motion.div
@@ -80,12 +80,6 @@ export default function ContactDetails() {
 }
 
 /* STYLES */
-
-const grid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-  gap: "30px",
-};
 
 const card: MotionStyle = {
   background: "rgba(255,255,255,0.85)",
@@ -143,7 +137,7 @@ const badge = {
 };
 
 const heading = {
-  fontSize: "clamp(2rem, 5vw, 3rem)",
+  fontSize: "3rem",
   marginTop: "20px",
   fontWeight: "700",
   color: "#2c2416",

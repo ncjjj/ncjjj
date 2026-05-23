@@ -3,17 +3,21 @@
 import Sidebar from "./components/Sidebar";
 import TopNavbar from "./components/TopNavbar";
 import type { ReactNode } from "react";
-import { useUserSocketRoom } from "../../hooks/useUserSocketRoom";
+import { usePathname } from "next/navigation";
 
 type DashboardShellProps = {
   children: ReactNode;
 };
 
 export default function DashboardShell({ children }: DashboardShellProps) {
-  useUserSocketRoom();
+  const pathname = usePathname();
+  const isProfileRoute =
+    pathname === "/dashboard/profile" || pathname?.startsWith("/dashboard/profile/");
 
   return (
-    <div className="dashboard-shell flex h-screen bg-[#f5e6c8]/40">
+    <div
+      className={`dashboard-shell flex h-screen bg-[#f5e6c8]/40${isProfileRoute ? " dashboard-shell--profile" : ""}`}
+    >
       <Sidebar />
 
       <div className="dashboard-main flex flex-1 flex-col">

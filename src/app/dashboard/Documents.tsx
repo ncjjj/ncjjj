@@ -48,6 +48,7 @@ export default function Documents() {
   };
 
   const loadDocuments = async () => {
+    // Documents API disabled
     const response = await fetch("/api/documents");
     const payload = (await response.json()) as DocumentsPayload;
 
@@ -170,12 +171,12 @@ export default function Documents() {
               Upload Document
             </h3>
 
-            <form onSubmit={handleUpload} className="dashboard-form flex flex-col md:flex-row gap-3 items-center">
+            <form onSubmit={handleUpload} className="dashboard-form flex flex-row gap-3 items-center">
 
               <select
                 value={documentType}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setDocumentType(e.target.value)}
-                className="dashboard-upload-control w-full md:w-56 px-4 py-3 rounded-xl border border-[#e5d7b6] bg-white"
+                className="dashboard-upload-control w-56 px-4 py-3 rounded-xl border border-[#e5d7b6] bg-white"
               >
                 {documentTypes.map((type) => (
                   <option key={type} value={type}>

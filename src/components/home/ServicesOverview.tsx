@@ -109,13 +109,14 @@ export default function ServicesOverview() {
           }}>
             WHAT WE OFFER
           </span>
-          <h2 style={{
-            fontSize: "clamp(2.5rem, 5vw, 3.5rem)",
+          <h2
+            style={{
             fontWeight: "700",
             color: "#f5e6c8",
             marginBottom: "4px",
             fontFamily: "Georgia, serif",
-          }}>
+          }}
+          >
             Our Core <span style={{
               background: "linear-gradient(90deg, #d4af37, #f2d16b, #d4af37)",
               WebkitBackgroundClip: "text",
@@ -141,13 +142,7 @@ export default function ServicesOverview() {
         </motion.div>
 
         {/* Services Grid */}
-        <div className="home-services-grid" style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-          gap: "24px",
-          maxWidth: "1200px",
-          margin: "0 auto",
-        }}>
+        <div className="home-services-grid">
           {services.map((service, index) => (
             <motion.div
               key={index}

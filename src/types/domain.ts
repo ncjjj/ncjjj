@@ -1,84 +1,8 @@
-export type ServiceRequestStatus = "pending" | "approved" | "rejected";
-export type PaymentStatus = "pending" | "received";
 export type AppointmentSlotStatus = "available" | "selected" | "confirmed";
 export type AppointmentStatus = "pending" | "approved" | "rejected" | "cancelled";
 
-export interface ServiceRequestDocument {
-  id: string;
-  type: string;
-  filePath: string;
-  signedUrl?: string | null;
-}
-
-export interface ServiceRequestView {
-  id: string;
-  userId: string;
-  userName: string;
-  userEmail: string;
-  userPhone: string;
-  serviceId: string;
-  serviceName?: string;
-  pan: string | null;
-  aadhaar: string | null;
-  gstNumber: string | null;
-  status: ServiceRequestStatus;
-  createdAt: Date;
-  adminRemarks: string | null;
-  paymentStatus: PaymentStatus;
-  paymentAmount: string;
-  paymentNote: string;
-  documents: ServiceRequestDocument[];
-}
-
-export interface ServiceRequestStats {
-  total: number;
-  pending: number;
-  approved: number;
-  rejected: number;
-}
-
 export interface ApiMessageResponse {
   message: string;
-}
-
-export interface ServiceUpdatedRealtimeEvent {
-  eventId: string;
-  requestId: string;
-  userId: string;
-  status: ServiceRequestStatus;
-  adminRemarks: string | null;
-  paymentStatus: PaymentStatus;
-  paymentNote: string | null;
-  occurredAt: string;
-}
-
-export interface ServiceRequestCreatedRealtimeEvent {
-  eventId: string;
-  requestId: string;
-  userId: string;
-  serviceId: string;
-  serviceName: string;
-  status: ServiceRequestStatus;
-  occurredAt: string;
-}
-
-export interface AdminNoteAddedRealtimeEvent {
-  eventId: string;
-  requestId: string;
-  userId: string;
-  adminRemarks: string | null;
-  occurredAt: string;
-}
-
-export interface ServicePreviewRealtimeEvent {
-  eventId: string;
-  requestId: string;
-  userId: string;
-  status: ServiceRequestStatus;
-  adminRemarks: string | null;
-  paymentStatus: PaymentStatus;
-  paymentNote: string | null;
-  occurredAt: string;
 }
 
 export type ConsultantRegistrationStatus =
@@ -137,8 +61,6 @@ export interface AppointmentView {
   slotDate: string;
   slotStartTime: string;
   status: AppointmentStatus;
-  adminAction: string | null;
-  adminRemarks: string | null;
   confirmedAt: string | null;
   cancelledAt: string | null;
   createdAt: string;
@@ -161,37 +83,5 @@ export interface AppointmentUpdatedRealtimeEvent {
   slotId: string;
   userId: string;
   status: AppointmentStatus;
-  adminAction: string | null;
-  adminRemarks: string | null;
   occurredAt: string;
-}
-
-export interface AdminDocumentView {
-  id: string;
-  userId: string;
-  userName: string;
-  userEmail: string;
-  userPhone: string;
-  documentType: string;
-  documentCategory: "general" | "yearly" | "permanent";
-  documentYear: number | null;
-  documentSlot: string | null;
-  fileName: string;
-  filePath: string;
-  signedUrl: string | null;
-  mimeType: string | null;
-  aadharNumber?: string | null;
-  panNumber?: string | null;
-  accountNumber?: string | null;
-  gstNumber?: string | null;
-  uploadDescription?: string | null;
-  createdAt: string;
-}
-
-export interface AdminDocumentUserGroup {
-  userId: string;
-  userName: string;
-  userEmail: string;
-  userPhone: string;
-  documents: AdminDocumentView[];
 }

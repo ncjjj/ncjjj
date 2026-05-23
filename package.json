@@ -11,7 +11,7 @@
     "db:migrate": "node scripts/db-migrate.cjs",
     "db:migrate:drizzle": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "seed:admin": "node scripts/seed-admin.cjs",
+    "db:admin": "node scripts/create-admin.cjs",
     "migrate:storage-paths": "node scripts/migrate-storage-paths.cjs",
     "migrate:documents": "node scripts/migrate-documents-production.js",
     "inspect:bucket": "node scripts/list-bucket-contents.js"
@@ -31,6 +31,7 @@
     "multer": "^2.0.2",
     "next": "^14.2.35",
     "next-auth": "^4.24.14",
+    "nodemailer": "^7.0.13",
     "pg": "^8.20.0",
     "postgres": "^3.4.9",
     "react": "^18.3.1",
@@ -38,8 +39,6 @@
     "react-dom": "^18.3.1",
     "recharts": "^3.8.1",
     "sharp": "^0.34.5",
-    "socket.io": "^4.8.3",
-    "socket.io-client": "^4.8.3",
     "swr": "^2.4.1",
     "three": "^0.183.2",
     "zod": "^4.3.6"
@@ -47,6 +46,7 @@
   "devDependencies": {
     "@types/multer": "^2.1.0",
     "@types/node": "24.12.2",
+    "@types/nodemailer": "^8.0.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "^19.1.9",
     "autoprefixer": "^10.4.27",

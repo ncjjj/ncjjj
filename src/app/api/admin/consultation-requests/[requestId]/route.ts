@@ -1,0 +1,44 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import {
+  updateConsultationRequestStatus,
+  type ConsultationRequestStatus,
+} from "../../../../../db/queries/consultationRequests";
+
+const statusSchema = z.object({
+  status: z.enum(["pending", "seen", "contacted"]),
+});
+
+type RouteContext = {
+  params: {
+    requestId: string;
+  };
+};
+
+export async function PATCH(request: Request, { params }: RouteContext) {
+  try {
+    const payload = await request.json();
+    const parsed = statusSchema.safeParse(payload);
+
+    if (!parsed.success) {
+      return NextResponse.json({ message: "Invalid status." }, { status: 400 });
+    }
+
+    const updated = await updateConsultationRequestStatus(
+      params.requestId,
+      parsed.data.status as ConsultationRequestStatus
+    );
+
+    if (!updated) {
+      return NextResponse.json({ message: "Consultation request not found." }, { status: 404 });
+    }
+
+    return NextResponse.json({ consultationRequest: updated });
+  } catch (error) {
+    console.error("[api/admin/consultation-requests/[requestId]] PATCH failed", error);
+    return NextResponse.json(
+      { message: "Unable to update consultation request." },
+      { status: 500 }
+    );
+  }
+}

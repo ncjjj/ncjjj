@@ -71,6 +71,29 @@ function sanitizeFileName(fileName: string): string {
     .replace(/^-|-$/g, "");
 }
 
+const IMAGE_MIME_BY_EXTENSION: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+};
+
+export function inferImageMimeType(fileName: string, providedType?: string): string {
+  const normalizedType = String(providedType || "")
+    .trim()
+    .toLowerCase();
+
+  if (normalizedType) {
+    const allowed = Object.values(IMAGE_MIME_BY_EXTENSION);
+    if (allowed.includes(normalizedType)) {
+      return normalizedType;
+    }
+  }
+
+  const extension = fileName.split(".").pop()?.toLowerCase() || "";
+  return IMAGE_MIME_BY_EXTENSION[extension] || "";
+}
+
 function toArrayBuffer(data: Uint8Array): ArrayBuffer {
   const copied = Uint8Array.from(data);
   return copied.buffer as ArrayBuffer;
@@ -113,34 +136,56 @@ export function getSupabasePublicObjectUrl(path: string): string {
   return data.publicUrl;
 }
 
+export async function assertSupabaseObjectExists(path: string) {
+  if (!path) {
+    throw new Error("Storage path is required to verify upload.");
+  }
+
+  const { bucket } = getSupabaseConfig();
+  const normalizedPath = String(path).replace(/^\/+/, "");
+  const supabase = getSupabaseServerClient();
+
+  const { data, error } = await supabase.storage.from(bucket).download(normalizedPath);
+
+  if (error || !data) {
+    throw new Error(
+      `Upload verification failed: object was not found in bucket (${error?.message || "unknown error"}).`
+    );
+  }
+}
+
 export async function uploadFileToSupabase({ file, folder }: UploadFileInput) {
   if (!file) {
     throw new Error("No file provided for upload.");
   }
 
-  const { bucket } = getSupabaseConfig();
+  const { bucket, bucketPublic } = getSupabaseConfig();
   const safeName = sanitizeFileName(file.name || "upload");
   const objectPath = `${folder}/${Date.now()}-${safeName}`;
+  const contentType = inferImageMimeType(file.name || safeName, file.type) || "application/octet-stream";
   const fileBuffer = await file.arrayBuffer();
+  const uploadBody = new Blob([fileBuffer], { type: contentType });
   const supabase = getSupabaseServerClient();
 
-  const { error } = await supabase.storage.from(bucket).upload(objectPath, fileBuffer, {
+  const { error } = await supabase.storage.from(bucket).upload(objectPath, uploadBody, {
     upsert: true,
-    contentType: file.type || "application/octet-stream",
+    contentType,
   });
 
   if (error) {
     throw new Error(`Supabase upload failed: ${error.message}`);
   }
 
-  const publicUrl = getSupabasePublicObjectUrl(objectPath);
+  await assertSupabaseObjectExists(objectPath);
+
+  const publicUrl = bucketPublic ? getSupabasePublicObjectUrl(objectPath) : null;
 
   return {
     bucket,
     path: objectPath,
     publicUrl,
     fileName: file.name,
-    mimeType: file.type || "application/octet-stream",
+    mimeType: contentType,
   };
 }
 
@@ -272,28 +317,31 @@ export async function uploadBufferToSupabase({
     throw new Error("No file buffer provided for upload.");
   }
 
-  const { bucket } = getSupabaseConfig();
+  const { bucket, bucketPublic } = getSupabaseConfig();
   const safeName = sanitizeFileName(fileName || "upload");
   const objectPath = `${folder}/${Date.now()}-${safeName}`;
-  const requestBody = toArrayBuffer(fileBuffer);
+  const contentType = inferImageMimeType(fileName || safeName, fileType) || "application/octet-stream";
+  const requestBody = new Blob([toArrayBuffer(fileBuffer)], { type: contentType });
   const supabase = getSupabaseServerClient();
 
   const { error } = await supabase.storage.from(bucket).upload(objectPath, requestBody, {
     upsert: true,
-    contentType: fileType || "application/octet-stream",
+    contentType,
   });
 
   if (error) {
     throw new Error(`Supabase upload failed: ${error.message}`);
   }
 
-  const publicUrl = getSupabasePublicObjectUrl(objectPath);
+  await assertSupabaseObjectExists(objectPath);
+
+  const publicUrl = bucketPublic ? getSupabasePublicObjectUrl(objectPath) : null;
 
   return {
     bucket,
     path: objectPath,
     publicUrl,
     fileName,
-    mimeType: fileType || "application/octet-stream",
+    mimeType: contentType,
   };
 }

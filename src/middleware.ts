@@ -1,9 +1,10 @@
 import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { ADMIN_SESSION_COOKIE } from "./lib/adminSession";
 
 const PUBLIC_ROUTES = ["/", "/home", "/services", "/about", "/contact", "/login", "/auth"];
-const ADMIN_SESSION_COOKIE = "admin_session";
+const PUBLIC_ADMIN_ROUTES = ["/admin/login", "/api/admin/login", "/api/admin/session/verify"];
 
 type RateLimitBucket = {
   count: number;
@@ -12,16 +13,12 @@ type RateLimitBucket = {
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_RULES: Array<{ prefix: string; limit: number }> = [
-  { prefix: "/api/socket", limit: 300 },
   { prefix: "/api/auth", limit: 150 },
   { prefix: "/api/register", limit: 20 },
   { prefix: "/api/uploads", limit: 50 },
-  { prefix: "/api/admin", limit: 120 },
+  { prefix: "/api/ngo-enquiry", limit: 40 },
   { prefix: "/api/actions", limit: 80 },
-  { prefix: "/api/service-request", limit: 80 },
   { prefix: "/api", limit: 100 },
-  { prefix: "/admin/login", limit: 60 },
-  { prefix: "/admin", limit: 240 },
   { prefix: "/dashboard", limit: 300 },
   { prefix: "/", limit: 600 },
 ];
@@ -117,6 +114,25 @@ function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.some((route) => route !== "/" && pathname.startsWith(`${route}/`));
 }
 
+function isPublicAdminRoute(pathname: string): boolean {
+  if (PUBLIC_ADMIN_ROUTES.includes(pathname)) {
+    return true;
+  }
+
+  return PUBLIC_ADMIN_ROUTES.some((route) => pathname.startsWith(`${route}/`));
+}
+
+async function verifyAdminSession(request: NextRequest): Promise<boolean> {
+  const verifyUrl = new URL("/api/admin/session/verify", request.url);
+  const response = await fetch(verifyUrl, {
+    headers: {
+      cookie: request.headers.get("cookie") || "",
+    },
+  });
+
+  return response.ok;
+}
+
 function createRateLimitResponse(rateLimitResult: ReturnType<typeof applyRateLimit>) {
   const retryAfterSeconds = Math.max(
     1,
@@ -152,11 +168,6 @@ function applyRateLimitHeaders(
 
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const isAdminPageRoute = pathname.startsWith("/admin");
-  const isAdminLoginPageRoute = pathname === "/admin/login";
-  const isAdminApiRoute = pathname.startsWith("/api/admin");
-  const isAdminAuthApiRoute = pathname.startsWith("/api/admin/auth");
-  const hasAdminSession = Boolean(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
 
   const rateLimitResult = applyRateLimit(request, pathname);
 
@@ -164,26 +175,28 @@ export async function middleware(request: NextRequest) {
     return createRateLimitResponse(rateLimitResult);
   }
 
-  if (isAdminPageRoute) {
-    if (isAdminLoginPageRoute && hasAdminSession) {
-      return applyRateLimitHeaders(
-        NextResponse.redirect(new URL("/admin/dashboard", request.url)),
-        rateLimitResult
-      );
+  if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
+    if (isPublicAdminRoute(pathname)) {
+      return applyRateLimitHeaders(NextResponse.next(), rateLimitResult);
     }
 
-    if (!isAdminLoginPageRoute && !hasAdminSession) {
+    const adminSession = request.cookies.get(ADMIN_SESSION_COOKIE)?.value || null;
+    const adminPayload = adminSession ? await verifyAdminSession(request) : null;
+
+    if (!adminPayload) {
+      if (pathname.startsWith("/api/")) {
+        return applyRateLimitHeaders(
+          NextResponse.json({ message: "Unauthorized" }, { status: 401 }),
+          rateLimitResult
+        );
+      }
+
       const loginUrl = new URL("/admin/login", request.url);
       loginUrl.searchParams.set("callbackUrl", `${pathname}${search || ""}`);
       return applyRateLimitHeaders(NextResponse.redirect(loginUrl), rateLimitResult);
     }
-  }
 
-  if (isAdminApiRoute && !isAdminAuthApiRoute && !hasAdminSession) {
-    return applyRateLimitHeaders(
-      NextResponse.json({ message: "Unauthorized" }, { status: 401 }),
-      rateLimitResult
-    );
+    return applyRateLimitHeaders(NextResponse.next(), rateLimitResult);
   }
 
   if (isPublicRoute(pathname) || pathname.startsWith("/api/auth")) {
@@ -193,17 +206,9 @@ export async function middleware(request: NextRequest) {
   const secret = process.env.NEXTAUTH_SECRET;
   const token = secret ? await getToken({ req: request, secret }) : null;
 
-  if (pathname.startsWith("/dashboard") && token?.role === "admin") {
-    return applyRateLimitHeaders(
-      NextResponse.redirect(new URL("/admin/dashboard", request.url)),
-      rateLimitResult
-    );
-  }
-
   const needsAuth =
     pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/api/actions") ||
-    pathname.startsWith("/api/service-request");
+    pathname.startsWith("/api/actions");
 
   if (needsAuth && !token) {
     if (pathname.startsWith("/api/")) {

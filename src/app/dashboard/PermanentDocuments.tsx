@@ -113,6 +113,7 @@ export default function PermanentDocuments() {
     setLoading(true);
 
     try {
+      // Permanent documents API disabled
       const response = await fetch("/api/permanent-documents", { cache: "no-store" });
       const payload = (await response.json()) as PermanentDocumentsPayload;
 
@@ -321,7 +322,7 @@ export default function PermanentDocuments() {
         <div className="h-24 bg-gradient-to-r from-[#6b5b3e] via-[#b89b5e] to-[#d6b86a]" />
 
         <div className="dashboard-page-body space-y-8 p-8">
-          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div className="flex flex-row items-end justify-between gap-2">
             <div>
               <h2 className="text-2xl font-semibold text-[#3b2f1c]">Shared Identity Documents</h2>
               <p className="text-sm text-[#7a6a4f]">
@@ -339,7 +340,7 @@ export default function PermanentDocuments() {
               </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 grid-cols-2">
               <label className="space-y-2 text-sm text-[#6b5b3e]">
                 Aadhaar Number
                 <input
@@ -411,7 +412,7 @@ export default function PermanentDocuments() {
               </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 grid-cols-2">
               {requiredPermanentDocumentTypes.map((documentType) => renderDocumentCard(documentType))}
             </div>
           </section>

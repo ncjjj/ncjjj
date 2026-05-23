@@ -6,7 +6,7 @@ export default function Credentials() {
   return (
     <section
       style={{
-        padding: "120px 20px",
+        padding: "64px 20px",
         background:
           "linear-gradient(135deg, #faf6ed 0%, #f5e6c8 50%, #f0ddb0 100%)",
       }}
@@ -94,7 +94,7 @@ export default function Credentials() {
 
 const grid = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
   gap: "30px",
 };
 
@@ -135,7 +135,7 @@ const badge = {
 };
 
 const heading = {
-  fontSize: "clamp(2rem, 5vw, 3rem)",
+  fontSize: "3rem",
   marginTop: "20px",
   fontWeight: "700",
   color: "#2c2416",

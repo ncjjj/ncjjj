@@ -66,6 +66,7 @@ export default function ProfileSettings() {
   const [hasHydratedProfile, setHasHydratedProfile] = useState(false);
 
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [avatarInputKey, setAvatarInputKey] = useState(0);
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -184,12 +185,16 @@ export default function ProfileSettings() {
     }
 
     if (!ALLOWED_AVATAR_MIME_TYPES.includes(profilePicture.type)) {
-      setMessage("Only JPG, PNG, and WEBP profile photos are allowed.");
+      setProfilePicture(null);
+      setAvatarInputKey((current) => current + 1);
+      setMessage("Profile photo format does not meet requirements.");
       return;
     }
 
     if (profilePicture.size > MAX_AVATAR_FILE_SIZE_BYTES) {
-      setMessage("Profile photo size must be 5MB or less.");
+      setProfilePicture(null);
+      setAvatarInputKey((current) => current + 1);
+      setMessage("Profile photo size does not meet requirements.");
       return;
     }
 
@@ -212,6 +217,7 @@ export default function ProfileSettings() {
       }
 
       setProfilePicture(null);
+      setAvatarInputKey((current) => current + 1);
       setMessage("Profile photo uploaded successfully.");
       applyAvatarPayload(payload);
       notifyProfileImageUpdated({
@@ -222,7 +228,7 @@ export default function ProfileSettings() {
       if (update) {
         await update({
           avatarPath: payload.avatarPath || null,
-          avatarUrl: payload.persistedAvatarUrl || null,
+          avatarUrl: payload.persistedAvatarUrl ?? payload.avatarUrl ?? null,
         });
       }
     } catch (error: unknown) {
@@ -310,7 +316,7 @@ export default function ProfileSettings() {
           </h3>
 
           {/* Grid */}
-          <div className="dashboard-profile-grid grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+          <div className="dashboard-profile-grid grid grid-cols-2 gap-4">
 
             <input
               name="name"
@@ -362,6 +368,7 @@ export default function ProfileSettings() {
             </h3>
             <p className="text-xs text-[#6b5b3e]">JPG, PNG format only. Maximum 5MB.</p>
             <input
+              key={avatarInputKey}
               type="file"
               accept="image/jpeg,image/png,image/webp"
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -405,10 +412,6 @@ export default function ProfileSettings() {
               {message}
             </p>
           ) : null}
-
-          <p className="text-xs text-[#7a6a4f]">
-            Profile photo uploads directly to Supabase storage and syncs across the app instantly.
-          </p>
 
         </div>
       </div>

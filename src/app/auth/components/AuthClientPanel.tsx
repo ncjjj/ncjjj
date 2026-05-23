@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { getSession, signIn, useSession } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -14,17 +14,23 @@ const initialLogin = {
 
 const initialSignup = {
   name: "",
-  mobileNumber: "",
   email: "",
   password: "",
   confirmPassword: "",
 };
 
-type AuthMode = "login" | "signup";
+type AuthMode = "login" | "signup" | "reset" | "resetVerify";
 
 type AuthMessage = {
   type: "" | "error" | "success";
   text: string;
+};
+
+type PasswordCriteria = {
+  length: boolean;
+  uppercase: boolean;
+  number: boolean;
+  symbol: boolean;
 };
 
 type AuthClientPanelProps = {
@@ -32,21 +38,35 @@ type AuthClientPanelProps = {
 };
 
 async function getPostLoginRoute() {
-  const currentSession = await getSession();
+  return "/dashboard";
+}
 
-  return currentSession?.user?.role === "admin" ? "/admin/dashboard" : "/dashboard";
+function getPasswordCriteria(password: string): PasswordCriteria {
+  return {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    number: /\d/.test(password),
+    symbol: /[^A-Za-z0-9]/.test(password),
+  };
 }
 
 export default function AuthClientPanel({ initialMode = "login" }: AuthClientPanelProps) {
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  const [mode, setMode] = useState(initialMode);
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [loginForm, setLoginForm] = useState(initialLogin);
   const [signupForm, setSignupForm] = useState(initialSignup);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetCode, setResetCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<AuthMessage>({ type: "", text: "" });
   const [nextRoute, setNextRoute] = useState("");
+
+  const signupPasswordCriteria = getPasswordCriteria(signupForm.password);
+  const resetPasswordCriteria = getPasswordCriteria(newPassword);
 
   const setError = (text: string) => setMessage({ type: "error", text });
   const setSuccess = (text: string) => setMessage({ type: "success", text });
@@ -70,11 +90,7 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
               <button
                 type="button"
                 className={styles.submitBtn}
-                onClick={() =>
-                  router.push(
-                    session.user.role === "admin" ? "/admin/dashboard" : "/dashboard"
-                  )
-                }
+                onClick={() => router.push("/dashboard")}
               >
                 Continue
               </button>
@@ -127,14 +143,7 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
     setMessage({ type: "", text: "" });
     setNextRoute("");
 
-    const normalizedMobileNumber = signupForm.mobileNumber.trim();
     const normalizedEmail = signupForm.email.trim().toLowerCase();
-
-    if (normalizedMobileNumber.length < 7) {
-      setError("Please enter a valid mobile number.");
-      setSubmitting(false);
-      return;
-    }
 
     try {
       const response = await fetch("/api/register", {
@@ -144,7 +153,6 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
         },
         body: JSON.stringify({
           name: signupForm.name.trim(),
-          mobileNumber: normalizedMobileNumber,
           email: normalizedEmail,
           password: signupForm.password,
         }),
@@ -173,6 +181,99 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
       setNextRoute(await getPostLoginRoute());
     } catch {
       setError("Unable to create your account right now. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const onRequestPasswordReset = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const normalizedEmail = resetEmail.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      setError("Please enter your registered email.");
+      return;
+    }
+
+    setSubmitting(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      const response = await fetch("/api/auth/request-password-reset", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setError(payload?.message || "Unable to request password reset.");
+        return;
+      }
+
+      setSuccess("OTP has been sent to your registered email.");
+      setMode("resetVerify");
+    } catch {
+      setError("Unable to request password reset right now.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const onConfirmPasswordReset = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const normalizedEmail = resetEmail.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      setError("Please enter your registered email.");
+      return;
+    }
+
+    if (!resetCode.trim()) {
+      setError("Please enter the OTP code.");
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setError("New passwords do not match.");
+      return;
+    }
+
+    setSubmitting(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      const response = await fetch("/api/auth/confirm-password-reset", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          otp: resetCode.trim(),
+          newPassword,
+        }),
+      });
+
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setError(payload?.message || "Unable to reset password.");
+        return;
+      }
+
+      setSuccess("Password updated successfully. Please log in with your new password.");
+      setMode("login");
+      setResetCode("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+    } catch {
+      setError("Unable to reset password right now.");
     } finally {
       setSubmitting(false);
     }
@@ -286,10 +387,23 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
                 </button>
               ) : null}
               <p className={styles.helper}>
+                <button
+                  type="button"
+                  className={styles.forgotLink}
+                  onClick={() => {
+                    setMode("reset");
+                    setMessage({ type: "", text: "" });
+                    setNextRoute("");
+                  }}
+                >
+                  Forgot password?
+                </button>
+              </p>
+              <p className={styles.helper}>
                 No account yet? <Link href="/login?mode=signup">Sign up</Link>
               </p>
             </form>
-          ) : (
+          ) : mode === "signup" ? (
             <form className={styles.form} onSubmit={onSignup}>
               <h2>Create account</h2>
               <div className={styles.field}>
@@ -305,18 +419,7 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
                 />
               </div>
               <div className={styles.field}>
-                <label htmlFor="signup-mobile-number">Phone Number</label>
-                <input
-                  id="signup-mobile-number"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  value={signupForm.mobileNumber}
-                  onChange={(event) =>
-                    setSignupForm((prev) => ({ ...prev, mobileNumber: event.target.value }))
-                  }
-                  required
-                />
+                
               </div>
               <div className={styles.field}>
                 <label htmlFor="signup-email">Email</label>
@@ -330,6 +433,7 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
                   required
                 />
               </div>
+              
               <div className={styles.field}>
                 <label htmlFor="signup-password">Password</label>
                 <input
@@ -344,6 +448,27 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
                   }
                   required
                 />
+                <p className={styles.helper}>
+                  Use 8+ characters with 1 uppercase letter, 1 number, and 1 special character.
+                </p>
+                <ul className={styles.featureList}>
+                  <li>
+                    <span>{signupPasswordCriteria.length ? "✓" : "1"}</span>
+                    At least 8 characters
+                  </li>
+                  <li>
+                    <span>{signupPasswordCriteria.uppercase ? "✓" : "A"}</span>
+                    One uppercase letter
+                  </li>
+                  <li>
+                    <span>{signupPasswordCriteria.number ? "✓" : "0"}</span>
+                    One number
+                  </li>
+                  <li>
+                    <span>{signupPasswordCriteria.symbol ? "✓" : "#"}</span>
+                    One special character
+                  </li>
+                </ul>
               </div>
               <div className={styles.field}>
                 <label htmlFor="signup-confirm-password">Confirm Password</label>
@@ -383,6 +508,137 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
               ) : null}
               <p className={styles.helper}>
                 Already have an account? <Link href="/login">Login</Link>
+              </p>
+            </form>
+          ) : mode === "reset" ? (
+            <form className={styles.form} onSubmit={onRequestPasswordReset}>
+              <h2>Forgot Password</h2>
+              <div className={styles.field}>
+                <label htmlFor="reset-email">Registered Email</label>
+                <input
+                  id="reset-email"
+                  type="email"
+                  value={resetEmail}
+                  onChange={(event) => setResetEmail(event.target.value)}
+                  required
+                />
+              </div>
+              <button type="submit" className={styles.submitBtn} disabled={submitting}>
+                {submitting ? "Please wait..." : "Request OTP via Email"}
+              </button>
+              {message.text ? (
+                <p
+                  className={`${styles.message} ${
+                    message.type === "error" ? styles.error : styles.success
+                  }`}
+                >
+                  {message.text}
+                </p>
+              ) : null}
+              <p className={styles.helper}>
+                <button
+                  type="button"
+                  className={styles.forgotLink}
+                  onClick={() => {
+                    setMode("login");
+                    setMessage({ type: "", text: "" });
+                  }}
+                >
+                  Back to Login
+                </button>
+              </p>
+            </form>
+          ) : (
+            <form className={styles.form} onSubmit={onConfirmPasswordReset}>
+              <h2>Reset Password</h2>
+              <div className={styles.field}>
+                <label htmlFor="reset-email">Registered Email</label>
+                <input
+                  id="reset-email"
+                  type="email"
+                  value={resetEmail}
+                  onChange={(event) => setResetEmail(event.target.value)}
+                  required
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="reset-code">OTP Code</label>
+                <input
+                  id="reset-code"
+                  type="text"
+                  inputMode="numeric"
+                  value={resetCode}
+                  onChange={(event) => setResetCode(event.target.value)}
+                  required
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="new-password">New Password</label>
+                <input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  required
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="confirm-new-password">Confirm New Password</label>
+                <input
+                  id="confirm-new-password"
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(event) => setConfirmNewPassword(event.target.value)}
+                  required
+                />
+              </div>
+              <button type="submit" className={styles.submitBtn} disabled={submitting}>
+                {submitting ? "Please wait..." : "Verify OTP & Reset Password"}
+              </button>
+              <p className={styles.helper}>
+                Use 8+ characters with 1 uppercase letter, 1 number, and 1 special character.
+              </p>
+              <ul className={styles.featureList}>
+                <li>
+                  <span>{resetPasswordCriteria.length ? "✓" : "1"}</span>
+                  At least 8 characters
+                </li>
+                <li>
+                  <span>{resetPasswordCriteria.uppercase ? "✓" : "A"}</span>
+                  One uppercase letter
+                </li>
+                <li>
+                  <span>{resetPasswordCriteria.number ? "✓" : "0"}</span>
+                  One number
+                </li>
+                <li>
+                  <span>{resetPasswordCriteria.symbol ? "✓" : "#"}</span>
+                  One special character
+                </li>
+              </ul>
+              {message.text ? (
+                <p
+                  className={`${styles.message} ${
+                    message.type === "error" ? styles.error : styles.success
+                  }`}
+                >
+                  {message.text}
+                </p>
+              ) : null}
+              <p className={styles.helper}>
+                If you do not receive the OTP, check your spam or junk folder, wait a moment, and try again.
+              </p>
+              <p className={styles.helper}>
+                <button
+                  type="button"
+                  className={styles.forgotLink}
+                  onClick={() => {
+                    setMode("login");
+                    setMessage({ type: "", text: "" });
+                  }}
+                >
+                  Back to Login
+                </button>
               </p>
             </form>
           )}

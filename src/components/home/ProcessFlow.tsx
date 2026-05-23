@@ -53,7 +53,7 @@ export default function StartupHero() {
         </span>
 
         {/* HEADING */}
-        <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+        <h1 className="text-6xl font-bold text-white mb-6 leading-tight">
           Got an Idea!{" "}
           <span className="text-yellow-400">Let’s Launch It 🚀</span>
         </h1>

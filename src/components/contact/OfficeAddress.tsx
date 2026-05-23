@@ -7,7 +7,7 @@ export default function OfficeAddress() {
     <section
       className="contact-section contact-office"
       style={{
-        padding: "120px 20px",
+        padding: "64px 20px",
         background:
           "linear-gradient(135deg, #f5e6c8 0%, #faf6ed 50%, #f0ddb0 100%)",
       }}
@@ -146,7 +146,7 @@ const badge = {
 };
 
 const heading = {
-  fontSize: "clamp(2rem, 5vw, 3rem)",
+  fontSize: "3rem",
   marginTop: "20px",
   fontWeight: "700",
   color: "#2c2416",

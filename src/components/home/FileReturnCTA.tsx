@@ -125,12 +125,12 @@ export default function FileReturnCTA() {
 
         {/* Heading */}
         <motion.h2
+          className="home-cta-heading"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.1 }}
           style={{
-            fontSize: "clamp(2.5rem, 6vw, 4rem)",
             fontWeight: "800",
             color: "#f5e6c8",
             marginBottom: "20px",

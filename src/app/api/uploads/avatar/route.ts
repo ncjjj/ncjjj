@@ -4,8 +4,14 @@ import type { NextRequest } from "next/server";
 import { authOptions } from "../../../../lib/auth";
 import { findUserById, updateUserAvatarPath } from "../../../../db/queries/users";
 import {
+  findProfileByEmail,
+  updateProfileAvatarByEmail,
+} from "../../../../db/queries/profiles";
+import {
+  deleteSupabaseObjects,
   getSupabaseBucketVisibility,
   getSupabasePublicObjectUrl,
+  inferImageMimeType,
   resolveSupabaseObjectUrl,
   uploadFileToSupabase,
 } from "../../../../lib/supabaseStorage";
@@ -24,8 +30,9 @@ export async function GET() {
 
   try {
     const user = await findUserById(session.user.id);
-    const avatarPath = user?.avatarPath || null;
-    const persistedAvatarUrl = user?.avatarUrl || null;
+    const profile = user ? await findProfileByEmail(user.email) : null;
+    const avatarPath = profile?.avatarPath || user?.avatarPath || null;
+    const persistedAvatarUrl = profile?.avatarUrl || user?.avatarUrl || null;
     const avatarVersion = extractAvatarVersionFromPath(avatarPath);
 
     if (!avatarPath && !persistedAvatarUrl) {
@@ -86,6 +93,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
+  let uploadedPath: string | null = null;
+
   try {
     const formData = await request.formData();
     const fileEntry = formData.get("file");
@@ -99,8 +108,9 @@ export async function POST(request: NextRequest) {
       : "avatar-upload";
     const fileType = typeof fileEntry.type === "string" ? fileEntry.type : "";
     const fileSize = typeof fileEntry.size === "number" ? fileEntry.size : 0;
+    const resolvedMimeType = inferImageMimeType(fileName, fileType);
 
-    if (!ALLOWED_AVATAR_MIME_TYPES.includes(fileType)) {
+    if (!ALLOWED_AVATAR_MIME_TYPES.includes(resolvedMimeType)) {
       return NextResponse.json(
         { message: "Only JPG, PNG, and WEBP profile photos are allowed." },
         { status: 400 }
@@ -115,28 +125,55 @@ export async function POST(request: NextRequest) {
     }
 
     const file = new File([fileEntry], fileName, {
-      type: fileType || "application/octet-stream",
+      type: resolvedMimeType,
     });
+
+    const existingUser = await findUserById(session.user.id);
+    const previousAvatarPath = existingUser?.avatarPath || null;
+    const existingProfile = existingUser ? await findProfileByEmail(existingUser.email) : null;
+    const previousProfileAvatarPath = existingProfile?.avatarPath || null;
 
     const uploaded = await uploadFileToSupabase({
       file,
       folder: `avatars/${session.user.id}`,
     });
+    uploadedPath = uploaded.path;
 
     const avatarVersion = extractAvatarVersionFromPath(uploaded.path) ?? Date.now();
     const bucketVisibility = getSupabaseBucketVisibility();
     const persistedAvatarUrl =
-      bucketVisibility === "public"
-        ? getSupabasePublicObjectUrl(uploaded.path)
+      bucketVisibility === "public" && uploaded.publicUrl
+        ? uploaded.publicUrl
         : null;
 
     await updateUserAvatarPath(session.user.id, uploaded.path, persistedAvatarUrl);
+    if (existingUser) {
+      await updateProfileAvatarByEmail(existingUser.email, uploaded.path, persistedAvatarUrl);
+    }
+
+    if (previousAvatarPath && previousAvatarPath !== uploaded.path) {
+      try {
+        await deleteSupabaseObjects([previousAvatarPath]);
+      } catch (cleanupError) {
+        console.warn("[uploads/avatar] failed to remove previous avatar object", cleanupError);
+      }
+    }
+
+    if (previousProfileAvatarPath && previousProfileAvatarPath !== uploaded.path) {
+      try {
+        await deleteSupabaseObjects([previousProfileAvatarPath]);
+      } catch (cleanupError) {
+        console.warn("[uploads/avatar] failed to remove previous profile avatar object", cleanupError);
+      }
+    }
 
     const resolved = await resolveSupabaseObjectUrl({
       path: uploaded.path,
       expiresIn: SIGNED_URL_TTL_SECONDS,
       version: avatarVersion,
     });
+
+    uploadedPath = null;
 
     return NextResponse.json({
       avatarPath: uploaded.path,
@@ -147,10 +184,22 @@ export async function POST(request: NextRequest) {
       expiresIn: SIGNED_URL_TTL_SECONDS,
     });
   } catch (error: unknown) {
+    if (uploadedPath) {
+      try {
+        await deleteSupabaseObjects([uploadedPath]);
+      } catch (rollbackError) {
+        console.warn("[uploads/avatar] failed to roll back uploaded object", rollbackError);
+      }
+    }
+
     console.error("[uploads/avatar] failed", error);
 
     return NextResponse.json(
-      { message: getErrorMessage(error) || "Unable to upload profile photo." },
+      {
+        message:
+          getErrorMessage(error) ||
+          "Unable to upload profile photo. The file must be saved to storage before your profile is updated.",
+      },
       { status: 500 }
     );
   }
@@ -164,7 +213,23 @@ export async function DELETE() {
   }
 
   try {
+    const existingUser = await findUserById(session.user.id);
+    const previousAvatarPath = existingUser?.avatarPath || null;
+    const existingProfile = existingUser ? await findProfileByEmail(existingUser.email) : null;
+    const previousProfileAvatarPath = existingProfile?.avatarPath || null;
+
+    if (previousAvatarPath) {
+      await deleteSupabaseObjects([previousAvatarPath]);
+    }
+
+    if (previousProfileAvatarPath) {
+      await deleteSupabaseObjects([previousProfileAvatarPath]);
+    }
+
     await updateUserAvatarPath(session.user.id, null, null);
+    if (existingUser) {
+      await updateProfileAvatarByEmail(existingUser.email, null, null);
+    }
 
     return NextResponse.json({
       message: "Profile photo deleted successfully.",

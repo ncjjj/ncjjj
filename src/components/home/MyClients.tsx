@@ -3,6 +3,25 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
+function useCardSpacing() {
+  const [spacing, setSpacing] = useState(270);
+
+  useEffect(() => {
+    const update = () => {
+      const w = window.innerWidth;
+      if (w < 480) setSpacing(140);
+      else if (w < 768) setSpacing(180);
+      else if (w < 1024) setSpacing(220);
+      else setSpacing(270);
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  return spacing;
+}
+
 const clients = [
   { name: "Client A", role: "Startup Founder" },
   { name: "Client B", role: "Business Owner" },
@@ -17,6 +36,7 @@ const clients = [
 
 export default function MyClients() {
   const [active, setActive] = useState(2); // center index
+  const cardSpacing = useCardSpacing();
 
   // auto shift center
   useEffect(() => {
@@ -27,15 +47,15 @@ export default function MyClients() {
   }, []);
 
   return (
-    <section className="py-28 bg-[#f5e6c8] overflow-hidden text-center">
+    <section className="home-clients-section bg-[#f5e6c8] overflow-hidden text-center">
 
       {/* HEADING */}
-      <h2 className="text-3xl md:text-5xl font-bold text-gray-800 mb-16">
+      <h2 className="font-bold text-gray-800">
         Inspiring Client Journeys ✨
       </h2>
 
       {/* CARDS */}
-      <div className="relative flex justify-center items-center h-[420px] w-[420px] mx-auto">
+      <div className="home-clients-stage">
 
         {clients.map((client, index) => {
           const offset = index - active;
@@ -44,16 +64,16 @@ export default function MyClients() {
             <motion.div
               key={index}
               animate={{
-                x: offset * 270, // spacing
+                x: offset * cardSpacing,
                 scale: offset === 0 ? 1.2 : 0.85,
                 opacity: Math.abs(offset) > 2 ? 0 : 1,
                 zIndex: offset === 0 ? 10 : 5,
               }}
               transition={{ duration: 0.5 }}
-              className="absolute"
+              className="absolute client-card-wrap"
             >
               <div
-                className={`w-[240px] h-[340px] rounded-[30px] overflow-hidden shadow-xl transition-all
+                className={`w-full h-full rounded-[30px] overflow-hidden shadow-xl transition-all
                   ${
                     offset === 0
                       ? "bg-white"

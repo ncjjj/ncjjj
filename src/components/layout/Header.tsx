@@ -13,109 +13,86 @@ const navItems = [
 ];
 
 const services = [
-  { name: "Tax Filing", href: "/services" },
-  { name: "Legal Services", href: "/services" },
-  { name: "NGO Services", href: "/services" },
-  { name: "Accounting", href: "/services" },
-  { name: "FSSAI", href: "/services" },
-  { name: "Business Setup", href: "/services" },
+  { name: "Startup", href: "/services/business-setup" },
+  { name: "Compliance", href: "/services/gst-consultation" },
+  { name: "Legal Services", href: "/services/legal-assistance" },
+];
+
+const startupSubmenuItems = [
+  { name: "NGO", href: "/services/ngo" },
+  { name: "Business Registration", href: "/services/business-setup" },
+  { name: "Government Registration", href: "/services/registration" },
+  { name: "Government Licenses", href: "/services/licenses" },
+  { name: "FSSAI and Eating Licenses", href: "/services/fssai" },
+  { name: "ISO Certifications", href: "/services/iso-certifications" },
+];
+
+const complianceSubmenuItems = [
+  { name: "Tax Filing", href: "/services/gst-consultation" },
+  { name: "Accounting and CFO", href: "/services/accounting-support" },
+  { name: "Contracts and agreements", href: "/services/legal-assistance" },
 ];
 
 const servicesMenuKeyboardHint =
   "Use Arrow keys to navigate services. Press Home or End to jump, and Escape to close the menu.";
 
 export default function Header() {
+  const logoSrc =  "/images/ncj.jpeg";
+  const logoHeight = 60;
   const pathname = usePathname();
   const { data: session } = useSession();
   const user = session?.user ?? null;
   const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [menuClosing, setMenuClosing] = useState(false);
   const [hoveredNavItem, setHoveredNavItem] = useState<string | null>(null);
   const [servicesMenuOpen, setServicesMenuOpen] = useState(false);
   const [servicesTriggerHovered, setServicesTriggerHovered] = useState(false);
-  const menuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const menuToggleButtonRef = useRef<HTMLButtonElement | null>(null);
-  const menuPanelRef = useRef<HTMLDivElement | null>(null);
+  const [startupSubmenuOpen, setStartupSubmenuOpen] = useState(false);
+  const [complianceSubmenuOpen, setComplianceSubmenuOpen] = useState(false);
+  const servicesCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startupSubmenuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const complianceSubmenuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const servicesTriggerRef = useRef<HTMLButtonElement | null>(null);
   const servicesMenuRef = useRef<HTMLDivElement | null>(null);
-  const siteMenuItemCount = navItems.length + (user ? 3 : 2);
-  const siteMenuId = "site-mobile-menu-panel";
+  const startupSubmenuRef = useRef<HTMLDivElement | null>(null);
+  const complianceSubmenuRef = useRef<HTMLDivElement | null>(null);
   const servicesMenuId = "site-services-menu";
   const servicesHintId = "site-services-menu-hint";
-  const servicesMenuColumnCount = 2;
+  const servicesMenuColumnCount = 1;
+  const startupSubmenuId = "site-startup-submenu";
+  const complianceSubmenuId = "site-compliance-submenu";
   const { profileImageUrl } = useProfileImage({ userId: user?.id ?? null });
+  const profileSettingsHref = "/dashboard/profile";
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
+  const [mobileStartupOpen, setMobileStartupOpen] = useState(false);
+  const [mobileComplianceOpen, setMobileComplianceOpen] = useState(false);
+  
 
-  const getFocusableElements = (container: HTMLElement | null): HTMLElement[] => {
-    if (!container) {
-      return [];
-    }
-
-    const selector = [
-      "a[href]",
-      "button:not([disabled])",
-      "input:not([disabled])",
-      "select:not([disabled])",
-      "textarea:not([disabled])",
-      "[tabindex]:not([tabindex='-1'])",
-    ].join(",");
-
-    return Array.from(container.querySelectorAll<HTMLElement>(selector));
-  };
-
-  const clearMenuCloseTimer = () => {
-    if (menuCloseTimerRef.current) {
-      clearTimeout(menuCloseTimerRef.current);
-      menuCloseTimerRef.current = null;
+  const clearServicesCloseTimer = () => {
+    if (servicesCloseTimerRef.current) {
+      clearTimeout(servicesCloseTimerRef.current);
+      servicesCloseTimerRef.current = null;
     }
   };
 
-  const openMenu = () => {
-    clearMenuCloseTimer();
-    setMenuClosing(false);
-    setMenuOpen(true);
+  const clearStartupSubmenuCloseTimer = () => {
+    if (startupSubmenuCloseTimerRef.current) {
+      clearTimeout(startupSubmenuCloseTimerRef.current);
+      startupSubmenuCloseTimerRef.current = null;
+    }
   };
 
-  const closeMenu = () => {
-    if (!menuOpen) {
-      return;
+  const clearComplianceSubmenuCloseTimer = () => {
+    if (complianceSubmenuCloseTimerRef.current) {
+      clearTimeout(complianceSubmenuCloseTimerRef.current);
+      complianceSubmenuCloseTimerRef.current = null;
     }
-
-    const closeDelay = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ? 0
-      : 320;
-
-    setMenuClosing(true);
-    setMenuOpen(false);
-    clearMenuCloseTimer();
-    menuToggleButtonRef.current?.focus();
-
-    if (closeDelay === 0) {
-      setMenuClosing(false);
-      return;
-    }
-
-    menuCloseTimerRef.current = setTimeout(() => {
-      setMenuClosing(false);
-      menuCloseTimerRef.current = null;
-    }, closeDelay);
   };
 
-  const showMenuLayer = menuOpen || menuClosing;
   const currentPath = pathname ?? "";
   const isServicesRoute = currentPath === "/services" || currentPath.startsWith("/services/");
 
-  const getNavPillStyle = (isHighlighted: boolean) => ({
-    padding: "10px 30px",
-    borderRadius: "999px",
-    textDecoration: "none",
-    color: isHighlighted ? "#d4af37" : "#aaa",
-    background: isHighlighted ? "#1a1a1a" : "transparent",
-    boxShadow: isHighlighted
-      ? "inset 0 2px 4px rgba(255,255,255,0.4), 0 4px 8px rgba(0,0,0,0.6)"
-      : "none",
-    transition: "all 0.3s ease",
-  });
+  // CSS classes handle pill styling; toggle `nav-pill--active` when highlighted.
 
   const focusFirstServiceLink = () => {
     const firstLink = servicesMenuRef.current?.querySelector<HTMLAnchorElement>("a[href]");
@@ -152,11 +129,60 @@ export default function Header() {
   };
 
   const openServicesMenu = () => {
+    clearServicesCloseTimer();
     setServicesMenuOpen(true);
   };
 
   const closeServicesMenu = () => {
+    clearServicesCloseTimer();
     setServicesMenuOpen(false);
+  };
+
+  const scheduleCloseServicesMenu = () => {
+    clearServicesCloseTimer();
+
+    servicesCloseTimerRef.current = setTimeout(() => {
+      setServicesMenuOpen(false);
+      servicesCloseTimerRef.current = null;
+    }, 160);
+  };
+
+  const openStartupSubmenu = () => {
+    clearStartupSubmenuCloseTimer();
+    setStartupSubmenuOpen(true);
+  };
+
+  const closeStartupSubmenu = () => {
+    clearStartupSubmenuCloseTimer();
+    setStartupSubmenuOpen(false);
+  };
+
+  const scheduleCloseStartupSubmenu = () => {
+    clearStartupSubmenuCloseTimer();
+
+    startupSubmenuCloseTimerRef.current = setTimeout(() => {
+      setStartupSubmenuOpen(false);
+      startupSubmenuCloseTimerRef.current = null;
+    }, 160);
+  };
+
+  const openComplianceSubmenu = () => {
+    clearComplianceSubmenuCloseTimer();
+    setComplianceSubmenuOpen(true);
+  };
+
+  const closeComplianceSubmenu = () => {
+    clearComplianceSubmenuCloseTimer();
+    setComplianceSubmenuOpen(false);
+  };
+
+  const scheduleCloseComplianceSubmenu = () => {
+    clearComplianceSubmenuCloseTimer();
+
+    complianceSubmenuCloseTimerRef.current = setTimeout(() => {
+      setComplianceSubmenuOpen(false);
+      complianceSubmenuCloseTimerRef.current = null;
+    }, 160);
   };
 
   useEffect(() => {
@@ -169,80 +195,30 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    setMenuOpen(false);
-    setMenuClosing(false);
     setServicesMenuOpen(false);
-    clearMenuCloseTimer();
+    setStartupSubmenuOpen(false);
+    setComplianceSubmenuOpen(false);
+    clearStartupSubmenuCloseTimer();
+    clearComplianceSubmenuCloseTimer();
   }, [pathname]);
 
   useEffect(() => {
     return () => {
-      clearMenuCloseTimer();
+      clearServicesCloseTimer();
+      clearStartupSubmenuCloseTimer();
+      clearComplianceSubmenuCloseTimer();
     };
   }, []);
-
-  useEffect(() => {
-    if (!menuOpen) {
-      return;
-    }
-
-    const panel = menuPanelRef.current;
-    const focusableElements = getFocusableElements(panel);
-
-    if (focusableElements.length > 0) {
-      focusableElements[0]?.focus();
-    } else {
-      panel?.focus();
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeMenu();
-        return;
-      }
-
-      if (event.key !== "Tab") {
-        return;
-      }
-
-      const currentFocusable = getFocusableElements(menuPanelRef.current);
-
-      if (currentFocusable.length === 0) {
-        event.preventDefault();
-        menuPanelRef.current?.focus();
-        return;
-      }
-
-      const firstElement = currentFocusable[0];
-      const lastElement = currentFocusable[currentFocusable.length - 1];
-      const activeElement = document.activeElement as HTMLElement | null;
-
-      if (event.shiftKey && activeElement === firstElement) {
-        event.preventDefault();
-        lastElement?.focus();
-      } else if (!event.shiftKey && activeElement === lastElement) {
-        event.preventDefault();
-        firstElement?.focus();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [menuOpen]);
 
   return (
     <header
       className="site-header"
       style={{
         width: "100%",
-        padding: scrolled ? "16px 40px" : "24px 40px",
-        background: "linear-gradient(135deg, #49330c 50%, #1a160e 100%)",
-        backdropFilter: "blur(12px)",
-        borderBottom: "3px solid rgba(6, 6, 6, 0.2)",
+        padding:  "14px 24px",
+        background: "#FFFFFF",
+        backdropFilter: "none",
+        borderBottom: "1px solid rgba(0,0,0,0.06)",
         position: "fixed",
         top: 0,
         left: 0,
@@ -255,28 +231,26 @@ export default function Header() {
         style={{
           maxWidth: "1200px",
           margin: "0 auto",
-          padding: "0 20px",
+          padding: "0 16px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: "16px",
         }}
       >
-        <div className="site-header-primary" style={{ display: "flex", alignItems: "center", gap: "16px", flex: 1, minWidth: 0 }}>
+        <div className="site-header-primary" style={{ display: "flex", alignItems: "center", gap: "30px", flex: 1, minWidth: 0 }}>
           {/* LOGO */}
           <Link
             href="/"
             className="site-brand-link"
             style={{
-              fontWeight: 600,
-              fontSize: "30px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "16px",
               textDecoration: "none",
-              background: "linear-gradient(90deg, #d4af37, #f5e6a5)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
             }}
           >
-            NCJ LEGAL LLP
+            <img src={logoSrc} alt="NCJ Legal LLP" style={{ height: logoHeight, width: "auto" }} />
           </Link>
 
           {/* NAV */}
@@ -285,12 +259,12 @@ export default function Header() {
             style={{
               position: "relative",
               display: "flex",
-              gap: "8px",
-              background: "#0d0d0d",
-              padding: "6px",
+              gap: "6px",
+              background: "transparent",
+              padding: "4px",
               borderRadius: "999px",
-              boxShadow: "inset 0 0 10px rgba(255,255,255,0.05)",
-              border: "1px solid rgba(212,175,55,0.2)",
+              boxShadow: "inset 0 0 6px rgba(0,0,0,0.03)",
+              border: "1px solid rgba(0,0,0,0.06)",
             }}
           >
           {/* NORMAL LINKS */}
@@ -306,20 +280,18 @@ export default function Header() {
                 onMouseLeave={() => setHoveredNavItem((current) => (current === item.href ? null : current))}
                 onFocus={() => setHoveredNavItem(item.href)}
                 onBlur={() => setHoveredNavItem((current) => (current === item.href ? null : current))}
-                style={getNavPillStyle(isHighlighted)}
+                className={`nav-pill ${isHighlighted ? "nav-pill--active" : ""}`}
               >
                 {item.label}
               </Link>
             );
           })}
-              
 
-          {/* 🔥 SERVICES DROPDOWN */}
           <div
             className="site-services-dropdown"
             style={{ position: "relative", insetBlockStart: 0, display: "flex", alignItems: "center" }}
             onMouseEnter={openServicesMenu}
-            onMouseLeave={closeServicesMenu}
+            onMouseLeave={scheduleCloseServicesMenu}
             onFocus={openServicesMenu}
             onBlur={(event) => {
               const nextFocused = event.relatedTarget as Node | null;
@@ -347,7 +319,7 @@ export default function Header() {
             >
               {servicesMenuKeyboardHint}
             </span>
-        <button
+          <button
               ref={servicesTriggerRef}
               type="button"
               aria-expanded={servicesMenuOpen}
@@ -380,15 +352,7 @@ export default function Header() {
                   setServicesMenuOpen((prev) => !prev);
                 }
               }}
-              style={{
-                ...getNavPillStyle(isServicesRoute || servicesMenuOpen || servicesTriggerHovered),
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                lineHeight: 1,
-                border: "none",
-              }}
+              className={`services-trigger ${servicesMenuOpen ? 'open' : ''}`}
             >
               <span>Services</span>
               <span
@@ -400,8 +364,6 @@ export default function Header() {
                   height: "10px",
                   alignItems: "center",
                   justifyContent: "center",
-                  transform: servicesMenuOpen ? "rotate(180deg)" : "rotate(0deg)",
-                  transition: "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
                   flexShrink: 0,
                 }}
               >
@@ -420,128 +382,212 @@ export default function Header() {
             <div
               ref={servicesMenuRef}
               id={servicesMenuId}
-              className="dropdown"
+              className={`dropdown ${servicesMenuOpen ? 'open' : ''}`}
               role="menu"
               aria-label="Services menu"
               aria-describedby={servicesHintId}
               aria-hidden={!servicesMenuOpen}
-              style={{
-                position: "absolute",
-                top: "50px",
-                left: "60%",
-                transform: servicesMenuOpen ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(10px)",
-                opacity: servicesMenuOpen ? 1 : 0,
-                pointerEvents: servicesMenuOpen ? "auto" : "none",
-                transition: "all 0.3s ease",
-                width: "480px",
-                padding: "20px",
-                borderRadius: "18px",
-                background: "rgba(10,10,10,0.95)",
-                backdropFilter: "blur(20px)",
-                border: "1px solid rgba(212,175,55,0.2)",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
-                zIndex: 999,
-              }}
+              onMouseEnter={openServicesMenu}
+              onMouseLeave={scheduleCloseServicesMenu}
             >
               <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "12px",
-                }}
+                className="dropdown-grid"
               >
                 {services.map((service, i) => (
-                  <Link
-                    key={i}
-                    href={service.href}
-                    role="menuitem"
-                    tabIndex={servicesMenuOpen ? 0 : -1}
-                    style={{
-                      padding: "14px",
-                      borderRadius: "12px",
-                      textDecoration: "none",
-                      color: "#ddd",
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid transparent",
-                      transition: "all 0.25s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background =
-                        "rgba(212,175,55,0.12)";
-                      e.currentTarget.style.border =
-                        "1px solid rgba(212,175,55,0.3)";
-                      e.currentTarget.style.color = "#d4af37";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background =
-                        "rgba(255,255,255,0.04)";
-                      e.currentTarget.style.border =
-                        "1px solid transparent";
-                      e.currentTarget.style.color = "#ddd";
-                    }}
-                    onClick={closeServicesMenu}
-                    onKeyDown={(event) => {
-                      const currentIndex = getServiceMenuItemIndex(event.currentTarget);
+                  service.name === "Startup" ? (
+                    <div key={service.name} style={{ position: "relative" }} onMouseEnter={openStartupSubmenu} onMouseLeave={scheduleCloseStartupSubmenu}>
+                      <Link href={service.href} role="menuitem" tabIndex={servicesMenuOpen ? 0 : -1} aria-haspopup="menu" aria-expanded={startupSubmenuOpen} aria-controls={startupSubmenuId} className="dropdown-link" onClick={(event) => { event.preventDefault(); event.stopPropagation(); }} onKeyDown={(event) => {
+                          const currentIndex = getServiceMenuItemIndex(event.currentTarget);
 
-                      if (currentIndex === -1) {
-                        return;
-                      }
+                          if (currentIndex === -1) {
+                            return;
+                          }
 
-                      if (event.key === "ArrowDown") {
-                        event.preventDefault();
-                        focusServiceMenuItemByIndex(currentIndex + servicesMenuColumnCount);
-                        return;
-                      }
+                          if (event.key === "ArrowDown") {
+                            event.preventDefault();
+                            openStartupSubmenu();
+                            return;
+                          }
 
-                      if (event.key === "ArrowUp") {
-                        event.preventDefault();
-                        focusServiceMenuItemByIndex(currentIndex - servicesMenuColumnCount);
-                        return;
-                      }
+                          if (event.key === "ArrowUp") {
+                            event.preventDefault();
+                            focusServiceMenuItemByIndex(currentIndex - servicesMenuColumnCount);
+                            return;
+                          }
 
-                      if (event.key === "ArrowRight") {
-                        event.preventDefault();
+                          if (event.key === "ArrowRight") {
+                            event.preventDefault();
+                            openStartupSubmenu();
+                            return;
+                          }
 
-                        if (currentIndex % servicesMenuColumnCount === servicesMenuColumnCount - 1) {
+                          if (event.key === "ArrowLeft") {
+                            event.preventDefault();
+                            return;
+                          }
+
+                          if (event.key === "Home") {
+                            event.preventDefault();
+                            focusServiceMenuItemByIndex(0);
+                            return;
+                          }
+
+                          if (event.key === "End") {
+                            event.preventDefault();
+                            focusServiceMenuItemByIndex(-1);
+                            return;
+                          }
+
+                          if (event.key === "Escape") {
+                            event.preventDefault();
+                            closeStartupSubmenu();
+                            closeServicesMenu();
+                            servicesTriggerRef.current?.focus();
+                          }
+                        }}>
+                        <span>{service.name}</span>
+                        <span aria-hidden="true" style={{ fontSize: "12px", color: "#b89b5e" }}>›</span>
+                      </Link>
+
+                      <div ref={startupSubmenuRef} id={startupSubmenuId} role="menu" aria-label="Startup submenu" aria-hidden={!startupSubmenuOpen} onMouseEnter={openStartupSubmenu} onMouseLeave={scheduleCloseStartupSubmenu} className={`submenu ${startupSubmenuOpen ? 'open' : ''}`}>
+                        <div style={{ display: "grid", gap: "10px" }}>
+                          {startupSubmenuItems.map((item) => (
+                            <Link key={item.name} href={item.href} role="menuitem" tabIndex={startupSubmenuOpen ? 0 : -1} onClick={() => { closeStartupSubmenu(); closeServicesMenu(); }} className="dropdown-link">
+                              {item.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : service.name === "Compliance" ? (
+                    <div key={service.name} style={{ position: "relative" }} onMouseEnter={openComplianceSubmenu} onMouseLeave={scheduleCloseComplianceSubmenu}>
+                      <Link href={service.href} role="menuitem" tabIndex={servicesMenuOpen ? 0 : -1} aria-haspopup="menu" aria-expanded={complianceSubmenuOpen} aria-controls={complianceSubmenuId} className="dropdown-link" onClick={(event) => { event.preventDefault(); event.stopPropagation(); }} onKeyDown={(event) => {
+                          const currentIndex = getServiceMenuItemIndex(event.currentTarget);
+
+                          if (currentIndex === -1) {
+                            return;
+                          }
+
+                          if (event.key === "ArrowDown") {
+                            event.preventDefault();
+                            openComplianceSubmenu();
+                            return;
+                          }
+
+                          if (event.key === "ArrowUp") {
+                            event.preventDefault();
+                            focusServiceMenuItemByIndex(currentIndex - servicesMenuColumnCount);
+                            return;
+                          }
+
+                          if (event.key === "ArrowRight") {
+                            event.preventDefault();
+                            openComplianceSubmenu();
+                            return;
+                          }
+
+                          if (event.key === "ArrowLeft") {
+                            event.preventDefault();
+                            return;
+                          }
+
+                          if (event.key === "Home") {
+                            event.preventDefault();
+                            focusServiceMenuItemByIndex(0);
+                            return;
+                          }
+
+                          if (event.key === "End") {
+                            event.preventDefault();
+                            focusServiceMenuItemByIndex(-1);
+                            return;
+                          }
+
+                          if (event.key === "Escape") {
+                            event.preventDefault();
+                            closeComplianceSubmenu();
+                            closeServicesMenu();
+                            servicesTriggerRef.current?.focus();
+                          }
+                        }}>
+                        <span>{service.name}</span>
+                        <span aria-hidden="true" style={{ fontSize: "12px", color: "#b89b5e" }}>›</span>
+                      </Link>
+
+                      <div ref={complianceSubmenuRef} id={complianceSubmenuId} role="menu" aria-label="Compliance submenu" aria-hidden={!complianceSubmenuOpen} onMouseEnter={openComplianceSubmenu} onMouseLeave={scheduleCloseComplianceSubmenu} className={`submenu ${complianceSubmenuOpen ? 'open' : ''}`}>
+                        <div style={{ display: "grid", gap: "8px" }}>
+                          {complianceSubmenuItems.map((item) => (
+                            <Link key={item.name} href={item.href} role="menuitem" tabIndex={complianceSubmenuOpen ? 0 : -1} onClick={() => { closeComplianceSubmenu(); closeServicesMenu(); }} className="dropdown-link">
+                              {item.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <Link key={service.name} href={service.href} role="menuitem" tabIndex={servicesMenuOpen ? 0 : -1} className="dropdown-link" onClick={closeServicesMenu} onKeyDown={(event) => {
+                        const currentIndex = getServiceMenuItemIndex(event.currentTarget);
+
+                        if (currentIndex === -1) {
                           return;
                         }
 
-                        focusServiceMenuItemByIndex(currentIndex + 1);
-                        return;
-                      }
-
-                      if (event.key === "ArrowLeft") {
-                        event.preventDefault();
-
-                        if (currentIndex % servicesMenuColumnCount === 0) {
+                        if (event.key === "ArrowDown") {
+                          event.preventDefault();
+                          focusServiceMenuItemByIndex(currentIndex + servicesMenuColumnCount);
                           return;
                         }
 
-                        focusServiceMenuItemByIndex(currentIndex - 1);
-                        return;
-                      }
+                        if (event.key === "ArrowUp") {
+                          event.preventDefault();
+                          focusServiceMenuItemByIndex(currentIndex - servicesMenuColumnCount);
+                          return;
+                        }
 
-                      if (event.key === "Home") {
-                        event.preventDefault();
-                        focusServiceMenuItemByIndex(0);
-                        return;
-                      }
+                        if (event.key === "ArrowRight") {
+                          event.preventDefault();
 
-                      if (event.key === "End") {
-                        event.preventDefault();
-                        focusServiceMenuItemByIndex(-1);
-                        return;
-                      }
+                          if (currentIndex % servicesMenuColumnCount === servicesMenuColumnCount - 1) {
+                            return;
+                          }
 
-                      if (event.key === "Escape") {
-                        event.preventDefault();
-                        closeServicesMenu();
-                        servicesTriggerRef.current?.focus();
-                      }
-                    }}
-                  >
-                    {service.name}
-                  </Link>
+                          focusServiceMenuItemByIndex(currentIndex + 1);
+                          return;
+                        }
+
+                        if (event.key === "ArrowLeft") {
+                          event.preventDefault();
+
+                          if (currentIndex % servicesMenuColumnCount === 0) {
+                            return;
+                          }
+
+                          focusServiceMenuItemByIndex(currentIndex - 1);
+                          return;
+                        }
+
+                        if (event.key === "Home") {
+                          event.preventDefault();
+                          focusServiceMenuItemByIndex(0);
+                          return;
+                        }
+
+                        if (event.key === "End") {
+                          event.preventDefault();
+                          focusServiceMenuItemByIndex(-1);
+                          return;
+                        }
+
+                        if (event.key === "Escape") {
+                          event.preventDefault();
+                          closeServicesMenu();
+                          servicesTriggerRef.current?.focus();
+                        }
+                      }}
+                    >
+                      {service.name}
+                    </Link>
+                  )
                 ))}
               </div>
             </div>
@@ -549,88 +595,35 @@ export default function Header() {
           </nav>
         </div>
 
-        <button
-          ref={menuToggleButtonRef}
-          type="button"
-          className="site-header-mobile-toggle"
-          aria-controls={siteMenuId}
-          aria-haspopup="dialog"
-          aria-expanded={menuOpen}
-          aria-label="Toggle navigation menu"
-          onClick={() => {
-            if (menuOpen) {
-              closeMenu();
-              return;
-            }
-
-            openMenu();
-          }}
-          style={{
-            display: "none",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "44px",
-            height: "44px",
-            borderRadius: "14px",
-            border: "1px solid rgba(212,175,55,0.35)",
-            background: "rgba(10,10,10,0.55)",
-            color: "#f5e6a5",
-            fontSize: "22px",
-            cursor: "pointer",
-            flexShrink: 0,
-          }}
-        >
-          <span className={`hamburger-icon ${menuOpen ? "is-open" : ""}`} aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
-          </span>
-        </button>
-
         <div className="site-auth" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           {user ? (
             <>
-              <Link
-                href={user.role === "admin" ? "/admin/dashboard" : "/dashboard"}
-                className="site-auth-link"
-                style={{
-                  padding: "10px 16px",
-                  borderRadius: "999px",
-                  border: "1px solid rgba(212,175,55,0.35)",
-                  background: "rgba(212,175,55,0.15)",
-                  color: "#f5e6a5",
-                  textDecoration: "none",
-                }}
-              >
-                Dashboard
-              </Link>
-              <span style={{ color: "#d4af37", fontSize: "13px" }}>
-                Hi, {user.name}
-              </span>
-              <div
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "999px",
-                  overflow: "hidden",
-                  border: "1px solid rgba(212,175,55,0.45)",
-                  background: "rgba(212,175,55,0.15)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <img
-                  src={profileImageUrl}
-                  alt={user.name || "User avatar"}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              <div className="site-user-avatar desktop-avatar" style={{
+                position: "relative",
+                width: "36px",
+                height: "36px",
+                borderRadius: "999px",
+                overflow: "hidden",
+                border: "1px solid rgba(212,175,55,0.45)",
+                background: "rgba(212,175,55,0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}>
+                <Link
+                  href={profileSettingsHref}
+                  aria-label="Open profile settings"
+                  onClick={() => setMobileNavOpen(false)}
+                  style={{ position: "absolute", inset: 0, zIndex: 2 }}
                 />
+                <img src={profileImageUrl} alt={user.name || "User avatar"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
-                className="site-auth-button"
+                className="site-auth-button site-auth-logout desktop-logout"
                 style={{
-                  padding: "10px 16px",
+                  padding: "6px 10px",
                   borderRadius: "999px",
                   border: "1px solid rgba(212,175,55,0.35)",
                   background: "transparent",
@@ -646,7 +639,7 @@ export default function Header() {
               href="/login"
               className="site-auth-link"
               style={{
-                padding: "10px 18px",
+                padding: "9px 14px",
                 borderRadius: "999px",
                 border: "1px solid #d4af37",
                 color: "#d4af37",
@@ -656,145 +649,97 @@ export default function Header() {
               Login / Sign Up
             </Link>
           )}
+          {/* Mobile nav toggle */}
+          <button
+            aria-label="Toggle navigation"
+            className={`mobile-nav-button ${mobileNavOpen ? 'open' : ''}`}
+            aria-expanded={mobileNavOpen}
+            onClick={() => setMobileNavOpen((s) => !s)}
+            style={{ marginLeft: 6 }}
+          >
+            <span className="bar" />
+            <span className="bar" />
+            <span className="bar" />
+          </button>
         </div>
       </div>
+      {/* Mobile stacked nav panel (phones) */}
+      <div className={`mobile-nav-panel ${mobileNavOpen ? "open" : ""}`} role="navigation" aria-hidden={!mobileNavOpen}>
+        <div className="mobile-nav-header">
+          <Link href="/" onClick={() => setMobileNavOpen(false)} className="site-brand-link">
+            <img src={logoSrc} alt="NCJ" style={{ height: 40 }} />
+          </Link>
+          <button aria-label="Close menu" className="mobile-nav-close" onClick={() => setMobileNavOpen(false)}>✕</button>
+        </div>
 
-      {showMenuLayer ? (
-        <div
-          className={`site-mobile-menu-backdrop ${menuClosing ? "is-closing" : ""}`}
-          onClick={closeMenu}
-          aria-hidden="true"
-        ></div>
-      ) : null}
-
-      {showMenuLayer ? (
-        <div
-          id={siteMenuId}
-          ref={menuPanelRef}
-          className={`site-mobile-menu ${menuClosing ? "is-closing" : ""}`}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Mobile navigation menu"
-          tabIndex={-1}
-          style={{
-            ["--stagger-count" as string]: siteMenuItemCount,
-            marginTop: "14px",
-            padding: "16px",
-            borderRadius: "20px",
-            background: "rgba(10,10,10,0.95)",
-            border: "1px solid rgba(212,175,55,0.18)",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.45)",
-            position: "relative",
-            zIndex: 3,
-          }}
-        >
-          <div className="mobile-menu-list" style={{ display: "grid", gap: "10px" }}>
-            {navItems.map((item, index) => {
-              const isActive = pathname === item.href;
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={closeMenu}
-                  className="mobile-menu-item"
-                  style={{
-                    ["--stagger-order" as string]: index + 1,
-                    animationDelay: `${index * 45}ms`,
-                    padding: "12px 14px",
-                    borderRadius: "14px",
-                    textDecoration: "none",
-                    color: isActive ? "#d4af37" : "#ddd",
-                    background: isActive ? "rgba(212,175,55,0.12)" : "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(212,175,55,0.12)",
-                  }}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-
+        {user ? (
+          <div className="mobile-nav-user">
             <Link
-              href="/services"
-              onClick={closeMenu}
-              className="mobile-menu-item"
-              style={{
-                ["--stagger-order" as string]: navItems.length + 1,
-                animationDelay: `${navItems.length * 45}ms`,
-                padding: "12px 14px",
-                borderRadius: "14px",
-                textDecoration: "none",
-                color: "#ddd",
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(212,175,55,0.12)",
-              }}
+              href={profileSettingsHref}
+              aria-label="Open profile settings"
+              onClick={() => setMobileNavOpen(false)}
+              className="mobile-nav-avatar"
             >
-              Services
+              <img src={profileImageUrl} alt={user.name || "User avatar"} />
             </Link>
+            {user.name ? <span className="mobile-nav-user-name">{user.name}</span> : null}
+          </div>
+        ) : null}
 
-            {user ? (
-              <>
-                <Link
-                  href={user.role === "admin" ? "/admin/dashboard" : "/dashboard"}
-                  onClick={closeMenu}
-                  className="mobile-menu-item"
-                  style={{
-                    ["--stagger-order" as string]: navItems.length + 2,
-                    animationDelay: `${(navItems.length + 1) * 45}ms`,
-                    padding: "12px 14px",
-                    borderRadius: "14px",
-                    textDecoration: "none",
-                    color: "#f5e6a5",
-                    background: "rgba(212,175,55,0.12)",
-                    border: "1px solid rgba(212,175,55,0.22)",
-                  }}
-                >
-                  Dashboard
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => {
-                    closeMenu();
-                    signOut({ callbackUrl: "/" });
-                  }}
-                  className="mobile-menu-item"
-                  style={{
-                    ["--stagger-order" as string]: navItems.length + 3,
-                    animationDelay: `${(navItems.length + 2) * 45}ms`,
-                    padding: "12px 14px",
-                    borderRadius: "14px",
-                    textAlign: "left",
-                    border: "1px solid rgba(212,175,55,0.22)",
-                    background: "transparent",
-                    color: "#d4af37",
-                    cursor: "pointer",
-                  }}
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <Link
-                href="/login"
-                onClick={closeMenu}
-                className="mobile-menu-item"
-                style={{
-                  ["--stagger-order" as string]: navItems.length + 2,
-                  animationDelay: `${(navItems.length + 1) * 45}ms`,
-                  padding: "12px 14px",
-                  borderRadius: "14px",
-                  textDecoration: "none",
-                  color: "#d4af37",
-                  background: "rgba(212,175,55,0.12)",
-                  border: "1px solid rgba(212,175,55,0.22)",
-                }}
-              >
-                Login / Sign Up
-              </Link>
+        <div className="mobile-nav-body">
+          {navItems.map((item) => (
+            <Link key={item.href} href={item.href} onClick={() => setMobileNavOpen(false)} className="mobile-nav-link">
+              {item.label}
+            </Link>
+          ))}
+
+          <div className="mobile-section">
+            <button className="mobile-section-toggle" onClick={() => setMobileServicesOpen((s) => !s)} aria-expanded={mobileServicesOpen}>
+              Services
+            </button>
+
+            {mobileServicesOpen && (
+              <div className="mobile-section-body">
+                {services.map((service) => (
+                  service.name === 'Startup' ? (
+                    <div key={service.name} className="mobile-subsection">
+                      <button className="mobile-subsection-toggle" onClick={() => setMobileStartupOpen((s) => !s)} aria-expanded={mobileStartupOpen}>{service.name}</button>
+                      {mobileStartupOpen && (
+                        <div className="mobile-subsection-body">
+                          {startupSubmenuItems.map((it) => (
+                            <Link key={it.name} href={it.href} onClick={() => setMobileNavOpen(false)} className="mobile-nav-sublink">{it.name}</Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : service.name === 'Compliance' ? (
+                    <div key={service.name} className="mobile-subsection">
+                      <button className="mobile-subsection-toggle" onClick={() => setMobileComplianceOpen((s) => !s)} aria-expanded={mobileComplianceOpen}>{service.name}</button>
+                      {mobileComplianceOpen && (
+                        <div className="mobile-subsection-body">
+                          {complianceSubmenuItems.map((it) => (
+                            <Link key={it.name} href={it.href} onClick={() => setMobileNavOpen(false)} className="mobile-nav-sublink">{it.name}</Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Link key={service.name} href={service.href} onClick={() => setMobileNavOpen(false)} className="mobile-nav-link">{service.name}</Link>
+                  )
+                ))}
+              </div>
             )}
           </div>
+
+          {user ? (
+            <>
+              <button onClick={() => { setMobileNavOpen(false); signOut({ callbackUrl: '/' }); }} className="mobile-nav-logout">Logout</button>
+            </>
+          ) : (
+            <Link href="/login" onClick={() => setMobileNavOpen(false)} className="mobile-nav-link">Login / Sign Up</Link>
+          )}
         </div>
-      ) : null}
+      </div>
     </header>
   );
 }

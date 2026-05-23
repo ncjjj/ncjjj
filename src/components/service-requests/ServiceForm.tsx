@@ -201,64 +201,13 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
   useEffect(() => {
     let isMounted = true;
 
-    async function hydrate() {
-      setLoading(true);
-      setError("");
-
-      try {
-        const [response, documentsResponse, yearlyResponse] = await Promise.all([
-          fetch(`/api/service-request?serviceId=${serviceId}&scope=form`, { cache: "no-store" }),
-          fetch("/api/permanent-documents", { cache: "no-store" }),
-          fetch("/api/yearly-documents", { cache: "no-store" }),
-        ]);
-
-        const [payload, documentsPayload, yearlyPayload] = await Promise.all([
-          response.json(),
-          documentsResponse.json(),
-          yearlyResponse.json(),
-        ]);
-
-        if (!response.ok) {
-          throw new Error(payload?.message || "Unable to load profile details.");
-        }
-
-        if (!documentsResponse.ok) {
-          throw new Error(documentsPayload?.message || "Unable to load saved documents.");
-        }
-
-        if (!yearlyResponse.ok) {
-          throw new Error(yearlyPayload?.message || "Unable to load year-wise documents.");
-        }
-
-        if (!isMounted) {
-          return;
-        }
-
-        const permanentPayload = documentsPayload as PermanentDocumentsPayload;
-        const numbers = permanentPayload.numbers || emptyNumbers;
-        const yearlyDocumentsPayload = yearlyPayload as YearlyDocumentsPayload;
-
-        setPermanentDocuments(permanentPayload.documents || []);
-        setYearlyDocuments(yearlyDocumentsPayload.documents || []);
-        setForm({
-          name: payload?.profile?.name || "",
-          phone: payload?.profile?.phone || "",
-          pan: numbers.panNumber || payload?.defaults?.pan || "",
-          aadhaar: numbers.aadharNumber || payload?.defaults?.aadhaar || "",
-          accountNumber: numbers.accountNumber || "",
-          gstNumber: numbers.gstNumber || payload?.defaults?.gstNumber || "",
-        });
-      } catch (fetchError: unknown) {
-        if (!isMounted) {
-          return;
-        }
-
-        setError(getErrorMessage(fetchError, "Unable to load service form."));
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+    function hydrate() {
+      if (!isMounted) {
+        return;
       }
+
+      setLoading(false);
+      setError("");
     }
 
     hydrate();
@@ -299,29 +248,9 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
       throw new Error("Write a name for each additional document before submitting.");
     }
 
-    const uploadPayload = new FormData();
+    void documentsToUpload;
 
-    documentsToUpload.forEach((document) => {
-      uploadPayload.append(`additionalDocument_${document.index + 1}`, document.file as File);
-    });
-
-    const uploadResponse = await fetch("/api/upload", {
-      method: "POST",
-      body: uploadPayload,
-    });
-    const uploadResult = (await uploadResponse.json()) as {
-      files?: Array<{ type: string; filePath: string }>;
-      message?: string;
-    };
-
-    if (!uploadResponse.ok) {
-      throw new Error(uploadResult.message || "Unable to upload additional documents.");
-    }
-
-    return (uploadResult.files || []).map((file, index) => ({
-      type: documentsToUpload[index]?.name.trim() || file.type,
-      filePath: file.filePath,
-    }));
+    return [] as Array<{ type: string; filePath: string }>;
   };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -341,36 +270,12 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
       return;
     }
 
-    setSubmitting(true);
+    void parsed;
+    void serviceId;
+    void savedServiceDocuments;
+    void uploadAdditionalDocuments;
 
-    try {
-      const additionalUploadedDocuments = await uploadAdditionalDocuments();
-
-      const response = await fetch("/api/service-request", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...parsed.data,
-          serviceId,
-          documents: [...savedServiceDocuments, ...additionalUploadedDocuments],
-        }),
-      });
-
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload?.message || "Unable to create service request.");
-      }
-
-      setMessage("Request submitted. Admin verification has started.");
-      setAdditionalServiceDocuments(emptyAdditionalServiceDocuments);
-    } catch (submitError: unknown) {
-      setError(getErrorMessage(submitError, "Unable to submit your request."));
-    } finally {
-      setSubmitting(false);
-    }
+    setError("Service requests are disabled.");
   };
 
   const renderSavedDocument = (documentType: PermanentDocumentType) => {
@@ -489,7 +394,7 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
       <form className="space-y-6" onSubmit={onSubmit}>
         <input type="hidden" name="serviceId" value={serviceId} />
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 grid-cols-2">
           <label className="space-y-2 text-sm text-[#6b5b3e]">
             Name
             <input
@@ -553,7 +458,7 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 grid-cols-3">
             {renderBankStatement()}
             {requiredPermanentDocumentTypes.map((documentType) => renderSavedDocument(documentType))}
           </div>
@@ -567,7 +472,7 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 grid-cols-3">
             {additionalServiceDocuments.map((document, index) => (
               <div key={index} className="space-y-3 rounded-2xl border border-[#e8dcc0] bg-[#fffaf0] p-4">
                 <label className="space-y-2 text-sm text-[#6b5b3e]">

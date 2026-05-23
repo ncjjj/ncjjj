@@ -15,9 +15,5 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
     redirect("/login");
   }
 
-  if (session.user.role === "admin") {
-    redirect("/admin/dashboard");
-  }
-
   return <DashboardShell>{children}</DashboardShell>;
 }

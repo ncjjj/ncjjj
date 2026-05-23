@@ -19,7 +19,7 @@ export default function TermsPage() {
           transition={{ duration: 0.6 }}
         >
           <h1 style={{
-            fontSize: "clamp(2rem, 5vw, 3rem)",
+            fontSize: "3rem",
             fontWeight: "700",
             color: "#2c2416",
             marginBottom: "10px",

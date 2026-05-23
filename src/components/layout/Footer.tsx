@@ -18,107 +18,34 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="site-footer home-footer" style={{
-      position: "relative",
-      background: "linear-gradient(135deg, #1a160e 0%,  #4f3d21 50%, #1a160e 100%)",
-      color: "#e8dcc4",
-      overflow: "hidden",
-    }}>
-      {/* Background decoration */}
-      <div style={{
-        position: "absolute",
-        top: "0",
-        left: "50%",
-        transform: "translateX(-50%)",
-        width: "100%",
-        height: "1px",
-        background: "linear-gradient(90deg, transparent, #d4af37, transparent)",
-      }}></div>
-      <div style={{
-        position: "absolute",
-        top: "-200px",
-        right: "-100px",
-        width: "400px",
-        height: "400px",
-        background: "radial-gradient(circle, rgba(212,175,55,0.08) 0%, transparent 70%)",
-        borderRadius: "50%",
-        pointerEvents: "none",
-      }}></div>
+    <footer className="site-footer home-footer">
+      <div className="decor-line" />
+      <div className="decor-circle" />
 
       {/* Main Footer Content */}
-      <div className="home-footer-inner" style={{
-        maxWidth: "1400px",
-        margin: "0 auto",
-        padding: "80px 5% 40px",
-      }}>
-        <div className="site-footer-columns" style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "50px",
-          marginBottom: "60px",
-        }}>
+      <div className="site-footer-inner">
+        <div className="site-footer-columns">
           
           {/* Brand Column */}
-          <div style={{ maxWidth: "300px" }}>
+          <div className="footer-brand" style={{ maxWidth: "300px" }}>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <h3 style={{
-                fontSize: "28px",
-                fontWeight: "800",
-                marginBottom: "20px",
-                fontFamily: "Georgia, serif",
-              }}>
-                <span style={{
-                  background: "linear-gradient(90deg, #d4af37, #f2d16b)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}>NCJ</span>{" "}
+              <h3>
+                <span style={{ background: "linear-gradient(90deg, #d4af37, #f2d16b)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>NCJ</span>{" "}
                 <span style={{ color: "#f5e6c8" }}>Legal LLP</span>
               </h3>
-              <p style={{
-                fontSize: "14px",
-                lineHeight: "1.8",
-                color: "#9a8d7a",
-                marginBottom: "24px",
-              }}>
-                Your trusted partner for all legal, tax, and business compliance needs. 
-                We bring decades of expertise to help you navigate complex regulations with ease.
+              <p>
+                Your trusted partner for all legal, tax, and business compliance needs. We bring decades of expertise to help you navigate complex regulations with ease.
               </p>
               
               {/* Contact Info */}
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <a href="tel:+919999562401" style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  color: "#c9b896",
-                  textDecoration: "none",
-                  fontSize: "14px",
-                  transition: "color 0.3s",
-                }}>
-                  <span>📞</span> +91 9999562401
-                </a>
-                <a href="mailto:info@ncjlegal.com" style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  color: "#c9b896",
-                  textDecoration: "none",
-                  fontSize: "14px",
-                  transition: "color 0.3s",
-                }}>
-                  <span>✉️</span> info@ncjlegal.com
-                </a>
-                <div style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "10px",
-                  color: "#9a8d7a",
-                  fontSize: "14px",
-                }}>
+                <a href="tel:+919999562401">📞 +91 9999562401</a>
+                <a href="mailto:info@ncjlegal.com">✉️ info@ncjlegal.com</a>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", color: "#9a8d7a", fontSize: "14px" }}>
                   <span>📍</span>
                   <span>Mainpuri<br />Mainpuri - 205001</span>
                 </div>

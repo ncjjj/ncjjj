@@ -50,7 +50,6 @@ export const authOptions: NextAuthOptions = {
           mobileNumber: dbUser.mobileNumber,
           avatarPath: dbUser.avatarPath,
           avatarUrl: dbUser.avatarUrl,
-          role: dbUser.role,
         };
       },
     }),
@@ -59,7 +58,6 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
-        token.role = user.role;
         token.name = user.name ?? null;
         token.email = user.email ?? null;
         token.mobileNumber = user.mobileNumber;
@@ -100,7 +98,6 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = typeof token.id === "string" ? token.id : "";
-        session.user.role = token.role === "admin" ? "admin" : "user";
         session.user.name = typeof token.name === "string" ? token.name : null;
         session.user.email = typeof token.email === "string" ? token.email : null;
         session.user.mobileNumber =

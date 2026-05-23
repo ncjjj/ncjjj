@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-import type { CSSProperties } from "react";
 
 const reasons = [
   {
@@ -65,7 +64,7 @@ export default function WhyChooseUs() {
         zIndex: 6,
         minHeight: "100vh",
         position: "relative",
-        padding: "120px 20px",
+        padding: "64px 20px",
         background:
           "linear-gradient(135deg, #faf6ed 0%, #f5e6c8 50%, #f0ddb0 100%)",
         width: "100%",
@@ -90,7 +89,7 @@ export default function WhyChooseUs() {
         </div>
 
         {/* GRID */}
-        <div className="home-why-grid" style={grid}>
+        <div className="home-why-grid">
           {reasons.map((reason, index) => (
             <motion.div
               key={reason.id}
@@ -129,7 +128,7 @@ export default function WhyChooseUs() {
         </div>
 
         {/* STATS */}
-        <div style={statsContainer}>
+        <div className="home-why-stats">
           {[
             { number: "5000+", label: "Happy Clients" },
             { number: "25+", label: "Years Experience" },
@@ -148,12 +147,6 @@ export default function WhyChooseUs() {
 }
 
 /* STYLES */
-
-const grid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: "30px",
-};
 
 const card = {
   background: "#fff",
@@ -191,14 +184,6 @@ const badgeStyle = (active: boolean) => ({
   fontSize: "13px",
   color: "#d4af37",
 });
-
-const statsContainer: CSSProperties = {
-  display: "flex",
-  justifyContent: "center",
-  gap: "50px",
-  marginTop: "80px",
-  flexWrap: "wrap",
-};
 
 const statNumber = {
   fontSize: "28px",

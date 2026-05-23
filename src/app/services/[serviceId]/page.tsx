@@ -17,9 +17,6 @@ export default async function ServiceRequestPage({ params }: ServicePageProps) {
     redirect(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
   }
 
-  return (
-    <main className="min-h-screen bg-gradient-to-br from-[#faf6ed] via-[#f5e6c8] to-[#f0ddb0] px-6 py-20">
-      <ServiceForm serviceId={params.serviceId} />
-    </main>
-  );
+  // Service request page hidden: return null to disable UI without deleting file.
+  return null;
 }
