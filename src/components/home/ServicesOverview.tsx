@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import Link from "next/link";
 
 const services = [
@@ -44,9 +43,7 @@ const services = [
 
 export default function ServicesOverview() {
   return (
-    <section 
-      // className="panel"
-      className="home-services"
+    <section className="home-services"
       style={{
         position: "relative",
         minHeight: "100vh",
@@ -87,12 +84,8 @@ export default function ServicesOverview() {
       <div style={{ position: "relative", zIndex: 1, width: "100%" }}>
         
         {/* Header */}
-        <motion.div
+        <div
           className="home-services-header"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
           style={{ textAlign: "center", marginBottom: "60px" }}
         >
           <span style={{
@@ -139,18 +132,13 @@ export default function ServicesOverview() {
             margin: "4px auto 0",
             borderRadius: "2px",
           }}></div>
-        </motion.div>
+        </div>
 
         {/* Services Grid */}
         <div className="home-services-grid">
           {services.map((service, index) => (
-            <motion.div
+            <div
               key={index}
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              whileHover={{ y: -10, scale: 1.02 }}
               className="home-service-card"
               style={{
                 position: "relative",
@@ -190,8 +178,7 @@ export default function ServicesOverview() {
               }}></div>
 
               {/* Icon */}
-              <motion.div
-               whileHover={{scrollbarColor:2}}
+              <div
                 style={{
                 width: "70px",
                 height: "70px",
@@ -205,7 +192,7 @@ export default function ServicesOverview() {
                 boxShadow: "0 8px 25px rgba(212,175,55,0.4)",
               }}>
                 {service.icon}
-              </motion.div>
+              </div>
 
               {/* Title */}
               <h3 style={{
@@ -292,22 +279,13 @@ export default function ServicesOverview() {
                 borderLeft: "2px solid rgba(212,175,55,0.3)",
                 borderRadius: "0 0 0 8px",
               }}></div>
-            </motion.div>
+            </div>
           ))}
         </div>
 
         {/* CTA Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          style={{ textAlign: "center", marginTop: "60px" }}
-        >
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
-          >
+        <div style={{ textAlign: "center", marginTop: "60px" }}>
+          <div>
             <Link
               href="/services"
               style={{
@@ -332,8 +310,8 @@ export default function ServicesOverview() {
                 <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </Link>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </div>
     </section>
   );

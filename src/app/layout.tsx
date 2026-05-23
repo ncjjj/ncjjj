@@ -10,27 +10,35 @@ type RootLayoutProps = {
 };
 
 export const metadata = {
-  title: "CA Firm - GST & ITR Filing Services | Professional Tax Consultancy",
+  title: {
+    default: "NCJ Legal LLP",
+    template: "%s | NCJ Legal LLP",
+  },
   description: "Expert GST and ITR filing services. Get professional tax consultation, accounting support, and document management. File your taxes with certified professionals.",
   keywords: "GST filing, ITR filing, tax consultation, CA firm, accounting services, tax advisory",
-  authors: [{ name: "CA Firm" }],
-  creator: "CA Firm",
-  publisher: "CA Firm",
+  authors: [{ name: "NCJ Legal LLP" }],
+  creator: "NCJ Legal LLP",
+  publisher: "NCJ Legal LLP",
+  icons: {
+    icon: "/images/ncj.jpeg",
+    shortcut: "/images/ncj.jpeg",
+    apple: "/images/ncj.jpeg",
+  },
   
   // Open Graph Tags (Social Media)
   openGraph: {
     type: "website",
     locale: "en_IN",
     url: process.env.NEXT_PUBLIC_APP_URL || "https://yoursite.com",
-    siteName: "CA Firm",
-    title: "CA Firm - GST & ITR Filing Services",
+    siteName: "NCJ Legal LLP",
+    title: "NCJ Legal LLP - GST & ITR Filing Services",
     description: "Expert tax consultation and filing services for GST, ITR, and accounting support",
     images: [
       {
         url: "/images/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "CA Firm Services",
+        alt: "NCJ Legal LLP Services",
       },
     ],
   },
@@ -38,7 +46,7 @@ export const metadata = {
   // Twitter Tags
   twitter: {
     card: "summary_large_image",
-    title: "CA Firm - GST & ITR Filing Services",
+    title: "NCJ Legal LLP - GST & ITR Filing Services",
     description: "Expert tax consultation and filing services",
     creator: "@yourhandle",
     images: ["/images/og-image.jpg"],

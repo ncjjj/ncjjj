@@ -62,6 +62,22 @@
   gap: 12px;
 }
 
+.passwordHint {
+  margin: 10px 0 0;
+  color: #2b2010;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.passwordRules {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
 .featureList li {
   color: #f1dfb0;
   display: flex;
@@ -80,6 +96,28 @@
   color: #2a2113;
   font-weight: 700;
   font-size: 12px;
+}
+
+.passwordRules li {
+  color: #3c2d15;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.passwordRules span {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #d4af37, #f2d16b);
+  color: #2a2113;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
 .formWrap {
@@ -130,6 +168,11 @@
   gap: 6px;
 }
 
+.passwordRow {
+  display: grid;
+  gap: 6px;
+}
+
 .field label {
   font-size: 13px;
   color: #56462a;
@@ -144,7 +187,44 @@
   font-size: 14px;
 }
 
-.field input:focus {
+.passwordInputWrap {
+  position: relative;
+}
+
+.passwordInput {
+  width: 100%;
+  padding-right: 76px;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  border-radius: 12px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  padding-left: 14px;
+  background: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+  color: #111;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: rgba(45, 36, 22, 0.08);
+  color: #5f4f31;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.passwordToggle:hover {
+  background: rgba(45, 36, 22, 0.14);
+}
+
+.field input:focus,
+.passwordInput:focus {
   outline: none;
   border-color: rgba(212, 175, 55, 0.85);
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.22);

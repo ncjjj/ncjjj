@@ -1,32 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import sup from "../../../public/images/sup.jpg";
-import sup2 from "../../../public/images/sup2.jpg";
-import sup3 from "../../../public/images/sup3.jpg";
 
-const banners = [sup, sup2, sup3];
+const banner = sup;
 
 export default function HeroSection() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [loaded, setLoaded] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % banners.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Trigger animation on load
-  useEffect(() => {
-    setTimeout(() => setLoaded(true), 200);
-  }, []);
 
   const ensureAuthenticated = () => {
     if (status !== "authenticated" || !session?.user) {
@@ -60,15 +44,13 @@ export default function HeroSection() {
     <div className="panel home-hero">
       {/* BACKGROUND IMAGE SLIDER */}
       <div className="home-hero-bg">
-        {banners.map((img, i) => (
-          <img key={i} src={img.src} alt="banner" className="bg-image" style={{ opacity: currentIndex === i ? 1 : 0, transition: "opacity 1s ease-in-out" }} />
-        ))}
+        <img src={banner.src} alt="banner" className="bg-image" />
         <div className="home-hero-overlay" style={{ background: "linear-gradient(135deg, rgba(10,10,10,0.85), rgba(30,25,10,0.8), rgba(15,15,15,0.9))", position: 'absolute', inset: 0 }} />
       </div>
 
       <section className="home-hero-section">
         {/* LEFT CONTENT */}
-        <div className="home-hero-copy" style={{ transform: loaded ? "translateX(0)" : "translateX(-80px)", opacity: loaded ? 1 : 0, transition: "all 0.8s ease" }}>
+        <div className="home-hero-copy">
           {/* TRUST BADGES */}
           <div
             className="home-hero-badges"
@@ -127,7 +109,7 @@ export default function HeroSection() {
         </div>
 
         {/* RIGHT SIDE */}
-        <div className="home-hero-visual" style={{ transform: loaded ? "translateX(0)" : "translateX(80px)", opacity: loaded ? 1 : 0, transition: "all 1s ease" }}>
+        <div className="home-hero-visual">
           {/* FLOATING CARD */}
           <div className="home-hero-floating-card">Trusted by Professionals</div>
         </div>

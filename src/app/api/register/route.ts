@@ -4,6 +4,7 @@ import { createUser, findUserByEmail } from "../../../db/queries/users";
 
 const registerSchema = z.object({
   name: z.string().trim().min(2, "Name is required."),
+  mobileNumber: z.string().trim().min(10, "Phone number is required."),
   email: z
     .string()
     .trim()
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
 
 
     const name = parsed.data.name.trim();
+    const mobileNumber = parsed.data.mobileNumber.trim();
     const email = parsed.data.email.trim().toLowerCase();
 
     const existingUser = await findUserByEmail(email);
@@ -41,6 +43,7 @@ export async function POST(request: Request) {
 
     const user = await createUser({
       name,
+      mobileNumber,
       email,
       password: parsed.data.password,
     });

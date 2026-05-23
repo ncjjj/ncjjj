@@ -1,8 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useState } from "react";
-
 const reasons = [
   {
     id: 1,
@@ -55,8 +52,6 @@ const reasons = [
 ];
 
 export default function WhyChooseUs() {
-  const [activeCard, setActiveCard] = useState<number | null>(null);
-
   return (
     <section
       className="home-why"
@@ -91,39 +86,33 @@ export default function WhyChooseUs() {
         {/* GRID */}
         <div className="home-why-grid">
           {reasons.map((reason, index) => (
-            <motion.div
+            <div
               key={reason.id}
-              onHoverStart={() => setActiveCard(reason.id)}
-              onHoverEnd={() => setActiveCard(null)}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
               className="home-why-card"
               style={{
                 ...card,
-                ...(activeCard === reason.id ? activeCardStyle : {}),
               }}
             >
               {/* ICON */}
-              <div style={iconBox(activeCard === reason.id)}>
+              <div style={iconBox}>
                 {reason.icon}
               </div>
 
               {/* TITLE */}
-              <h3 style={title(activeCard === reason.id)}>
+              <h3 style={title}>
                 {reason.title}
               </h3>
 
               {/* DESC */}
-              <p style={desc(activeCard === reason.id)}>
+              <p style={desc}>
                 {reason.description}
               </p>
 
               {/* BADGE */}
-              <div style={badgeStyle(activeCard === reason.id)}>
+              <div style={badgeStyle}>
                 {reason.stats}
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
 
@@ -156,34 +145,28 @@ const card = {
   cursor: "pointer",
 };
 
-const activeCardStyle = {
-  background: "#2c2416",
-  color: "#fff",
-  transform: "scale(1.03)",
-};
-
-const iconBox = (active: boolean) => ({
+const iconBox = {
   fontSize: "30px",
   marginBottom: "20px",
-});
+};
 
-const title = (active: boolean) => ({
+const title = {
   fontSize: "20px",
   fontWeight: "700",
   marginBottom: "10px",
-  color: active ? "#f5e6c8" : "#2c2416",
-});
+  color: "#2c2416",
+};
 
-const desc = (active: boolean) => ({
+const desc = {
   fontSize: "14px",
-  color: active ? "#c9b896" : "#555",
-});
+  color: "#555",
+};
 
-const badgeStyle = (active: boolean) => ({
+const badgeStyle = {
   marginTop: "20px",
   fontSize: "13px",
   color: "#d4af37",
-});
+};
 
 const statNumber = {
   fontSize: "28px",

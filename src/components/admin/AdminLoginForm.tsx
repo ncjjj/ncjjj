@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
+import PasswordInput from "../common/PasswordInput";
 
 type AdminLoginFormProps = {
   callbackUrl?: string;
@@ -53,15 +54,18 @@ export default function AdminLoginForm({ callbackUrl = "/admin" }: AdminLoginFor
           className="w-full min-w-0 rounded-xl border border-[#e5d7b6] px-4 py-3 outline-none focus:border-[#b89b5e]"
         />
       </div>
-      <div>
-        <label className="mb-2 block text-sm font-medium text-[#3b2f1c]">Password</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          className="w-full min-w-0 rounded-xl border border-[#e5d7b6] px-4 py-3 outline-none focus:border-[#b89b5e]"
-        />
-      </div>
+      <PasswordInput
+        id="admin-password"
+        label="Password"
+        value={password}
+        onChange={setPassword}
+        required
+        autoComplete="current-password"
+        className="space-y-2"
+        labelClassName="mb-2 block text-sm font-medium text-[#3b2f1c]"
+        inputClassName="w-full min-w-0 rounded-xl border border-[#e5d7b6] px-4 py-3 pr-20 outline-none focus:border-[#b89b5e]"
+        buttonClassName="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-[#e5d7b6] bg-white px-3 py-1 text-xs font-semibold text-[#6b5b3e] transition hover:bg-[#f6efdf]"
+      />
       {message ? <p className="text-sm text-red-600">{message}</p> : null}
       <button
         type="submit"

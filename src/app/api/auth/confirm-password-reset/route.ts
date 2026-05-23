@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { findLatestValidPasswordResetToken } from "../../../../db/queries/passwordResetTokens";
-import { updateUserPasswordByEmail } from "../../../../db/queries/users";
+import { findUserByEmail, updateUserPasswordByEmail } from "../../../../db/queries/users";
 
 const confirmSchema = z.object({
   email: z.string().trim().email("A valid email is required."),
@@ -37,6 +37,26 @@ export async function POST(request: Request) {
     if (!otpValid) {
       return NextResponse.json(
         { message: "Invalid OTP code. Please check the code and try again." },
+        { status: 400 }
+      );
+    }
+
+    const user = await findUserByEmail(normalizedEmail);
+
+    if (!user) {
+      return NextResponse.json(
+        { message: "Account not found for this email." },
+        { status: 404 }
+      );
+    }
+
+    const isSameAsOldPassword = await bcrypt.compare(parsed.data.newPassword, user.password);
+
+    if (isSameAsOldPassword) {
+      return NextResponse.json(
+        {
+          message: "This is your old password. Please write a new one.",
+        },
         { status: 400 }
       );
     }

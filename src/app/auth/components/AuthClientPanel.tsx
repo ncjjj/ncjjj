@@ -5,6 +5,7 @@ import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
+import PasswordInput from "../../../components/common/PasswordInput";
 import styles from "../AuthPage.module.css";
 
 const initialLogin = {
@@ -15,6 +16,7 @@ const initialLogin = {
 const initialSignup = {
   name: "",
   email: "",
+  mobileNumber: "",
   password: "",
   confirmPassword: "",
 };
@@ -36,10 +38,6 @@ type PasswordCriteria = {
 type AuthClientPanelProps = {
   initialMode?: AuthMode;
 };
-
-async function getPostLoginRoute() {
-  return "/dashboard";
-}
 
 function getPasswordCriteria(password: string): PasswordCriteria {
   return {
@@ -122,8 +120,7 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
         return;
       }
 
-      setSuccess("Login successful. Click below to open your dashboard.");
-      setNextRoute(await getPostLoginRoute());
+      router.replace("/");
     } catch {
       setError("Unable to login right now. Please try again.");
     } finally {
@@ -154,6 +151,7 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
         body: JSON.stringify({
           name: signupForm.name.trim(),
           email: normalizedEmail,
+          mobileNumber: signupForm.mobileNumber.trim(),
           password: signupForm.password,
         }),
       });
@@ -165,20 +163,13 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
         return;
       }
 
-      const signInResult = await signIn("credentials", {
+      setLoginForm((prev) => ({
+        ...prev,
         email: normalizedEmail,
-        password: signupForm.password,
-        redirect: false,
-      });
-
-      if (!signInResult || signInResult.error) {
-        setSuccess("Account created. Please login now.");
-        setMode("login");
-        return;
-      }
-
-      setSuccess("Account created successfully. Click below to open your dashboard.");
-      setNextRoute(await getPostLoginRoute());
+      }));
+      setSignupForm(initialSignup);
+      setMode("login");
+      setSuccess("Account created successfully. Please log in.");
     } catch {
       setError("Unable to create your account right now. Please try again.");
     } finally {
@@ -337,7 +328,6 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
 
           {mode === "login" ? (
             <form className={styles.form} onSubmit={onLogin}>
-              <h2>Login</h2>
               <div className={styles.field}>
                 <label htmlFor="login-email">Email</label>
                 <input
@@ -350,21 +340,22 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
                   required
                 />
               </div>
-              <div className={styles.field}>
-                <label htmlFor="login-password">Password</label>
-                <input
-                  id="login-password"
-                  type="password"
-                  value={loginForm.password}
-                  onChange={(event) =>
-                    setLoginForm((prev) => ({
-                      ...prev,
-                      password: event.target.value,
-                    }))
-                  }
-                  required
-                />
-              </div>
+              <PasswordInput
+                id="login-password"
+                label="Password"
+                value={loginForm.password}
+                onChange={(value) =>
+                  setLoginForm((prev) => ({
+                    ...prev,
+                    password: value,
+                  }))
+                }
+                required
+                autoComplete="current-password"
+                className={styles.passwordRow}
+                inputClassName={styles.passwordInput}
+                buttonClassName={styles.passwordToggle}
+              />
               <button type="submit" className={styles.submitBtn} disabled={submitting}>
                 {submitting ? "Please wait..." : "Login"}
               </button>
@@ -376,15 +367,6 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
                 >
                   {message.text}
                 </p>
-              ) : null}
-              {nextRoute ? (
-                <button
-                  type="button"
-                  className={styles.submitBtn}
-                  onClick={() => router.push(nextRoute)}
-                >
-                  Continue to Dashboard
-                </button>
               ) : null}
               <p className={styles.helper}>
                 <button
@@ -405,7 +387,6 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
             </form>
           ) : mode === "signup" ? (
             <form className={styles.form} onSubmit={onSignup}>
-              <h2>Create account</h2>
               <div className={styles.field}>
                 <label htmlFor="signup-name">Full Name</label>
                 <input
@@ -433,25 +414,42 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
                   required
                 />
               </div>
-              
+
               <div className={styles.field}>
-                <label htmlFor="signup-password">Password</label>
+                <label htmlFor="signup-mobile-number">Phone Number</label>
                 <input
-                  id="signup-password"
-                  type="password"
-                  value={signupForm.password}
+                  id="signup-mobile-number"
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="Enter your phone number"
+                  value={signupForm.mobileNumber}
                   onChange={(event) =>
-                    setSignupForm((prev) => ({
-                      ...prev,
-                      password: event.target.value,
-                    }))
+                    setSignupForm((prev) => ({ ...prev, mobileNumber: event.target.value }))
                   }
                   required
                 />
-                <p className={styles.helper}>
+              </div>
+              
+              <PasswordInput
+                id="signup-password"
+                label="Password"
+                value={signupForm.password}
+                onChange={(value) =>
+                  setSignupForm((prev) => ({
+                    ...prev,
+                    password: value,
+                  }))
+                }
+                required
+                autoComplete="new-password"
+                className={styles.passwordRow}
+                inputClassName={styles.passwordInput}
+                buttonClassName={styles.passwordToggle}
+              />
+                <p className={styles.passwordHint}>
                   Use 8+ characters with 1 uppercase letter, 1 number, and 1 special character.
                 </p>
-                <ul className={styles.featureList}>
+                <ul className={styles.passwordRules}>
                   <li>
                     <span>{signupPasswordCriteria.length ? "✓" : "1"}</span>
                     At least 8 characters
@@ -469,22 +467,22 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
                     One special character
                   </li>
                 </ul>
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="signup-confirm-password">Confirm Password</label>
-                <input
-                  id="signup-confirm-password"
-                  type="password"
-                  value={signupForm.confirmPassword}
-                  onChange={(event) =>
-                    setSignupForm((prev) => ({
-                      ...prev,
-                      confirmPassword: event.target.value,
-                    }))
-                  }
-                  required
-                />
-              </div>
+              <PasswordInput
+                id="signup-confirm-password"
+                label="Confirm Password"
+                value={signupForm.confirmPassword}
+                onChange={(value) =>
+                  setSignupForm((prev) => ({
+                    ...prev,
+                    confirmPassword: value,
+                  }))
+                }
+                required
+                autoComplete="new-password"
+                className={styles.passwordRow}
+                inputClassName={styles.passwordInput}
+                buttonClassName={styles.passwordToggle}
+              />
               <button type="submit" className={styles.submitBtn} disabled={submitting}>
                 {submitting ? "Please wait..." : "Create Account"}
               </button>
@@ -496,15 +494,6 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
                 >
                   {message.text}
                 </p>
-              ) : null}
-              {nextRoute ? (
-                <button
-                  type="button"
-                  className={styles.submitBtn}
-                  onClick={() => router.push(nextRoute)}
-                >
-                  Continue to Dashboard
-                </button>
               ) : null}
               <p className={styles.helper}>
                 Already have an account? <Link href="/login">Login</Link>
@@ -572,33 +561,35 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
                   required
                 />
               </div>
-              <div className={styles.field}>
-                <label htmlFor="new-password">New Password</label>
-                <input
-                  id="new-password"
-                  type="password"
-                  value={newPassword}
-                  onChange={(event) => setNewPassword(event.target.value)}
-                  required
-                />
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="confirm-new-password">Confirm New Password</label>
-                <input
-                  id="confirm-new-password"
-                  type="password"
-                  value={confirmNewPassword}
-                  onChange={(event) => setConfirmNewPassword(event.target.value)}
-                  required
-                />
-              </div>
+              <PasswordInput
+                id="new-password"
+                label="New Password"
+                value={newPassword}
+                onChange={setNewPassword}
+                required
+                autoComplete="new-password"
+                className={styles.passwordRow}
+                inputClassName={styles.passwordInput}
+                buttonClassName={styles.passwordToggle}
+              />
+              <PasswordInput
+                id="confirm-new-password"
+                label="Confirm New Password"
+                value={confirmNewPassword}
+                onChange={setConfirmNewPassword}
+                required
+                autoComplete="new-password"
+                className={styles.passwordRow}
+                inputClassName={styles.passwordInput}
+                buttonClassName={styles.passwordToggle}
+              />
               <button type="submit" className={styles.submitBtn} disabled={submitting}>
                 {submitting ? "Please wait..." : "Verify OTP & Reset Password"}
               </button>
-              <p className={styles.helper}>
+              <p className={styles.passwordHint}>
                 Use 8+ characters with 1 uppercase letter, 1 number, and 1 special character.
               </p>
-              <ul className={styles.featureList}>
+              <ul className={styles.passwordRules}>
                 <li>
                   <span>{resetPasswordCriteria.length ? "✓" : "1"}</span>
                   At least 8 characters
