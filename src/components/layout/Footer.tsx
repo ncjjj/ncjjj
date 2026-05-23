@@ -21,7 +21,7 @@ const startupSubmenuItems = [
 const complianceSubmenuItems = [
   { name: "Tax Filing", href: "/services/gst-consultation" },
   { name: "Accounting and CFO", href: "/services/accounting-support" },
-  { name: "Contracts and agreements", href: "/services/legal-assistance" },
+  { name: "Contracts and agreements", href: "/services/contracts-agreements" },
 ];
 
 export default function Footer() {

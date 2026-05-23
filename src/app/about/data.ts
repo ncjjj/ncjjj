@@ -5,7 +5,7 @@ const loadAboutPageData = unstable_cache(
     
     return {
       firmName: "NCJ LLP",
-      yearsOfExperience: 12,
+      yearsOfExperience: 60,
       activeClients: 320,
       supportEmail: "support@ncjassociates.com",
       consultationPath: "/contact",

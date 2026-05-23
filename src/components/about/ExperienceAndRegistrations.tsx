@@ -24,7 +24,7 @@ export default function ExperienceAndRegistrations() {
         >
           <span style={badge}>EXPERIENCE</span>
 
-          <h2 style={heading}>
+          <h2 className="about-heading" style={heading}>
             Experience & <span style={goldText}>Registrations</span>
           </h2>
 
@@ -34,9 +34,9 @@ export default function ExperienceAndRegistrations() {
         </motion.div>
 
         {/* STATS ROW */}
-        <div style={statsRow}>
+        <div className="about-stats-row" style={statsRow}>
           {[
-            { number: "25+", label: "Years Experience" },
+            { number: "60+", label: "Years Experience" },
             { number: "5000+", label: "Clients Served" },
             { number: "99%", label: "Success Rate" },
             { number: "50+", label: "Expert Team" },
@@ -46,6 +46,7 @@ export default function ExperienceAndRegistrations() {
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
+              className="about-stats-card"
               style={statCard}
             >
               <div style={statNumber}>{item.number}</div>
@@ -59,11 +60,12 @@ export default function ExperienceAndRegistrations() {
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
+          className="about-reg-box"
           style={regBox}
         >
           <h3 style={regTitle}>Registrations & Compliance</h3>
 
-          <div style={regGrid}>
+          <div className="about-reg-grid" style={regGrid}>
             {[
               "ICAI Registered Firm",
               "GST Registered",

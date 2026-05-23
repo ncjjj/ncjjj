@@ -23,7 +23,7 @@ export default function FirmProfile() {
         >
           <span style={badge}>FIRM PROFILE</span>
 
-          <h2 style={heading}>
+          <h2 className="about-heading" style={heading}>
             About <span style={goldText}>Our Firm</span>
           </h2>
 
@@ -33,7 +33,7 @@ export default function FirmProfile() {
         </motion.div>
 
         {/* CONTENT GRID */}
-        <div style={grid}>
+        <div className="about-firm-grid" style={grid}>
           
           {/* LEFT - TEXT */}
           <motion.div
@@ -74,6 +74,7 @@ export default function FirmProfile() {
             initial={{ opacity: 0, x: 40 }}
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
+            className="about-right-grid"
             style={rightGrid}
           >
             {[

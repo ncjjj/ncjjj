@@ -7,7 +7,7 @@ const reasons = [
     title: "Expert Professionals",
     description:
       "Our team consists of experienced CAs, lawyers, and tax experts with decades of combined experience in handling complex legal and financial matters.",
-    stats: "25+ Years Experience",
+    stats: "60+ Years Experience",
   },
   {
     id: 2,
@@ -120,7 +120,7 @@ export default function WhyChooseUs() {
         <div className="home-why-stats">
           {[
             { number: "5000+", label: "Happy Clients" },
-            { number: "25+", label: "Years Experience" },
+            { number: "60+", label: "Years Experience" },
             { number: "99%", label: "Success Rate" },
             { number: "50+", label: "Experts" },
           ].map((stat, i) => (

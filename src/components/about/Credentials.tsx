@@ -22,7 +22,7 @@ export default function Credentials() {
         >
           <span style={badge}>CREDENTIALS</span>
 
-          <h2 style={heading}>
+          <h2 className="about-heading" style={heading}>
             Our <span style={goldText}>Professional Standards</span>
           </h2>
 
@@ -32,7 +32,7 @@ export default function Credentials() {
         </motion.div>
 
         {/* CARDS */}
-        <div style={grid}>
+        <div className="about-credentials-grid" style={grid}>
           {[
             {
               title: "Certified Experts",

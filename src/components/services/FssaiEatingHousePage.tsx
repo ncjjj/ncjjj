@@ -20,193 +20,176 @@ interface ServiceData {
 
 const servicesGroup1: ServiceData[] = [
   {
-    id: "legal-notice",
-    title: "Legal Notice",
-    description: "A legal notice is a formal written communication sent to enforce legal rights, demand compliance, or initiate dispute resolution before litigation.",
+    id: "fssai-license",
+    title: "FSSAI License",
+    description: "FSSAI License is mandatory for all food business operators involved in manufacturing, processing, storage, transportation, distribution, or sale of food products in India.",
     assistanceLabel: "Our Assistance",
     assistance: [
-      "Legal notice drafting",
-      "Case evaluation and legal advisory",
-      "Recovery and contractual notices",
-      "Property and commercial dispute notices",
-      "Reply drafting support"
+      "Eligibility assessment",
+      "License category selection",
+      "Documentation preparation",
+      "Online application filing",
+      "Departmental coordination",
+      "Compliance advisory"
     ],
     benefits: [
-      "Formal assertion of legal rights",
-      "Opportunity for pre-litigation settlement",
-      "Strong legal documentation",
-      "Improved legal protection"
+      "Legal authorization for food business operations",
+      "Compliance with food safety laws",
+      "Consumer trust enhancement",
+      "Business credibility improvement",
+      "Eligibility for organized retail and online platforms"
     ]
   },
   {
-    id: "cheque-bounce-notice",
-    title: "Cheque Bounce Notice",
-    description: "Cheque bounce notices are issued under Section 138 of the Negotiable Instruments Act in cases of dishonoured cheques.",
+    id: "fssai-state-license",
+    title: "FSSAI State License",
+    description: "State FSSAI License is applicable to medium-sized food businesses operating within a particular state and falling under prescribed turnover limits.",
     assistanceLabel: "Our Services",
     assistance: [
-      "Demand notice drafting",
-      "Legal compliance review",
-      "Recovery strategy advisory",
-      "Documentation support"
-    ],
-    benefits: [
-      "Legal initiation of recovery proceedings",
-      "Protection of financial interests",
-      "Compliance with statutory timelines",
-      "Strengthened legal position"
-    ]
-  },
-  {
-    id: "section-8-demand-notice",
-    title: "Section 8 Demand Notice",
-    description: "Section 8 demand notices are issued by operational creditors under the Insolvency and Bankruptcy Code (IBC).",
-    assistanceLabel: "Our Assistance",
-    assistance: [
-      "Demand notice drafting",
-      "Operational debt verification",
-      "Documentation and claim support",
-      "Legal advisory for insolvency proceedings"
-    ],
-    benefits: [
-      "Formal recovery mechanism",
-      "Legal initiation under IBC",
-      "Protection of creditor interests",
-      "Structured debt recovery process"
-    ]
-  },
-  {
-    id: "rera-complaint",
-    title: "RERA Complaint",
-    description: "We assist homebuyers, investors, and developers in filing and managing complaints before the Real Estate Regulatory Authority (RERA).",
-    assistanceLabel: "Our Services",
-    assistance: [
-      "Complaint drafting",
+      "State license application filing",
       "Documentation support",
-      "Regulatory representation coordination",
-      "Real estate dispute advisory"
+      "Inspection advisory",
+      "Renewal and modification assistance"
     ],
     benefits: [
-      "Legal remedy for real estate disputes",
-      "Protection of buyer rights",
-      "Faster dispute resolution mechanisms",
-      "Regulatory compliance support"
+      "Legal food business operations within the state",
+      "Regulatory compliance",
+      "Improved market reputation",
+      "Protection against penalties"
     ]
   },
   {
-    id: "caveat-petition",
-    title: "Caveat Petition",
-    description: "A caveat petition is filed to ensure that no adverse court order is passed without giving prior notice to the concerned party.",
+    id: "central-fssai-license",
+    title: "Central FSSAI License",
+    description: "Central FSSAI License is mandatory for large food businesses, importers, exporters, e-commerce food operators, and businesses operating in multiple states.",
     assistanceLabel: "Our Assistance",
     assistance: [
-      "Caveat drafting and filing",
-      "Court procedural advisory",
-      "Legal documentation management"
+      "Central license registration",
+      "Documentation and compliance management",
+      "Product category advisory",
+      "Government coordination"
     ],
     benefits: [
-      "Protection against ex-parte orders",
-      "Advance notice of legal proceedings",
-      "Better litigation preparedness"
+      "Nationwide food business operations",
+      "Import-export eligibility",
+      "Large-scale operational approval",
+      "Enhanced business credibility"
+    ]
+  },
+  {
+    id: "fssai-license-renewal",
+    title: "FSSAI License Renewal",
+    description: "Timely renewal of FSSAI licenses is essential to ensure uninterrupted legal operations and avoid penalties.",
+    assistanceLabel: "Our Services",
+    assistance: [
+      "Renewal filing",
+      "Compliance review",
+      "Documentation updates",
+      "Modification support"
+    ],
+    benefits: [
+      "Continuous validity of food license",
+      "Avoidance of penalties and disruptions",
+      "Smooth business continuity",
+      "Updated regulatory compliance"
+    ]
+  },
+  {
+    id: "eating-house-license",
+    title: "Eating House License",
+    description: "Eating House License is mandatory for restaurants, cafes, hotels, cloud kitchens, and establishments serving food and beverages to customers.",
+    assistanceLabel: "Our Assistance",
+    assistance: [
+      "License application support",
+      "Police and local authority coordination",
+      "Documentation management",
+      "Regulatory compliance advisory"
+    ],
+    benefits: [
+      "Legal operation of restaurants and eateries",
+      "Local authority compliance",
+      "Consumer confidence",
+      "Protection against operational penalties"
     ]
   }
 ];
 
 const servicesGroup2: ServiceData[] = [
   {
-    id: "legal-heir-certificate",
-    title: "Legal Heir Certificate",
-    description: "Legal heir certificates establish the relationship between deceased persons and their legal heirs.",
+    id: "fssai-annual-return",
+    title: "FSSAI Annual Return",
+    description: "Certain categories of food businesses are required to file annual returns under FSSAI regulations.",
     assistanceLabel: "Our Services",
     assistance: [
-      "Documentation assistance",
-      "Application drafting",
-      "Authority coordination",
-      "Procedural advisory"
+      "Annual return preparation",
+      "Filing assistance",
+      "Compliance review",
+      "Record maintenance guidance"
     ],
     benefits: [
-      "Smooth transfer of assets and benefits",
-      "Legal recognition of heirs",
-      "Assistance in banking and property matters",
-      "Reduced succession disputes"
+      "Statutory compliance",
+      "Avoidance of late fees and penalties",
+      "Proper regulatory reporting",
+      "Smooth inspection handling"
     ]
   },
   {
-    id: "succession-certificate-in-india",
-    title: "Succession Certificate in India",
-    description: "Succession certificates are required for claiming debts, securities, and financial assets of a deceased person.",
+    id: "fssai-product-approval",
+    title: "FSSAI Product Approval",
+    description: "We assist businesses in obtaining approvals for proprietary food products, ingredients, formulations, and imported food items.",
     assistanceLabel: "Our Assistance",
     assistance: [
-      "Court petition drafting",
+      "Product documentation support",
+      "Ingredient compliance review",
+      "Label compliance advisory",
+      "Regulatory coordination"
+    ],
+    benefits: [
+      "Legal approval for food products",
+      "Faster market entry",
+      "Compliance with food safety standards",
+      "Reduced regulatory risks"
+    ]
+  },
+  {
+    id: "food-recycling-license",
+    title: "Food Recycling License",
+    description: "Food recycling and waste management businesses require regulatory approvals and compliance certifications for lawful operations.",
+    assistanceLabel: "Our Services",
+    assistance: [
+      "License advisory",
+      "Environmental and food compliance support",
       "Documentation management",
-      "Procedural compliance support",
-      "Legal representation coordination"
+      "Regulatory coordination"
     ],
     benefits: [
-      "Legal authority to claim financial assets",
-      "Protection of legal heir rights",
-      "Smooth transfer of investments and securities"
+      "Legal food waste management operations",
+      "Environmental compliance",
+      "Sustainable business practices",
+      "Operational legitimacy"
     ]
   },
   {
-    id: "will-drafting",
-    title: "Will Drafting",
-    description: "Will drafting helps individuals legally distribute assets and define succession arrangements after their lifetime.",
-    assistanceLabel: "Our Services",
-    assistance: [
-      "Customized will drafting",
-      "Family settlement advisory",
-      "Asset structuring guidance",
-      "Legal review and documentation"
-    ],
-    benefits: [
-      "Proper estate planning",
-      "Reduced inheritance disputes",
-      "Clear asset distribution",
-      "Protection of family interests"
-    ]
-  },
-  {
-    id: "power-of-attorney",
-    title: "Power of Attorney (POA)",
-    description: "Power of Attorney authorizes a person to act legally on behalf of another individual or entity.",
+    id: "fpo-mark-certification",
+    title: "FPO Mark Certification",
+    description: "FPO certification applies to manufacturers dealing with fruit and processed fruit products.",
     assistanceLabel: "Our Assistance",
     assistance: [
-      "General and special POA drafting",
-      "Property and business authorization documents",
-      "Registration support",
-      "NRI documentation assistance"
+      "Certification support",
+      "Product compliance guidance",
+      "Regulatory documentation",
+      "Departmental coordination"
     ],
     benefits: [
-      "Legally authorized representation",
-      "Simplified property and business management",
-      "Efficient handling of legal transactions",
-      "Support for remote decision-making"
+      "Product quality recognition",
+      "Food processing compliance",
+      "Enhanced market trust",
+      "Improved product credibility"
     ]
   }
 ];
 
-const servicesGroup3: ServiceData[] = [
-  {
-    id: "lease-agreement-drafting",
-    title: "Lease Agreement Drafting",
-    description: "We provide professionally drafted lease agreements for residential, commercial, industrial, and institutional properties.",
-    assistanceLabel: "Our Services",
-    assistance: [
-      "Lease agreement drafting",
-      "Tenancy terms structuring",
-      "Lock-in and rent clauses",
-      "Registration support",
-      "Renewal and amendment assistance"
-    ],
-    benefits: [
-      "Legal protection for landlords and tenants",
-      "Clearly defined occupancy rights",
-      "Reduced tenancy disputes",
-      "Structured leasing arrangements"
-    ]
-  }
-];
-
-export default function LegalAssistancePage() {
+export default function FssaiEatingHousePage() {
   const [activeService, setActiveService] = useState<ServiceItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -560,126 +543,120 @@ export default function LegalAssistancePage() {
       <div className="web-container">
         {/* Hero Section */}
         <section className="web-hero">
-          <h1 className="web-hero-title">Legal Services</h1>
+          <h1 className="web-hero-title">FSSAI & Eating House License Services</h1>
           <p className="web-hero-subtitle">
-            Professional Legal Documentation, Litigation Support & Advisory Solutions
+            Complete Food Business Licensing, Regulatory Compliance & Food Safety Solutions
           </p>
         </section>
 
         {/* Intro Section */}
         <section className="web-intro-grid">
           <p className="web-intro-text">
-            At NCJ Legal Business Solutions LLP, we provide comprehensive legal drafting, advisory, dispute management, documentation, and procedural support services for individuals, businesses, property owners, startups, corporates, and organizations across India.
+            At NCJ Legal Business Solutions LLP, we provide comprehensive consultancy and end-to-end assistance for FSSAI registrations, food business licenses, eating house approvals, food safety compliance, and regulatory certifications across India.
           </p>
           <p className="web-intro-text">
-            Legal documentation and timely legal action are essential for protecting rights, enforcing obligations, resolving disputes, and ensuring regulatory compliance. Our experienced legal professionals assist clients in handling commercial disputes, property matters, contractual issues, succession planning, recovery proceedings, and statutory legal requirements with professionalism and strategic legal guidance.
+            Food businesses operating in manufacturing, processing, packaging, storage, transportation, distribution, catering, restaurants, cloud kitchens, cafes, hotels, bakeries, import-export, and food retail sectors are required to obtain appropriate food safety registrations and licenses under the Food Safety and Standards Act, 2006.
           </p>
           <p className="web-intro-text">
-            We focus on providing legally sound, professionally drafted, and practical solutions tailored to the client’s specific legal and commercial requirements.
+            Our experienced legal and compliance professionals assist food businesses in obtaining licenses efficiently while ensuring complete compliance with applicable food safety regulations and statutory requirements.
           </p>
         </section>
 
         {/* Category Navigation Bar */}
         <nav className="web-nav" aria-label="Services shortcuts">
-          <a href="#our-legal-services" className="web-nav-link">Our Legal Services</a>
-          <a href="#property-succession" className="web-nav-link">Property & Succession</a>
-          <a href="#lease-documentation" className="web-nav-link">Lease Documentation</a>
-          <a href="#support-services" className="web-nav-link">Support & Clients</a>
+          <a href="#fssai-licensing" className="web-nav-link">Our FSSAI & Food Licensing Services</a>
+          <a href="#food-safety-compliance" className="web-nav-link">Food Safety Compliance & Regulatory Services</a>
+          <a href="#support-services" className="web-nav-link">Compliance Support</a>
           <a href="#why-choose" className="web-nav-link">Why Choose Us</a>
         </nav>
 
         {/* SECTION 1 */}
-        <section id="our-legal-services">
-          <h2 className="web-section-title">Our Legal Services</h2>
+        <section id="fssai-licensing">
+          <h2 className="web-section-title">Our FSSAI & Food Licensing Services</h2>
           <div className="web-services-list">
             {servicesGroup1.map(renderServiceItem)}
           </div>
         </section>
 
         {/* SECTION 2 */}
-        <section id="property-succession">
-          <h2 className="web-section-title">Property, Family & Succession Legal Services</h2>
+        <section id="food-safety-compliance">
+          <h2 className="web-section-title">Food Safety Compliance & Regulatory Services</h2>
           <div className="web-services-list">
             {servicesGroup2.map(renderServiceItem)}
           </div>
         </section>
 
-        {/* SECTION 3 */}
-        <section id="lease-documentation">
-          <h2 className="web-section-title">Property & Lease Documentation Services</h2>
-          <div className="web-services-list">
-            {servicesGroup3.map(renderServiceItem)}
-          </div>
-        </section>
-
-        {/* SECTION 4 - Support & Clients Split */}
+        {/* SECTION 3 - Support & Clients Split */}
         <section id="support-services" className="web-two-col">
           <div>
-            <h2 className="web-section-title" style={{ fontSize: "1.4rem" }}>Our Legal Support Services</h2>
+            <h2 className="web-section-title" style={{ fontSize: "1.4rem" }}>Our End-to-End Compliance Support</h2>
             <p className="web-service-desc" style={{ fontSize: "0.95rem", marginBottom: "20px" }}>
-              At NCJ Legal Business Solutions LLP, we provide complete legal support including:
+              At NCJ Legal Business Solutions LLP, we provide complete support throughout the food licensing and compliance process:
             </p>
             <h4 className="web-detail-block-title">Services Include</h4>
             <ul className="web-list">
-              <li className="web-list-item">Legal drafting & documentation</li>
-              <li className="web-list-item">Litigation support advisory</li>
-              <li className="web-list-item">Regulatory compliance guidance</li>
-              <li className="web-list-item">Court and authority procedural support</li>
-              <li className="web-list-item">Property and succession documentation</li>
-              <li className="web-list-item">Commercial dispute assistance</li>
-              <li className="web-list-item">Legal consultation & review</li>
+              <li className="web-list-item">License registration & renewal</li>
+              <li className="web-list-item">Food safety compliance advisory</li>
+              <li className="web-list-item">Labeling & packaging guidance</li>
+              <li className="web-list-item">Regulatory documentation support</li>
+              <li className="web-list-item">Inspection and audit assistance</li>
+              <li className="web-list-item">Return filing & compliance management</li>
+              <li className="web-list-item">Legal and departmental representation</li>
             </ul>
           </div>
 
           <div>
-            <h2 className="web-section-title" style={{ fontSize: "1.4rem" }}>Clients We Serve</h2>
+            <h2 className="web-section-title" style={{ fontSize: "1.4rem" }}>Businesses We Serve</h2>
             <p className="web-service-desc" style={{ fontSize: "0.95rem", marginBottom: "20px" }}>
-              We provide legal services for:
+              We provide FSSAI and food licensing consultancy for:
             </p>
-            <h4 className="web-detail-block-title">Target Client Groups</h4>
+            <h4 className="web-detail-block-title">Food Business Operators</h4>
             <ul className="web-list">
-              <li className="web-list-item">Individuals & Families</li>
-              <li className="web-list-item">Startups & Entrepreneurs</li>
-              <li className="web-list-item">Corporates & MSMEs</li>
-              <li className="web-list-item">Property Owners & Investors</li>
-              <li className="web-list-item">Landlords & Tenants</li>
-              <li className="web-list-item">Builders & Developers</li>
-              <li className="web-list-item">NRIs & Overseas Clients</li>
-              <li className="web-list-item">Creditors & Financial Institutions</li>
+              <li className="web-list-item">Restaurants & Cafes</li>
+              <li className="web-list-item">Cloud Kitchens</li>
+              <li className="web-list-item">Food Manufacturers</li>
+              <li className="web-list-item">Food Importers & Exporters</li>
+              <li className="web-list-item">Hotels & Bakeries</li>
+              <li className="web-list-item">Catering Services</li>
+              <li className="web-list-item">Grocery & Retail Stores</li>
+              <li className="web-list-item">Food Processing Units</li>
+              <li className="web-list-item">Packaged Food Businesses</li>
+              <li className="web-list-item">Dairy & Beverage Companies</li>
+              <li className="web-list-item">E-commerce Food Sellers</li>
             </ul>
           </div>
         </section>
 
-        {/* SECTION 5 - Why Choose Us */}
+        {/* SECTION 4 - Why Choose Us */}
         <section id="why-choose" style={{ borderTop: "1px solid #d4af37", paddingTop: "50px" }}>
           <h2 className="web-section-title">Why Choose NCJ Legal Business Solutions LLP</h2>
           <div className="web-choose-grid">
-            <div className="web-choose-item">60+ Years of Professional Legal & Tax Experience</div>
-            <div className="web-choose-item">Experienced Legal Drafting & Advisory Team</div>
-            <div className="web-choose-item">Personalized Legal Solutions</div>
-            <div className="web-choose-item">End-to-End Documentation Support</div>
-            <div className="web-choose-item">Strong Expertise in Commercial & Property Matters</div>
-            <div className="web-choose-item">Transparent & Professional Advisory</div>
-            <div className="web-choose-item">PAN India Legal Assistance</div>
+            <div className="web-choose-item">60+ Years of Professional Experience</div>
+            <div className="web-choose-item">Specialized Food Law & Compliance Experts</div>
+            <div className="web-choose-item">End-to-End FSSAI & Food Licensing Support</div>
+            <div className="web-choose-item">PAN India Professional Assistance</div>
+            <div className="web-choose-item">Transparent & Timely Processing</div>
+            <div className="web-choose-item">Industry-Specific Compliance Solutions</div>
+            <div className="web-choose-item">Strong Expertise in Regulatory & Government Liaison</div>
           </div>
         </section>
       </div>
 
-      {/* SECTION 6 - Footer CTA Banner */}
+      {/* SECTION 5 - Footer CTA Banner */}
       <section className="web-cta-banner">
         <div className="web-container">
-          <h2 className="web-cta-banner-title">Reliable Legal Solutions Backed by Professional Expertise</h2>
+          <h2 className="web-cta-banner-title">Simplifying Food Business Compliance with Professional Expertise</h2>
           <p className="web-cta-banner-desc">
-            Whether you require legal notices, recovery support, property documentation, succession planning, contractual drafting, or regulatory complaint assistance, NCJ Legal Business Solutions LLP provides dependable and professionally managed legal services tailored to your legal and commercial objectives.
+            Whether you are launching a new food venture, expanding operations, importing food products, operating restaurants, or managing large-scale food manufacturing activities, NCJ Legal Business Solutions LLP provides reliable and professional food licensing solutions to keep your business legally compliant and growth-ready.
           </p>
           <button
             type="button"
             className="web-cta-banner-btn"
             onClick={() =>
               openEnquiry({
-                id: "general-consultation",
-                title: "General Legal Consultation",
-                summary: "Reliable legal solutions backed by professional expertise across India.",
+                id: "fssai-general-consultation",
+                title: "FSSAI & Food Licensing Consultation",
+                summary: "Simplifying food business compliance with professional food safety and licensing expertise across India.",
               })
             }
           >
