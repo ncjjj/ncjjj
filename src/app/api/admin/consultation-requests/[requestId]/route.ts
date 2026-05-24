@@ -15,28 +15,31 @@ type RouteContext = {
   };
 };
 
+export const dynamic = "force-dynamic";
+
 export async function PATCH(request: Request, { params }: RouteContext) {
   try {
     const payload = await request.json();
-    console.log("PATCH API called with params:", params, "payload:", payload);
     const parsed = statusSchema.safeParse(payload);
 
     if (!parsed.success) {
-      console.log("PATCH validation failed:", parsed.error);
       return NextResponse.json({ message: "Invalid status." }, { status: 400 });
     }
 
+    const requestId = params.requestId || (params as any).requestid;
+    if (!requestId) {
+      return NextResponse.json({ message: "Request ID is required." }, { status: 400 });
+    }
+
     const updated = await updateConsultationRequestStatus(
-      params.requestId,
+      requestId,
       parsed.data.status as ConsultationRequestStatus
     );
 
     if (!updated) {
-      console.log("PATCH request not found for ID:", params.requestId);
       return NextResponse.json({ message: "Consultation request not found." }, { status: 404 });
     }
 
-    console.log("PATCH updated successfully:", updated);
     return NextResponse.json({ consultationRequest: updated });
   } catch (error) {
     console.error("[api/admin/consultation-requests/[requestId]] PATCH failed", error);
@@ -46,3 +49,4 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     );
   }
 }
+
