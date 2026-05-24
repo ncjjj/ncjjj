@@ -65,7 +65,7 @@ export default function StartupHero() {
 
         {/* FEATURES */}
         <div className="flex flex-wrap justify-center gap-4 mb-10">
-          {["Startup Registration", "Legal Documentation", "Business Setup", "Compliance"].map((item, i) => (
+          {["Startup Registration", "Legal Documentation", "Business Startup", "Compliance"].map((item, i) => (
             <div
               key={i}
               className="px-4 py-2 rounded-xl border border-yellow-500/20 text-gray-200 text-sm"

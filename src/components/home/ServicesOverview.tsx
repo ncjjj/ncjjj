@@ -4,10 +4,10 @@ import Link from "next/link";
 
 const services = [
   {
-    title: "Tax Filing",
-    icon: "📊",
-    description: "Complete tax compliance solutions",
-    items: ["GST Registration", "GST Return Filing", "TDS Filing", "Income Tax Filing"],
+    title: "Business Startup",
+    icon: "🚀",
+    description: "Launch your business the right way",
+    items: ["Startup India", "LLP Formation", "Private Ltd", "Partnership"],
   },
   {
     title: "Legal Services",
@@ -16,28 +16,10 @@ const services = [
     items: ["Legal Notice", "Cheque Bounce", "Agreement Drafting", "POA & Will"],
   },
   {
-    title: "NGO Services",
-    icon: "🤝",
-    description: "Non-profit registration & compliance",
-    items: ["NGO Registration", "80G & 12A", "FCRA", "CSR Filing"],
-  },
-  {
-    title: "Accounting",
-    icon: "💼",
-    description: "Professional bookkeeping & reports",
-    items: ["Bookkeeping", "Financial Reports", "Tax Planning", "Audit Support"],
-  },
-  {
-    title: "FSSAI",
-    icon: "🍽️",
-    description: "Food safety licensing & compliance",
-    items: ["Food License", "FSSAI Registration", "Annual Returns", "Compliance"],
-  },
-  {
-    title: "Business Setup",
-    icon: "🚀",
-    description: "Launch your business the right way",
-    items: ["Startup India", "LLP Formation", "Private Ltd", "Partnership"],
+    title: "Compliance",
+    icon: "📊",
+    description: "Complete tax compliance solutions",
+    items: ["GST Registration", "GST Return Filing", "TDS Filing", "Income Tax Filing"],
   },
 ];
 

@@ -3,13 +3,16 @@
 import Link from "next/link";
 
 const services = [
-  { label: "Startup / Business Setup", href: "/services/business-setup" },
+  { label: "Startup / Business Startup", href: "/services/business-startup" },
   { label: "Compliance / GST & Tax", href: "/services/gst-consultation" },
   { label: "Legal Services", href: "/services/legal-assistance" },
   { label: "Accounting & CFO", href: "/services/accounting-support" },
   { label: "Government Licenses", href: "/services/licenses" },
   { label: "Government Registration", href: "/services/registration" },
   { label: "ISO Certifications", href: "/services/iso-certifications" },
+  { label: "NGO / Charitable Trust", href: "/services/ngo" },
+  { label: "FSSAI & Food Licenses", href: "/services/fssai" },
+  { label: "Contracts & Agreements", href: "/services/contracts-agreements" },
 ];
 
 export default function ServicesPage() {

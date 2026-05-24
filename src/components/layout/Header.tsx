@@ -13,14 +13,14 @@ const navItems = [
 ];
 
 const services = [
-  { name: "Startup", href: "/services/business-setup" },
+  { name: "Startup", href: "/services/business-startup" },
   { name: "Compliance", href: "/services/gst-consultation" },
   { name: "Legal Services", href: "/services/legal-assistance" },
 ];
 
 const startupSubmenuItems = [
   { name: "NGO", href: "/services/ngo" },
-  { name: "Business Registration", href: "/services/business-setup" },
+  { name: "Business Registration", href: "/services/business-startup" },
   { name: "Government Registration", href: "/services/registration" },
   { name: "Government Licenses", href: "/services/licenses" },
   { name: "FSSAI and Eating Licenses", href: "/services/fssai" },

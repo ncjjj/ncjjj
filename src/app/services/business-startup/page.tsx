@@ -1,4 +1,4 @@
-import BusinessSetupPage from "../../../components/services/BusinessSetupPage";
+import BusinessStartupPage from "../../../components/services/BusinessStartupPage";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function BusinessSetupRoute() {
-  return <BusinessSetupPage />;
+  return <BusinessStartupPage />;
 }

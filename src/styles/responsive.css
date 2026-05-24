@@ -196,7 +196,7 @@
   }
 
   .home-hero-section {
-    min-height: min(100vh, 900px);
+    min-height: min(75vh, 650px);
     padding: var(--section-pad-y) var(--section-pad-x);
   }
 }

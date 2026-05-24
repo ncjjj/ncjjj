@@ -16,7 +16,7 @@ export const SERVICE_CATALOG = {
   },
   "business-setup": {
     id: "business-setup",
-    name: "Business Setup",
+    name: "Business Startup",
     description: "Entity registration and launch compliance",
   },
   "legal-assistance": {

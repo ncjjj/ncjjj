@@ -1,45 +1,8 @@
-"use client";
-
-import { useState } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import sup from "../../../public/images/sup.jpg";
 
 const banner = sup;
 
 export default function HeroSection() {
-  const router = useRouter();
-  const { data: session, status } = useSession();
-  const [actionMessage, setActionMessage] = useState("");
-
-  const ensureAuthenticated = () => {
-    if (status !== "authenticated" || !session?.user) {
-      router.push("/login?callbackUrl=/");
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleGetConsultant = async () => {
-    if (!ensureAuthenticated()) {
-      return;
-    }
-
-    const response = await fetch("/api/actions/get-consultant", { method: "POST" });
-    const payload = await response.json();
-
-    if (!response.ok) {
-      setActionMessage(payload?.message || "Unable to process consultant request right now.");
-      return;
-    }
-
-    setActionMessage("Consultant assigned successfully. Opening dashboard...");
-    router.push("/dashboard");
-  };
-
-
-
   return (
     <div className="panel home-hero">
       {/* BACKGROUND IMAGE SLIDER */}
@@ -90,22 +53,6 @@ export default function HeroSection() {
 
           {/* TEXT */}
           <p>Navigate complex regulations with clarity. We provide structured advisory, compliance support, and strategic insights tailored to individuals and growing businesses.</p>
-
-          {/* BUTTONS */}
-          <div className="home-hero-actions" style={{ display: "flex", gap: "15px" }}>
-            <button className="home-hero-primary" onClick={handleGetConsultant}>Get Consultant</button>
-          </div>
-          {actionMessage ? (
-            <p
-              style={{
-                marginTop: "14px",
-                color: "#D4AF37",
-                fontSize: "14px",
-              }}
-            >
-              {actionMessage}
-            </p>
-          ) : null}
         </div>
 
         {/* RIGHT SIDE */}

@@ -177,6 +177,9 @@ export default function NgoServiceEnquiryModal({ service, open, onClose }: NgoSe
       setMessage(payload?.message || "Your request has been submitted successfully.");
       setAddress("");
       setNote("");
+      setTimeout(() => {
+        onClose();
+      }, 1000);
     } catch (submitError: unknown) {
       setError(submitError instanceof Error ? submitError.message : "Unable to submit your request.");
     } finally {
