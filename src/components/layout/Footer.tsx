@@ -5,6 +5,7 @@ import Link from "next/link";
 const startupLinks = [
   { name: "Business Registration", href: "/services/business-startup" },
   { name: "NGO Registration", href: "/services/ngo" },
+  { name: "Section 8 Company", href: "/services/ngo#section-8-company-registration" },
   { name: "Government Registration", href: "/services/registration" },
 ];
 
@@ -16,6 +17,8 @@ const licenseLinks = [
 
 const complianceLinks = [
   { name: "Tax Filing & GST", href: "/services/gst-consultation" },
+  { name: "Income Tax Return Filing", href: "/services/income-tax-filing" },
+  { name: "TDS Return Filing", href: "/services/tds-return-filing" },
   { name: "Accounting & CFO", href: "/services/accounting-support" },
 ];
 
@@ -39,6 +42,9 @@ export default function Footer() {
             </h3>
             <p style={{ fontSize: "14px", color: "#e8dcc4", opacity: 0.8, marginTop: "8px", maxWidth: "650px", lineHeight: "1.5" }}>
               Your trusted partner for all legal, tax, and business compliance needs. We bring decades of professional legacy to help you succeed.
+            </p>
+            <p style={{ fontSize: "13px", color: "#f2d16b", marginTop: "10px", marginBottom: 0 }}>
+              Services: NGO, Section 8, GST, ITR, TDS, Accounting, Legal Drafting, Licenses, Registrations.
             </p>
           </div>
         </div>
@@ -170,7 +176,7 @@ export default function Footer() {
             </a>
             <span style={{ color: "rgba(255,255,255,0.15)" }}>|</span>
             <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-              <span>📍</span> Mainpuri, UP - 205001
+              <span>📍</span> Mainpuri, Uttar Pradesh - 205001, India
             </div>
           </div>
 

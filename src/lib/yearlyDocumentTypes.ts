@@ -1,3 +1,5 @@
+import { isAllowedDocumentMimeType } from "./documentFiles";
+
 export const yearlyDocumentTypes = [
   {
     slot: "bank_statement",
@@ -13,6 +15,26 @@ export const yearlyDocumentTypes = [
     slot: "document_3",
     label: "Document 3",
     description: "Document 3",
+  },
+  {
+    slot: "last_year_itr",
+    label: "Last Year ITR",
+    description: "Last Year ITR",
+  },
+  {
+    slot: "last_year_computation",
+    label: "Last Year Computation",
+    description: "Last Year Computation",
+  },
+  {
+    slot: "last_year_bs",
+    label: "Last Year B/S",
+    description: "Last Year B/S",
+  },
+  {
+    slot: "last_year_pl",
+    label: "Last Year P/L",
+    description: "Last Year P/L",
   },
 ] as const;
 
@@ -32,6 +54,36 @@ export const yearlyDocumentSlotSet = new Set<YearlyDocumentSlot>(
 
 export const minYearlyDocumentYear = 2020;
 export const maxYearlyDocumentSizeBytes = 10 * 1024 * 1024;
+
+export function getFinancialYearStartYear(date = new Date()): number {
+  const month = date.getMonth();
+
+  return month >= 5 ? date.getFullYear() : date.getFullYear() - 1;
+}
+
+export function formatFinancialYear(startYear: number): string {
+  const endYearShort = String((startYear + 1) % 100).padStart(2, "0");
+  return `${startYear}-${endYearShort}`;
+}
+
+export function getFinancialYearLabel(date = new Date()): string {
+  return formatFinancialYear(getFinancialYearStartYear(date));
+}
+
+export function getFinancialYearOptions(count = 7, minStartYear = minYearlyDocumentYear): Array<{ value: string; label: string; startYear: number }> {
+  const currentStartYear = getFinancialYearStartYear();
+  const lowerBound = Math.max(minStartYear, currentStartYear - (count - 1));
+
+  return Array.from({ length: currentStartYear - lowerBound + 1 }, (_, index) => {
+    const startYear = currentStartYear - index;
+
+    return {
+      startYear,
+      value: String(startYear),
+      label: formatFinancialYear(startYear),
+    };
+  });
+}
 
 export function getYearlyDocumentYears(minYear = minYearlyDocumentYear): number[] {
   const currentYear = new Date().getFullYear();
@@ -65,7 +117,7 @@ export function normalizeYearlyDocumentYear(value: unknown): number | null {
 }
 
 export function isAllowedYearlyDocumentMimeType(mimeType: string): boolean {
-  return mimeType === "application/pdf" || mimeType.startsWith("image/");
+  return isAllowedDocumentMimeType(mimeType);
 }
 
 export function getYearlyDocumentLabel(slot: YearlyDocumentSlot): string {

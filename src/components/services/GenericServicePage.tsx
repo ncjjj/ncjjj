@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import NgoServiceEnquiryModal from "./NgoServiceEnquiryModal";
 
 export interface ServiceItem {
@@ -390,11 +391,11 @@ export default function GenericServicePage({ pageContent, serviceCategories }: G
         {/* Category Navigation Bar */}
         <nav className="web-nav" aria-label="Services shortcuts">
           {serviceCategories.map((category) => (
-            <a key={category.id} href={`#${category.id}`} className="web-nav-link">
+            <Link key={category.id} href={`#${category.id}`} className="web-nav-link">
               {category.title}
-            </a>
+            </Link>
           ))}
-          <a href="#why-choose" className="web-nav-link">Why Choose Us</a>
+          <Link href="#why-choose" className="web-nav-link">Why Choose Us</Link>
         </nav>
 
         {/* Services Grouping */}

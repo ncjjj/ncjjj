@@ -11,6 +11,7 @@ interface SupabaseStorageConfig {
 interface UploadFileInput {
   file: File;
   folder: string;
+  contentType?: string;
 }
 
 interface UploadBufferInput {
@@ -35,13 +36,24 @@ function getSupabaseConfig(): SupabaseStorageConfig {
   const supabaseUrl = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const bucket = process.env.SUPABASE_STORAGE_BUCKET || "profile-assets";
-  const bucketPublic = String(process.env.SUPABASE_STORAGE_PUBLIC || "false").toLowerCase() === "true";
+  const bucketPublic = false;
 
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Supabase storage is not configured.");
+  const missing: string[] = [];
+  if (!supabaseUrl) missing.push("SUPABASE_URL");
+  if (!serviceRoleKey) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Supabase storage is not configured. Missing environment variable(s): ${missing.join(", ")}`
+    );
   }
 
-  return { supabaseUrl, serviceRoleKey, bucket, bucketPublic };
+  return {
+    supabaseUrl: supabaseUrl as string,
+    serviceRoleKey: serviceRoleKey as string,
+    bucket,
+    bucketPublic,
+  };
 }
 
 let supabaseServerClient: SupabaseClient | null = null;
@@ -154,7 +166,7 @@ export async function assertSupabaseObjectExists(path: string) {
   }
 }
 
-export async function uploadFileToSupabase({ file, folder }: UploadFileInput) {
+export async function uploadFileToSupabase({ file, folder, contentType }: UploadFileInput) {
   if (!file) {
     throw new Error("No file provided for upload.");
   }
@@ -162,14 +174,18 @@ export async function uploadFileToSupabase({ file, folder }: UploadFileInput) {
   const { bucket, bucketPublic } = getSupabaseConfig();
   const safeName = sanitizeFileName(file.name || "upload");
   const objectPath = `${folder}/${Date.now()}-${safeName}`;
-  const contentType = inferImageMimeType(file.name || safeName, file.type) || "application/octet-stream";
+  const resolvedContentType =
+    contentType?.trim() ||
+    file.type?.trim() ||
+    inferImageMimeType(file.name || safeName, file.type) ||
+    "application/octet-stream";
   const fileBuffer = await file.arrayBuffer();
-  const uploadBody = new Blob([fileBuffer], { type: contentType });
+  const uploadBody = new Blob([fileBuffer], { type: resolvedContentType });
   const supabase = getSupabaseServerClient();
 
   const { error } = await supabase.storage.from(bucket).upload(objectPath, uploadBody, {
     upsert: true,
-    contentType,
+    contentType: resolvedContentType,
   });
 
   if (error) {
@@ -185,7 +201,7 @@ export async function uploadFileToSupabase({ file, folder }: UploadFileInput) {
     path: objectPath,
     publicUrl,
     fileName: file.name,
-    mimeType: contentType,
+    mimeType: resolvedContentType,
   };
 }
 

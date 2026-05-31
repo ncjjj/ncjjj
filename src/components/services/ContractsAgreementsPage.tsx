@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import NgoServiceEnquiryModal from "./NgoServiceEnquiryModal";
 
 interface ServiceItem {
@@ -587,11 +588,11 @@ export default function ContractsAgreementsPage() {
 
         {/* Category Navigation Bar */}
         <nav className="web-nav" aria-label="Services shortcuts">
-          <a href="#contracts-agreements" className="web-nav-link">Our Contracts & Agreements Services</a>
-          <a href="#property-documentation" className="web-nav-link">Property Documentation & Registration</a>
-          <a href="#rental-lease" className="web-nav-link">Rental & Lease Agreements</a>
-          <a href="#support-services" className="web-nav-link">Documentation Support</a>
-          <a href="#why-choose" className="web-nav-link">Why Choose Us</a>
+          <Link href="#contracts-agreements" className="web-nav-link">Our Contracts & Agreements Services</Link>
+          <Link href="#property-documentation" className="web-nav-link">Property Documentation & Registration</Link>
+          <Link href="#rental-lease" className="web-nav-link">Rental & Lease Agreements</Link>
+          <Link href="#support-services" className="web-nav-link">Documentation Support</Link>
+          <Link href="#why-choose" className="web-nav-link">Why Choose Us</Link>
         </nav>
 
         {/* SECTION 1 */}

@@ -141,10 +141,19 @@ export default function SupportCenter() {
         </div>
 
         {/* Contact Card */}
-        <div className="dashboard-card-shell dashboard-support-contact bg-gradient-to-r from-[#d6b86a] to-[#b89b5e] text-white p-5 rounded-3xl shadow text-center">
-          <h3 className="text-lg font-semibold">Need Immediate Help?</h3>
-          <p className="text-sm mt-1">
-            Contact us at support@example.com
+        <div className="dashboard-card-shell dashboard-support-contact bg-white border border-[#e8dcc0] p-6 rounded-3xl shadow-lg text-center space-y-2">
+          <h3 className="text-xl font-bold text-[#3b2f1c] flex items-center justify-center gap-2">
+            <span>📞</span> We’re Here to Help
+          </h3>
+          <p className="text-sm text-[#6a5a3e] max-w-lg mx-auto">
+            For support or any issue regarding our services, contact us on{" "}
+            <a href="tel:9999562401" className="font-semibold text-[#8a7340] hover:underline">
+              9999562401
+            </a>{" "}
+            or email us at{" "}
+            <a href="mailto:info@ncjlegal.com" className="font-semibold text-[#8a7340] hover:underline">
+              info@ncjlegal.com
+            </a>.
           </p>
         </div>
 

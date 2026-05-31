@@ -11,6 +11,7 @@ import {
   type PermanentDocumentType,
 } from "../../lib/permanentDocumentTypes";
 import { getServiceMeta } from "../../lib/serviceCatalog";
+import { formatFinancialYear } from "../../lib/yearlyDocumentTypes";
 
 type ServiceFormProps = {
   serviceId: string;
@@ -348,7 +349,7 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
           {document ? (
             <>
               <p className="text-sm font-medium text-[#3b2f1c] break-words">{document.fileName}</p>
-              <p className="text-xs text-[#7a6a4f]">Year: {document.documentYear}</p>
+              <p className="text-xs text-[#7a6a4f]">Year: {formatFinancialYear(document.documentYear)}</p>
             </>
           ) : (
             <p className="text-sm text-[#7a6a4f]">Not uploaded in Required Documents</p>

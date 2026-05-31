@@ -3,9 +3,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import {
+  formatFinancialYear,
+  getFinancialYearOptions,
+  getFinancialYearStartYear,
   getYearlyDocumentDescription,
   getYearlyDocumentLabel,
-  getYearlyDocumentYears,
   maxYearlyDocumentSizeBytes,
   yearlyDocumentTypes,
   type YearlyDocumentSlot,
@@ -65,25 +67,34 @@ function groupByYear(documents: YearlyDocumentItem[]) {
 
 export default function YearlyDocuments() {
   const [documents, setDocuments] = useState<YearlyDocumentItem[]>([]);
-  const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
+  const [selectedYear, setSelectedYear] = useState(String(getFinancialYearStartYear()));
   const [pendingFiles, setPendingFiles] = useState<Record<YearlyDocumentSlot, File | null>>(emptyFiles);
   const [loading, setLoading] = useState(true);
   const [uploadingSlot, setUploadingSlot] = useState<YearlyDocumentSlot | null>(null);
   const [replacingKey, setReplacingKey] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<"neutral" | "success" | "error">("neutral");
-  const bulkInputRefs = useRef<Record<YearlyDocumentSlot, HTMLInputElement | null>>({
-    bank_statement: null,
-    document_2: null,
-    document_3: null,
-  });
-  const replaceInputsRef = useRef<Record<YearlyDocumentSlot, HTMLInputElement | null>>({
-    bank_statement: null,
-    document_2: null,
-    document_3: null,
-  });
+  const bulkInputRefs = useRef<Record<YearlyDocumentSlot, HTMLInputElement | null>>(
+    yearlyDocumentTypes.reduce<Record<YearlyDocumentSlot, HTMLInputElement | null>>(
+      (acc, item) => {
+        acc[item.slot] = null;
+        return acc;
+      },
+      {} as Record<YearlyDocumentSlot, HTMLInputElement | null>
+    )
+  );
+  const replaceInputsRef = useRef<Record<YearlyDocumentSlot, HTMLInputElement | null>>(
+    yearlyDocumentTypes.reduce<Record<YearlyDocumentSlot, HTMLInputElement | null>>(
+      (acc, item) => {
+        acc[item.slot] = null;
+        return acc;
+      },
+      {} as Record<YearlyDocumentSlot, HTMLInputElement | null>
+    )
+  );
 
-  const availableYears = useMemo(() => getYearlyDocumentYears(), []);
+  const availableYears = useMemo(() => getFinancialYearOptions(), []);
   const groupedDocuments = useMemo(() => groupByYear(documents), [documents]);
 
   const resetMessage = () => {
@@ -100,7 +111,6 @@ export default function YearlyDocuments() {
     setLoading(true);
 
     try {
-      // Yearly documents API disabled
       const response = await fetch("/api/yearly-documents", { cache: "no-store" });
       const payload = (await response.json()) as YearlyDocumentsPayload & { message?: string };
 
@@ -119,7 +129,7 @@ export default function YearlyDocuments() {
       const text = error instanceof Error ? error.message : "Unable to load yearly documents.";
       setFeedback("error", text);
     });
-  }, []);
+  }, [reloadKey]);
 
   const validateFile = (file: File | null): string | null => {
     if (!file) {
@@ -193,7 +203,7 @@ export default function YearlyDocuments() {
         input.value = "";
       }
 
-      await loadDocuments();
+      setReloadKey((value) => value + 1);
       setFeedback("success", `${getYearlyDocumentLabel(slot)} uploaded for ${year}.`);
     } catch (error: unknown) {
       const text = error instanceof Error ? error.message : "Unable to upload document.";
@@ -228,7 +238,7 @@ export default function YearlyDocuments() {
 
     try {
       await uploadDocument(year, slot, file);
-      await loadDocuments();
+      setReloadKey((value) => value + 1);
       setFeedback("success", `${getYearlyDocumentLabel(slot)} replaced for ${year}.`);
     } catch (error: unknown) {
       const text = error instanceof Error ? error.message : "Unable to replace document.";
@@ -245,6 +255,7 @@ export default function YearlyDocuments() {
   };
 
   const documentYear = Number.parseInt(selectedYear, 10);
+  const documentYearLabel = formatFinancialYear(documentYear);
 
   return (
     <div className="dashboard-page dashboard-documents flex justify-center">
@@ -279,8 +290,8 @@ export default function YearlyDocuments() {
                     className="dashboard-upload-control w-full px-4 py-3 rounded-xl border border-[#e5d7b6] bg-white"
                   >
                     {availableYears.map((year) => (
-                      <option key={year} value={String(year)}>
-                        {year}
+                      <option key={year.value} value={year.value}>
+                        {year.label}
                       </option>
                     ))}
                   </select>
@@ -350,7 +361,7 @@ export default function YearlyDocuments() {
 
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-xs text-[#7a6a4f]">
-                  Year selected: {documentYear}
+                  Financial year selected: {documentYearLabel}
                 </p>
               </div>
             </div>
@@ -391,7 +402,7 @@ export default function YearlyDocuments() {
                 <section key={documentYear} className="rounded-2xl border border-[#e8dcc0] bg-[#fffdf8] p-5">
                   <div className="flex flex-row items-center justify-between gap-2 mb-4">
                     <div>
-                      <h4 className="text-base font-semibold text-[#3b2f1c]">Year: {documentYear}</h4>
+                      <h4 className="text-base font-semibold text-[#3b2f1c]">Financial Year: {formatFinancialYear(documentYear)}</h4>
                       <p className="text-xs text-[#7a6a4f]">View or replace any of the 3 required documents.</p>
                     </div>
                   </div>

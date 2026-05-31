@@ -16,6 +16,7 @@ export type ConsultationRequestView = {
   note: string | null;
   status: ConsultationRequestStatus;
   createdAt: Date;
+  updatedAt: Date;
 };
 
 export interface CreateConsultationRequestInput {
@@ -59,6 +60,7 @@ export async function createConsultationRequest(
       note: consultationRequests.note,
       status: consultationRequests.status,
       createdAt: consultationRequests.createdAt,
+      updatedAt: consultationRequests.updatedAt,
     });
 
   if (!created) {
@@ -84,9 +86,36 @@ export async function listConsultationRequests(): Promise<ConsultationRequestVie
       note: consultationRequests.note,
       status: consultationRequests.status,
       createdAt: consultationRequests.createdAt,
+      updatedAt: consultationRequests.updatedAt,
     })
     .from(consultationRequests)
-    .orderBy(desc(consultationRequests.createdAt));
+    .orderBy(desc(consultationRequests.updatedAt), desc(consultationRequests.createdAt));
+}
+
+export async function listConsultationRequestsForEmail(
+  email: string
+): Promise<ConsultationRequestView[]> {
+  const db = getDb();
+  const normalizedEmail = email.trim().toLowerCase();
+
+  return db
+    .select({
+      id: consultationRequests.id,
+      userId: consultationRequests.userId,
+      serviceName: consultationRequests.serviceName,
+      fullName: consultationRequests.fullName,
+      email: consultationRequests.email,
+      phone: consultationRequests.phone,
+      firmName: consultationRequests.firmName,
+      address: consultationRequests.address,
+      note: consultationRequests.note,
+      status: consultationRequests.status,
+      createdAt: consultationRequests.createdAt,
+      updatedAt: consultationRequests.updatedAt,
+    })
+    .from(consultationRequests)
+    .where(eq(consultationRequests.email, normalizedEmail))
+    .orderBy(desc(consultationRequests.updatedAt), desc(consultationRequests.createdAt));
 }
 
 export async function updateConsultationRequestStatus(
@@ -97,7 +126,7 @@ export async function updateConsultationRequestStatus(
 
   const [updated] = await db
     .update(consultationRequests)
-    .set({ status })
+    .set({ status, updatedAt: new Date() })
     .where(eq(consultationRequests.id, requestId))
     .returning({
       id: consultationRequests.id,
@@ -111,6 +140,7 @@ export async function updateConsultationRequestStatus(
       note: consultationRequests.note,
       status: consultationRequests.status,
       createdAt: consultationRequests.createdAt,
+      updatedAt: consultationRequests.updatedAt,
     });
 
   return updated ?? null;

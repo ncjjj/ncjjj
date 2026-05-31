@@ -62,6 +62,9 @@ export const consultationRequests = pgTable("consultation_requests", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export const adminAccounts = pgTable("admin_accounts", {
@@ -102,6 +105,14 @@ export const users = pgTable("users", {
   mobileNumber: text("mobile_number").notNull(),
   email: text("email").notNull().unique(),
   address: text("address").notNull(),
+  panCard: text("pan_card"),
+  aadhaarCard: text("aadhaar_card"),
+  dob: text("dob"),
+  gender: text("gender"),
+  citizen: text("citizen"),
+  residentialStatus: text("residential_status"),
+  aadhaarOtpVerified: boolean("aadhaar_otp_verified").notNull().default(false),
+  serviceAccess: text("service_access").notNull().default(""),
   avatarPath: text("avatar_path"),
   avatarUrl: text("avatar_url"),
   password: text("password").notNull(),
@@ -115,6 +126,7 @@ export const documents = pgTable("documents", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  uploadedByUserId: uuid("uploaded_by_user_id").references(() => users.id, { onDelete: "set null" }),
   documentYear: integer("document_year"),
   documentSlot: text("document_slot"),
   documentType: text("document_type").notNull(),
@@ -122,7 +134,7 @@ export const documents = pgTable("documents", {
   fileUrl: text("file_url").notNull(),
   storagePath: text("storage_path").notNull().unique(),
   mimeType: text("mime_type"),
-  // Metadata for permanent documents
+  uploadStatus: text("upload_status").notNull().default("uploaded"),
   aadharNumber: text("aadhar_number"),
   panNumber: text("pan_number"),
   accountNumber: text("account_number"),

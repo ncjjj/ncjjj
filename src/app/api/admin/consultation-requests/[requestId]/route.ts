@@ -4,6 +4,7 @@ import {
   updateConsultationRequestStatus,
   type ConsultationRequestStatus,
 } from "../../../../../db/queries/consultationRequests";
+import { emitConsultationRequestEvent } from "../../../../../lib/consultationRequestSocket";
 
 const statusSchema = z.object({
   status: z.enum(["pending", "seen", "contacted"]),
@@ -39,6 +40,18 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     if (!updated) {
       return NextResponse.json({ message: "Consultation request not found." }, { status: 404 });
     }
+
+    emitConsultationRequestEvent(updated.email, {
+      type: "updated",
+      request: {
+        id: updated.id,
+        email: updated.email,
+        status: updated.status,
+        serviceName: updated.serviceName,
+        fullName: updated.fullName,
+        createdAt: updated.createdAt.toISOString(),
+      },
+    });
 
     return NextResponse.json({ consultationRequest: updated });
   } catch (error) {

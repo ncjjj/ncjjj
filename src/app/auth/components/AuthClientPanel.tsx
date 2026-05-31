@@ -13,15 +13,7 @@ const initialLogin = {
   password: "",
 };
 
-const initialSignup = {
-  name: "",
-  email: "",
-  mobileNumber: "",
-  password: "",
-  confirmPassword: "",
-};
-
-type AuthMode = "login" | "signup" | "reset" | "resetVerify";
+type AuthMode = "login" | "reset" | "resetVerify";
 
 type AuthMessage = {
   type: "" | "error" | "success";
@@ -54,7 +46,6 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
 
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [loginForm, setLoginForm] = useState(initialLogin);
-  const [signupForm, setSignupForm] = useState(initialSignup);
   const [resetEmail, setResetEmail] = useState("");
   const [resetCode, setResetCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -63,7 +54,6 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
   const [message, setMessage] = useState<AuthMessage>({ type: "", text: "" });
   const [nextRoute, setNextRoute] = useState("");
 
-  const signupPasswordCriteria = getPasswordCriteria(signupForm.password);
   const resetPasswordCriteria = getPasswordCriteria(newPassword);
 
   const setError = (text: string) => setMessage({ type: "error", text });
@@ -88,9 +78,9 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
               <button
                 type="button"
                 className={styles.submitBtn}
-                onClick={() => router.push("/dashboard")}
+                onClick={() => router.push("/dashboard/profile")}
               >
-                Continue
+                Go to Profile Settings
               </button>
               <p className={styles.helper}>
                 Or return to <Link href="/">Home</Link>
@@ -120,58 +110,10 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
         return;
       }
 
-      router.replace("/");
+      router.replace("/dashboard/profile");
+      router.refresh();
     } catch {
       setError("Unable to login right now. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const onSignup = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (signupForm.password !== signupForm.confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    setSubmitting(true);
-    setMessage({ type: "", text: "" });
-    setNextRoute("");
-
-    const normalizedEmail = signupForm.email.trim().toLowerCase();
-
-    try {
-      const response = await fetch("/api/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: signupForm.name.trim(),
-          email: normalizedEmail,
-          mobileNumber: signupForm.mobileNumber.trim(),
-          password: signupForm.password,
-        }),
-      });
-
-      const payload = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        setError(payload?.message || "Unable to register right now.");
-        return;
-      }
-
-      setLoginForm((prev) => ({
-        ...prev,
-        email: normalizedEmail,
-      }));
-      setSignupForm(initialSignup);
-      setMode("login");
-      setSuccess("Account created successfully. Please log in.");
-    } catch {
-      setError("Unable to create your account right now. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -283,11 +225,11 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
           <ul className={styles.featureList}>
             <li>
               <span>1</span>
-              Fast onboarding in under a minute
+              Admin-created credentials only
             </li>
             <li>
               <span>2</span>
-              Enquiry form auto-filled after login
+              Enquiry forms stay manual and user-driven
             </li>
             <li>
               <span>3</span>
@@ -297,35 +239,6 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
         </div>
 
         <div className={styles.formWrap}>
-          <div className={styles.tabs}>
-            <button
-              type="button"
-              className={`${styles.tabBtn} ${
-                mode === "login" ? styles.tabBtnActive : ""
-              }`}
-              onClick={() => {
-                setMode("login");
-                setMessage({ type: "", text: "" });
-                setNextRoute("");
-              }}
-            >
-              Login
-            </button>
-            <button
-              type="button"
-              className={`${styles.tabBtn} ${
-                mode === "signup" ? styles.tabBtnActive : ""
-              }`}
-              onClick={() => {
-                setMode("signup");
-                setMessage({ type: "", text: "" });
-                setNextRoute("");
-              }}
-            >
-              Sign Up
-            </button>
-          </div>
-
           {mode === "login" ? (
             <form className={styles.form} onSubmit={onLogin}>
               <div className={styles.field}>
@@ -378,130 +291,13 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
                     setNextRoute("");
                   }}
                 >
-                  Forgot password?
+                  Change Password
                 </button>
-              </p>
-              <p className={styles.helper}>
-                No account yet? <Link href="/login?mode=signup">Sign up</Link>
-              </p>
-            </form>
-          ) : mode === "signup" ? (
-            <form className={styles.form} onSubmit={onSignup}>
-              <div className={styles.field}>
-                <label htmlFor="signup-name">Full Name</label>
-                <input
-                  id="signup-name"
-                  type="text"
-                  value={signupForm.name}
-                  onChange={(event) =>
-                    setSignupForm((prev) => ({ ...prev, name: event.target.value }))
-                  }
-                  required
-                />
-              </div>
-              <div className={styles.field}>
-                
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="signup-email">Email</label>
-                <input
-                  id="signup-email"
-                  type="email"
-                  value={signupForm.email}
-                  onChange={(event) =>
-                    setSignupForm((prev) => ({ ...prev, email: event.target.value }))
-                  }
-                  required
-                />
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="signup-mobile-number">Phone Number</label>
-                <input
-                  id="signup-mobile-number"
-                  type="tel"
-                  inputMode="tel"
-                  placeholder="Enter your phone number"
-                  value={signupForm.mobileNumber}
-                  onChange={(event) =>
-                    setSignupForm((prev) => ({ ...prev, mobileNumber: event.target.value }))
-                  }
-                  required
-                />
-              </div>
-              
-              <PasswordInput
-                id="signup-password"
-                label="Password"
-                value={signupForm.password}
-                onChange={(value) =>
-                  setSignupForm((prev) => ({
-                    ...prev,
-                    password: value,
-                  }))
-                }
-                required
-                autoComplete="new-password"
-                className={styles.passwordRow}
-                inputClassName={styles.passwordInput}
-                buttonClassName={styles.passwordToggle}
-              />
-                <p className={styles.passwordHint}>
-                  Use 8+ characters with 1 uppercase letter, 1 number, and 1 special character.
-                </p>
-                <ul className={styles.passwordRules}>
-                  <li>
-                    <span>{signupPasswordCriteria.length ? "✓" : "1"}</span>
-                    At least 8 characters
-                  </li>
-                  <li>
-                    <span>{signupPasswordCriteria.uppercase ? "✓" : "A"}</span>
-                    One uppercase letter
-                  </li>
-                  <li>
-                    <span>{signupPasswordCriteria.number ? "✓" : "0"}</span>
-                    One number
-                  </li>
-                  <li>
-                    <span>{signupPasswordCriteria.symbol ? "✓" : "#"}</span>
-                    One special character
-                  </li>
-                </ul>
-              <PasswordInput
-                id="signup-confirm-password"
-                label="Confirm Password"
-                value={signupForm.confirmPassword}
-                onChange={(value) =>
-                  setSignupForm((prev) => ({
-                    ...prev,
-                    confirmPassword: value,
-                  }))
-                }
-                required
-                autoComplete="new-password"
-                className={styles.passwordRow}
-                inputClassName={styles.passwordInput}
-                buttonClassName={styles.passwordToggle}
-              />
-              <button type="submit" className={styles.submitBtn} disabled={submitting}>
-                {submitting ? "Please wait..." : "Create Account"}
-              </button>
-              {message.text ? (
-                <p
-                  className={`${styles.message} ${
-                    message.type === "error" ? styles.error : styles.success
-                  }`}
-                >
-                  {message.text}
-                </p>
-              ) : null}
-              <p className={styles.helper}>
-                Already have an account? <Link href="/login">Login</Link>
               </p>
             </form>
           ) : mode === "reset" ? (
             <form className={styles.form} onSubmit={onRequestPasswordReset}>
-              <h2>Forgot Password</h2>
+              <h2>Change Password</h2>
               <div className={styles.field}>
                 <label htmlFor="reset-email">Registered Email</label>
                 <input
@@ -513,7 +309,7 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
                 />
               </div>
               <button type="submit" className={styles.submitBtn} disabled={submitting}>
-                {submitting ? "Please wait..." : "Request OTP via Email"}
+                {submitting ? "Please wait..." : "Request OTP to Change Password"}
               </button>
               {message.text ? (
                 <p
@@ -539,7 +335,7 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
             </form>
           ) : (
             <form className={styles.form} onSubmit={onConfirmPasswordReset}>
-              <h2>Reset Password</h2>
+              <h2>Change Password</h2>
               <div className={styles.field}>
                 <label htmlFor="reset-email">Registered Email</label>
                 <input
@@ -584,7 +380,7 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
                 buttonClassName={styles.passwordToggle}
               />
               <button type="submit" className={styles.submitBtn} disabled={submitting}>
-                {submitting ? "Please wait..." : "Verify OTP & Reset Password"}
+                {submitting ? "Please wait..." : "Verify OTP & Change Password"}
               </button>
               <p className={styles.passwordHint}>
                 Use 8+ characters with 1 uppercase letter, 1 number, and 1 special character.

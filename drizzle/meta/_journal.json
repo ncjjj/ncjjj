@@ -15,6 +15,13 @@
       "when": 1779491206186,
       "tag": "0001_wandering_lady_bullseye",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1780047248374,
+      "tag": "0002_oval_doctor_strange",
+      "breakpoints": true
     }
   ]
 }

@@ -246,11 +246,12 @@ export default function Header() {
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: "16px",
+              gap: "0px",
               textDecoration: "none",
             }}
           >
-            <img src={logoSrc} alt="NCJ Legal LLP" style={{ height: logoHeight, width: "auto" }} />
+            <img src={logoSrc} alt="NCJ Legal LLP" style={{ height: logoHeight, width: "auto", display: "block", margin: 0 }} />
+            <img src="/images/ngoo.jpeg" alt="NGO" style={{ height: logoHeight, width: "auto", display: "block", margin: 0 }} />
           </Link>
 
           {/* NAV */}
@@ -598,7 +599,12 @@ export default function Header() {
         <div className="site-auth" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           {user ? (
             <>
-              <div className="site-user-avatar desktop-avatar" style={{
+              <Link
+                href={profileSettingsHref}
+                aria-label="Open profile settings"
+                onClick={() => setMobileNavOpen(false)}
+                className="site-user-avatar desktop-avatar"
+                style={{
                 position: "relative",
                 width: "36px",
                 height: "36px",
@@ -611,14 +617,8 @@ export default function Header() {
                 justifyContent: "center",
                 cursor: "pointer",
               }}>
-                <Link
-                  href={profileSettingsHref}
-                  aria-label="Open profile settings"
-                  onClick={() => setMobileNavOpen(false)}
-                  style={{ position: "absolute", inset: 0, zIndex: 2 }}
-                />
                 <img src={profileImageUrl} alt={user.name || "User avatar"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              </div>
+              </Link>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
                 className="site-auth-button site-auth-logout desktop-logout"
@@ -646,7 +646,7 @@ export default function Header() {
                 textDecoration: "none",
               }}
             >
-              Login / Sign Up
+              Login
             </Link>
           )}
           {/* Mobile nav toggle */}
@@ -736,7 +736,7 @@ export default function Header() {
               <button onClick={() => { setMobileNavOpen(false); signOut({ callbackUrl: '/' }); }} className="mobile-nav-logout">Logout</button>
             </>
           ) : (
-            <Link href="/login" onClick={() => setMobileNavOpen(false)} className="mobile-nav-link">Login / Sign Up</Link>
+            <Link href="/login" onClick={() => setMobileNavOpen(false)} className="mobile-nav-link">Login</Link>
           )}
         </div>
       </div>

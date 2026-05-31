@@ -1,3 +1,5 @@
+import { isAllowedDocumentMimeType } from "./documentFiles";
+
 export const permanentDocumentTypes = [
   {
     type: "aadhar",
@@ -23,7 +25,7 @@ export const permanentDocumentTypeSet = new Set<PermanentDocumentType>(
 export const maxPermanentDocumentSizeBytes = 50 * 1024 * 1024;
 
 export function isAllowedPermanentDocumentMimeType(mimeType: string): boolean {
-  return Boolean(mimeType || "application/octet-stream");
+  return isAllowedDocumentMimeType(mimeType);
 }
 
 export function getPermanentDocumentLabel(type: PermanentDocumentType): string {

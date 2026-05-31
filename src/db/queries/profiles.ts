@@ -35,6 +35,12 @@ export async function findProfileByEmail(email: string): Promise<ProfileRow | nu
   return profile ?? null;
 }
 
+export async function findProfileByPhone(phone: string): Promise<ProfileRow | null> {
+  const db = getDb();
+  const [profile] = await db.select().from(profiles).where(eq(profiles.phone, phone)).limit(1);
+  return profile ?? null;
+}
+
 export async function findProfileById(profileId: string): Promise<ProfileRow | null> {
   const db = getDb();
   const [profile] = await db.select().from(profiles).where(eq(profiles.id, profileId)).limit(1);

@@ -54,6 +54,16 @@ export default function Credentials() {
               desc: "Maintaining transparency, confidentiality, and client-first approach always.",
               icon: "🤝",
             },
+            {
+              title: "Data Security",
+              desc: "Client documents are handled through secured storage and controlled access workflow.",
+              icon: "🔒",
+            },
+            {
+              title: "On-Time Delivery",
+              desc: "Dedicated workflow for returns, registrations, and statutory filings within planned timelines.",
+              icon: "✅",
+            },
           ].map((item, i) => (
             <motion.div
               key={i}

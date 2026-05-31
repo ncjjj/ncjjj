@@ -109,3 +109,50 @@ export async function sendPasswordResetOtpEmail({
 
   return { sent: true };
 }
+
+interface SendEmailVerificationOtpInput {
+  to: string;
+  otp: string;
+}
+
+export async function sendEmailVerificationOtp({
+  to,
+  otp,
+}: SendEmailVerificationOtpInput): Promise<{ sent: boolean; reason?: string }> {
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+  const fromEmail = process.env.GMAIL_FROM_EMAIL || gmailUser;
+  const fromName = process.env.GMAIL_FROM_NAME || "NCJ Support";
+
+  if (!gmailUser || !gmailAppPassword || !fromEmail || !to) {
+    return { sent: false, reason: "Email provider is not configured." };
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: gmailUser,
+      pass: gmailAppPassword,
+    },
+  });
+
+  const subject = "Your NCJ Admin Onboarding verification OTP";
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#2c2416;">
+      <h2>Hello,</h2>
+      <p>An administrator is onboarding you onto the NCJ portal. Your email verification OTP is:</p>
+      <div style="font-size:28px;font-weight:700;letter-spacing:6px;margin:16px 0;color:#8a7340;">${otp}</div>
+      <p>This code is valid for 10 minutes and can be used only once.</p>
+      <p>If you did not request this, you can safely ignore this email.</p>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: `${fromName} <${fromEmail}>`,
+    to,
+    subject,
+    html,
+  });
+
+  return { sent: true };
+}

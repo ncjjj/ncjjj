@@ -1,8 +1,14 @@
-import YearlyDocuments from '../../app/dashboard/YearlyDocuments';
-import PermanentDocuments from '../../app/dashboard/PermanentDocuments';
-import Sidebar from "../../app/dashboard/components/Sidebar";
-import TopNavbar from "../../app/dashboard/components/TopNavbar";
+import type { GetServerSideProps } from "next";
+
 export default function DocumentsPage() {
-  // Documents dashboard hidden: return null to disable UI without deleting file.
   return null;
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    redirect: {
+      destination: "/dashboard/consultations",
+      permanent: false,
+    },
+  };
+};

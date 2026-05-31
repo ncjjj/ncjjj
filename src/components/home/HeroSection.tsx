@@ -1,13 +1,11 @@
-import sup from "../../../public/images/sup.jpg";
-
-const banner = sup;
+const banner = "/images/sup.jpg";
 
 export default function HeroSection() {
   return (
     <div className="panel home-hero">
       {/* BACKGROUND IMAGE SLIDER */}
       <div className="home-hero-bg">
-        <img src={banner.src} alt="banner" className="bg-image" />
+        <img src={banner} alt="banner" className="bg-image" />
         <div className="home-hero-overlay" style={{ background: "linear-gradient(135deg, rgba(10,10,10,0.85), rgba(30,25,10,0.8), rgba(15,15,15,0.9))", position: 'absolute', inset: 0 }} />
       </div>
 

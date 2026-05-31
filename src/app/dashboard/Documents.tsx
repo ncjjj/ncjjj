@@ -15,72 +15,96 @@ const documentTypes = [
   "Bank Statement",
 ];
 
-export default function Documents() {
-  type DocumentItem = {
+type DocumentItem = {
+  id: string;
+  name: string;
+  type: string;
+  url: string | null;
+  status: "Uploaded";
+};
+
+type DocumentsPayload = {
+  message?: string;
+  documents?: Array<{
     id: string;
-    name: string;
-    type: string;
-    url: string | null;
-    status: "Uploaded";
-  };
+    fileName: string;
+    documentType: string;
+    signedUrl: string | null;
+  }>;
+};
 
-  type DocumentsPayload = {
-    documents?: Array<{
-      id: string;
-      fileName: string;
-      documentType: string;
-      signedUrl: string | null;
-    }>;
-  };
+type MessageState = {
+  text: string;
+  tone: "neutral" | "success" | "error";
+};
 
+export default function Documents() {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [newFile, setNewFile] = useState<File | null>(null);
-  const [documentType, setDocumentType] = useState<string>(documentTypes[0] ?? "");
+  const [documentType, setDocumentType] = useState<string>("");
   const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [message, setMessage] = useState<MessageState>({ text: "", tone: "neutral" });
 
-  const getErrorMessage = (error: unknown): string => {
-    if (error instanceof Error) {
-      return error.message;
-    }
-
-    return "Unable to upload document.";
-  };
-
-  const loadDocuments = async () => {
-    // Documents API disabled
-    const response = await fetch("/api/documents");
-    const payload = (await response.json()) as DocumentsPayload;
-
-    if (response.ok) {
-      setDocuments(
-        (payload.documents || []).map((doc) => ({
-          id: doc.id,
-          name: doc.fileName,
-          type: doc.documentType,
-          url: doc.signedUrl,
-          status: "Uploaded",
-        }))
-      );
-    }
-  };
+  const getErrorMessage = (error: unknown): string =>
+    error instanceof Error ? error.message : "Unable to upload document.";
 
   useEffect(() => {
-    loadDocuments().catch(() => {
-      setMessage("Unable to load uploaded documents.");
-    });
-  }, []);
+    let active = true;
 
-  const handleUpload = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+    const loadDocuments = async () => {
+      setLoading(true);
+
+      try {
+        const response = await fetch("/api/documents", { cache: "no-store" });
+        const payload = (await response.json().catch(() => null)) as DocumentsPayload | null;
+
+        if (!response.ok) {
+          throw new Error(payload?.message || "Unable to load uploaded documents.");
+        }
+
+        if (active) {
+          setDocuments(
+            (payload?.documents || []).map((doc) => ({
+              id: doc.id,
+              name: doc.fileName,
+              type: doc.documentType,
+              url: doc.signedUrl,
+              status: "Uploaded",
+            }))
+          );
+        }
+      } catch {
+        if (active) {
+          setDocuments([]);
+          setMessage({ text: "Unable to load uploaded documents.", tone: "error" });
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadDocuments();
+
+    return () => {
+      active = false;
+    };
+  }, [reloadKey]);
+
+  const handleUpload = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
     if (!newFile) {
-      setMessage("Choose a file before uploading.");
+      setMessage({ text: "Choose a file before uploading.", tone: "error" });
       return;
     }
 
     setUploading(true);
-    setMessage("");
+    setMessage({ text: "", tone: "neutral" });
 
     try {
       const formData = new FormData();
@@ -92,92 +116,70 @@ export default function Documents() {
         body: formData,
       });
 
-      const payload = (await response.json()) as {
-        message?: string;
-        id: string;
-        fileName: string;
-        documentType: string;
-        documentSignedUrl: string | null;
-      };
+      const payload = (await response.json().catch(() => null)) as { message?: string } | null;
 
       if (!response.ok) {
         throw new Error(payload?.message || "Unable to upload document.");
       }
 
-      setDocuments((prev) => [
-        {
-          id: payload.id,
-          name: payload.fileName,
-          type: payload.documentType,
-          url: payload.documentSignedUrl,
-          status: "Uploaded",
-        },
-        ...prev,
-      ]);
-
       setNewFile(null);
-      setMessage("Document uploaded successfully.");
+      setDocumentType("");
+      setMessage({ text: "Document uploaded successfully.", tone: "success" });
+      setReloadKey((value) => value + 1);
     } catch (error: unknown) {
-      setMessage(getErrorMessage(error));
+      setMessage({ text: getErrorMessage(error), tone: "error" });
     } finally {
       setUploading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    const response = await fetch("/api/documents", {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ documentId: id }),
-    });
+    setDeletingId(id);
+    setMessage({ text: "", tone: "neutral" });
 
-    if (response.ok) {
-      setDocuments((prev) => prev.filter((doc) => doc.id !== id));
-      setMessage("Document removed successfully.");
-    } else {
-      const payload = (await response.json()) as { message?: string };
-      setMessage(payload?.message || "Unable to delete document.");
+    try {
+      const response = await fetch("/api/documents", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId: id }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as { message?: string } | null;
+
+      if (!response.ok) {
+        setMessage({ text: payload?.message || "Unable to delete document.", tone: "error" });
+        return;
+      }
+
+      setMessage({ text: "Document removed successfully.", tone: "success" });
+      setReloadKey((value) => value + 1);
+    } finally {
+      setDeletingId(null);
     }
   };
 
   return (
     <div className="dashboard-page dashboard-documents flex justify-center">
+      <div className="dashboard-card-shell w-full max-w-5xl overflow-hidden rounded-3xl border border-[#e8dcc0] bg-white shadow-xl">
+        <div className="h-24 bg-gradient-to-r from-[#f7f2e8] via-[#fbf7f0] to-[#ffffff]" />
 
-      {/* MAIN CARD */}
-      <div className="dashboard-card-shell w-full max-w-5xl bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border border-[#e8dcc0] overflow-hidden">
-
-        {/* TOP STRIP */}
-        <div className="h-24 bg-gradient-to-r from-[#6b5b3e] via-[#b89b5e] to-[#d6b86a]"></div>
-
-        {/* CONTENT */}
-        <div className="dashboard-page-body p-8 space-y-8">
-
-          {/* HEADER */}
+        <div className="dashboard-page-body space-y-8 p-8">
           <div>
-            <h2 className="text-2xl font-semibold text-[#3b2f1c]">
-              Documents
-            </h2>
-            <p className="text-sm text-[#7a6a4f]">
-              Upload and manage your documents
-            </p>
+            <h2 className="text-2xl font-semibold text-[#3b2f1c]">Documents</h2>
+            <p className="text-sm text-[#7a6a4f]">Upload and manage your documents</p>
           </div>
 
-          {/* UPLOAD SECTION */}
-          <div className="dashboard-subcard bg-[#faf6ed] p-5 rounded-2xl border border-[#e8dcc0]">
+          <div className="dashboard-subcard rounded-2xl border border-[#e8dcc0] bg-white p-5 shadow-sm">
+            <h3 className="mb-4 text-lg font-semibold text-[#3b2f1c]">Upload Document</h3>
 
-            <h3 className="text-lg font-semibold text-[#3b2f1c] mb-4">
-              Upload Document
-            </h3>
-
-            <form onSubmit={handleUpload} className="dashboard-form flex flex-row gap-3 items-center">
-
+            <form onSubmit={handleUpload} className="dashboard-form flex flex-col gap-3 md:flex-row md:items-center">
               <select
                 value={documentType}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => setDocumentType(e.target.value)}
-                className="dashboard-upload-control w-56 px-4 py-3 rounded-xl border border-[#e5d7b6] bg-white"
+                onChange={(event: ChangeEvent<HTMLSelectElement>) => setDocumentType(event.target.value)}
+                className="dashboard-upload-control w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 md:w-56"
+                required
               >
+                <option value="">Select document type</option>
                 {documentTypes.map((type) => (
                   <option key={type} value={type}>
                     {type}
@@ -187,69 +189,68 @@ export default function Documents() {
 
               <input
                 type="file"
-                onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                  const selectedFile = e.target.files?.[0] ?? null;
-                  setNewFile(selectedFile);
+                onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                  setNewFile(event.target.files?.[0] ?? null);
                 }}
-                className="dashboard-upload-control flex-1 px-4 py-3 rounded-xl border border-[#e5d7b6] bg-white"
+                className="dashboard-upload-control flex-1 rounded-xl border border-[#e5d7b6] bg-white px-4 py-3"
+                required
               />
 
               <button
                 type="submit"
                 disabled={uploading}
-                className="dashboard-upload-button px-6 py-3 rounded-xl bg-gradient-to-r from-[#d6b86a] to-[#b89b5e] text-white font-semibold shadow hover:scale-[1.03] transition disabled:opacity-70"
+                className="dashboard-upload-button rounded-xl border border-[#d7c8a7] bg-white px-6 py-3 font-semibold text-[#5f4c2b] shadow transition hover:bg-[#fbf4e7] disabled:opacity-70"
               >
                 {uploading ? "Uploading..." : "Upload"}
               </button>
-
             </form>
 
-            <p className="mt-4 text-sm text-[#6b5b3e]">
-              Available types: {documentTypes.join(", ")}
-            </p>
+            <p className="mt-4 text-sm text-[#6b5b3e]">Available types: {documentTypes.join(", ")}</p>
 
-            {message ? (
-              <p className="mt-3 text-sm text-[#6b5b3e] bg-white rounded-xl border border-[#e8dcc0] p-3">
-                {message}
+            {message.text ? (
+              <p
+                className={`mt-3 rounded-xl border p-3 text-sm ${
+                  message.tone === "success"
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : message.tone === "error"
+                      ? "border-red-200 bg-red-50 text-red-700"
+                      : "border-[#e8dcc0] bg-white text-[#6b5b3e]"
+                }`}
+              >
+                {message.text}
               </p>
             ) : null}
           </div>
 
-          <div className="dashboard-subcard bg-white p-5 rounded-2xl border border-[#e8dcc0] shadow-sm">
-
-            <h3 className="text-lg font-semibold text-[#3b2f1c] mb-5">
-              Uploaded Documents
-            </h3>
+          <div className="dashboard-subcard rounded-2xl border border-[#e8dcc0] bg-white p-5 shadow-sm">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <h3 className="text-lg font-semibold text-[#3b2f1c]">Uploaded Documents</h3>
+              {loading ? <span className="text-sm text-[#7a6a4f]">Loading...</span> : null}
+            </div>
 
             <div className="dashboard-list space-y-4">
-              {documents.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-[#d9c9a4] p-6 text-center bg-[#fffaf0]">
+              {!loading && documents.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[#d9c9a4] bg-white p-6 text-center">
                   <p className="text-sm font-medium text-[#3b2f1c]">No uploaded documents yet</p>
-                  <p className="text-xs text-[#7a6a4f] mt-2">Upload a file to see it listed here.</p>
+                  <p className="mt-2 text-xs text-[#7a6a4f]">Upload a file to see it listed here.</p>
                 </div>
               ) : null}
 
               {documents.map((doc) => (
                 <div
                   key={doc.id}
-                  className="dashboard-document-row flex items-center justify-between p-4 rounded-2xl border border-[#e8dcc0] hover:bg-[#faf6ed] transition"
+                  className="dashboard-document-row flex items-center justify-between rounded-2xl border border-[#e8dcc0] bg-white p-4 transition hover:bg-[#faf6ed]"
                 >
-
-                  {/* LEFT */}
                   <div className="dashboard-document-meta flex items-center gap-4">
-
-                    {/* ICON */}
-                    <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-[#d6b86a] to-[#b89b5e] text-white">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-[#d6b86a] to-[#b89b5e] text-white">
                       📄
                     </div>
 
                     <div className="space-y-1">
-                      <p className="font-medium text-[#3b2f1c] leading-tight">
-                        {doc.name}
-                      </p>
+                      <p className="font-medium leading-tight text-[#3b2f1c]">{doc.name}</p>
                       <p className="text-xs text-[#7a6a4f]">{doc.type}</p>
                       <span
-                        className={`text-xs px-2 py-1 rounded-full ${
+                        className={`rounded-full px-2 py-1 text-xs ${
                           doc.status === "Uploaded"
                             ? "bg-green-100 text-green-700"
                             : "bg-yellow-100 text-yellow-700"
@@ -258,43 +259,36 @@ export default function Documents() {
                         {doc.status}
                       </span>
                     </div>
-
                   </div>
 
-                  {/* RIGHT */}
                   <div className="dashboard-document-actions flex flex-wrap gap-2">
-
                     {doc.url ? (
                       <a
                         href={doc.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="dashboard-document-action px-3 py-2 rounded-lg bg-[#f5e6c8] text-[#6b5b3e] hover:bg-[#e8dcc0] transition text-sm"
+                        className="dashboard-document-action rounded-lg border border-[#d7c8a7] bg-white px-3 py-2 text-sm text-[#6b5b3e] transition hover:bg-[#fbf4e7]"
                       >
                         View
                       </a>
                     ) : (
-                      <span className="dashboard-document-action px-3 py-2 rounded-lg bg-gray-200 text-gray-600 cursor-not-allowed text-sm">
+                      <span className="dashboard-document-action cursor-not-allowed rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500">
                         Unavailable
                       </span>
                     )}
 
                     <button
                       onClick={() => handleDelete(doc.id)}
-                      className="dashboard-document-action px-3 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition text-sm"
+                      disabled={deletingId === doc.id}
+                      className="dashboard-document-action rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-red-700 transition hover:bg-red-50 disabled:opacity-70"
                     >
-                      Delete
+                      {deletingId === doc.id ? "Deleting..." : "Delete"}
                     </button>
-
                   </div>
-
                 </div>
               ))}
-
             </div>
-
           </div>
-
         </div>
       </div>
     </div>

@@ -80,6 +80,7 @@ export default function PermanentDocuments() {
   const [loading, setLoading] = useState(true);
   const [uploadingType, setUploadingType] = useState<PermanentDocumentType | null>(null);
   const [savingDetails, setSavingDetails] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<"neutral" | "success" | "error">("neutral");
   const fileInputRefs = useRef<Record<PermanentDocumentType, HTMLInputElement | null>>(
@@ -132,7 +133,7 @@ export default function PermanentDocuments() {
     loadDocuments().catch((error: unknown) => {
       setFeedback("error", getErrorMessage(error, "Unable to load shared documents."));
     });
-  }, []);
+  }, [reloadKey]);
 
   const onNumberChange = (name: keyof PermanentDocumentNumbers, value: string) => {
     setNumbers((previous) => ({ ...previous, [name]: value }));
@@ -189,7 +190,7 @@ export default function PermanentDocuments() {
         input.value = "";
       }
 
-      await loadDocuments();
+      setReloadKey((value) => value + 1);
       setFeedback("success", `${getPermanentDocumentLabel(documentType)} updated.`);
     } catch (error: unknown) {
       setFeedback("error", getErrorMessage(error, "Unable to update shared document."));
@@ -232,7 +233,7 @@ export default function PermanentDocuments() {
         })
       );
 
-      await loadDocuments();
+      setReloadKey((value) => value + 1);
       setFeedback("success", "Shared details saved.");
     } catch (error: unknown) {
       setFeedback("error", getErrorMessage(error, "Unable to save document details."));

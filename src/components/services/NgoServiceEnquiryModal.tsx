@@ -1,8 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { useSession } from "next-auth/react";
-import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { NgoServiceItem } from "../../app/services/ngo/data";
@@ -42,9 +39,6 @@ async function readJsonResponse(response: Response) {
 export default function NgoServiceEnquiryModal({ service, open, onClose }: NgoServiceEnquiryModalProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
-  const { data: session, status } = useSession();
-  const pathname = usePathname();
-  const isAuthenticated = status === "authenticated" && Boolean(session?.user?.id);
 
   const [profile, setProfile] = useState<ProfileDetails>({
     name: "",
@@ -54,7 +48,6 @@ export default function NgoServiceEnquiryModal({ service, open, onClose }: NgoSe
   });
   const [address, setAddress] = useState("");
   const [note, setNote] = useState("");
-  const [loadingProfile, setLoadingProfile] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -66,53 +59,12 @@ export default function NgoServiceEnquiryModal({ service, open, onClose }: NgoSe
     setError("");
   }, []);
 
-  const loadProfile = useCallback(async () => {
-    if (!session?.user?.id) {
-      setProfile({
-        name: session?.user?.name || "",
-        email: session?.user?.email || "",
-        phone: session?.user?.mobileNumber || "",
-        firmName: "",
-      });
-      return;
-    }
-
-    setLoadingProfile(true);
-
-    try {
-      const response = await fetch("/api/profile", { cache: "no-store" });
-      const payload = await readJsonResponse(response);
-
-      if (!response.ok) {
-        throw new Error(payload?.message || "Unable to load profile.");
-      }
-
-      setProfile({
-        name: payload.user?.name || session.user?.name || "",
-        email: payload.user?.email || session.user?.email || "",
-        phone: payload.user?.mobileNumber || session.user?.mobileNumber || "",
-        firmName: payload.user?.firmName || "",
-      });
-    } catch {
-      setProfile({
-        name: session.user?.name || "",
-        email: session.user?.email || "",
-        phone: session.user?.mobileNumber || "",
-        firmName: "",
-      });
-    } finally {
-      setLoadingProfile(false);
-    }
-  }, [session?.user?.email, session?.user?.id, session?.user?.mobileNumber, session?.user?.name]);
-
+  // Do not prefetch profile details. Users should enter details manually.
   useEffect(() => {
-    if (!open) {
-      return;
-    }
+    if (!open) return;
 
     resetForm();
-    loadProfile();
-  }, [loadProfile, open, resetForm]);
+  }, [open, resetForm]);
 
   useEffect(() => {
     if (!open) {
@@ -140,17 +92,12 @@ export default function NgoServiceEnquiryModal({ service, open, onClose }: NgoSe
     return null;
   }
 
-  const loginHref = `/login?callbackUrl=${encodeURIComponent(pathname || "/services/ngo")}`;
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     setMessage("");
 
-    if (!isAuthenticated) {
-      setError("Please sign in to submit your request.");
-      return;
-    }
+    // allow anonymous submissions; backend will create or reuse a profile
 
     setSubmitting(true);
 
@@ -161,11 +108,15 @@ export default function NgoServiceEnquiryModal({ service, open, onClose }: NgoSe
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          serviceKey: service.id,
-          serviceName: service.title,
-          address: address.trim(),
-          note: note.trim(),
-        }),
+            serviceKey: service.id,
+            serviceName: service.title,
+            address: address.trim(),
+            note: note.trim(),
+            fullName: profile.name.trim(),
+            email: profile.email.trim(),
+            phone: profile.phone.trim(),
+            firmName: profile.firmName.trim(),
+          }),
       });
 
       const payload = await readJsonResponse(response);
@@ -177,9 +128,8 @@ export default function NgoServiceEnquiryModal({ service, open, onClose }: NgoSe
       setMessage(payload?.message || "Your request has been submitted successfully.");
       setAddress("");
       setNote("");
-      setTimeout(() => {
-        onClose();
-      }, 1000);
+      setProfile({ name: "", email: "", phone: "", firmName: "" });
+      // Keep the modal open until the user explicitly closes it via the Cancel/Close button
     } catch (submitError: unknown) {
       setError(submitError instanceof Error ? submitError.message : "Unable to submit your request.");
     } finally {
@@ -211,40 +161,35 @@ export default function NgoServiceEnquiryModal({ service, open, onClose }: NgoSe
 
         <p className="ngo-enquiry-modal__summary">{service.summary}</p>
 
-        {!isAuthenticated ? (
-          <div className="ngo-enquiry-modal__auth">
-            <p>Sign in so we can pre-fill your profile details and submit this request.</p>
-            <Link href={loginHref} className="ngo-enquiry-modal__login-link">
-              Sign in to continue
-            </Link>
-          </div>
-        ) : null}
-
         <form className="ngo-enquiry-modal__form" onSubmit={handleSubmit}>
           <section className="ngo-enquiry-modal__profile" aria-label="Profile details">
-            <h3 className="ngo-enquiry-modal__section-title">Your profile</h3>
-            {loadingProfile ? (
-              <p className="ngo-enquiry-modal__hint">Loading profile details...</p>
-            ) : (
-              <dl className="ngo-enquiry-modal__profile-grid">
-                <div>
+            <h3 className="ngo-enquiry-modal__section-title">Your details</h3>
+            <div className="ngo-enquiry-modal__profile-grid">
+              <div>
+                <label>
                   <dt>Name</dt>
-                  <dd>{profile.name || "—"}</dd>
-                </div>
-                <div>
+                  <input type="text" value={profile.name} onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))} required />
+                </label>
+              </div>
+              <div>
+                <label>
                   <dt>Email</dt>
-                  <dd>{profile.email || "—"}</dd>
-                </div>
-                <div>
+                  <input type="email" value={profile.email} onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))} required />
+                </label>
+              </div>
+              <div>
+                <label>
                   <dt>Phone</dt>
-                  <dd>{profile.phone || "—"}</dd>
-                </div>
-                <div>
+                  <input type="tel" value={profile.phone} onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))} required />
+                </label>
+              </div>
+              <div>
+                <label>
                   <dt>Firm / Organization</dt>
-                  <dd>{profile.firmName || "—"}</dd>
-                </div>
-              </dl>
-            )}
+                  <input type="text" value={profile.firmName} onChange={(e) => setProfile((p) => ({ ...p, firmName: e.target.value }))} />
+                </label>
+              </div>
+            </div>
           </section>
 
           <label className="ngo-enquiry-modal__field">
@@ -255,7 +200,7 @@ export default function NgoServiceEnquiryModal({ service, open, onClose }: NgoSe
               placeholder="Enter your complete address"
               rows={3}
               required
-              disabled={!isAuthenticated || submitting}
+              disabled={submitting}
             />
           </label>
 
@@ -266,7 +211,7 @@ export default function NgoServiceEnquiryModal({ service, open, onClose }: NgoSe
               onChange={(event) => setNote(event.target.value)}
               placeholder="Share timelines, documents ready, or specific requirements"
               rows={4}
-              disabled={!isAuthenticated || submitting}
+              disabled={submitting}
             />
           </label>
 
@@ -280,7 +225,7 @@ export default function NgoServiceEnquiryModal({ service, open, onClose }: NgoSe
             <button
               type="submit"
               className="ngo-enquiry-modal__submit"
-              disabled={!isAuthenticated || submitting || loadingProfile}
+              disabled={submitting}
             >
               {submitting ? "Submitting..." : "Submit Request"}
             </button>

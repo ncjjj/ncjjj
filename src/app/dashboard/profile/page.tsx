@@ -364,9 +364,11 @@ export default function ProfileSettings() {
           {/* Profile Upload */}
           <form onSubmit={handleAvatarUpload} className="dashboard-profile-upload space-y-3">
             <h3 className="text-md font-medium text-[#3b2f1c] mb-0">
-              Profile Picture
+              Passport Size Photo
             </h3>
-            <p className="text-xs text-[#6b5b3e]">JPG, PNG format only. Maximum 5MB.</p>
+            <p className="text-xs text-[#6b5b3e]">
+              Please upload your passport size photo, which will be seen by admin. JPG/PNG/WebP format only, maximum 5MB.
+            </p>
             <input
               key={avatarInputKey}
               type="file"

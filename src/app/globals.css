@@ -572,10 +572,6 @@ img {
 }
 
 @media (max-width: 1024px) {
-  .site-user-avatar.desktop-avatar {
-    display: none !important;
-  }
-
   .site-auth-link {
     display: none !important;
   }
@@ -841,13 +837,15 @@ input, textarea, select { padding: 12px; font-size: 16px; }
 .site-brand-link {
   display: inline-flex;
   align-items: center;
-  gap: 16px;
+  gap: 0px;
   text-decoration: none;
 }
 
 .site-brand-link img {
   height: 60px;
   width: auto;
+  display: block;
+  margin: 0;
 }
 
 .site-nav {

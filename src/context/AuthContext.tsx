@@ -22,10 +22,6 @@ interface AuthInput {
   password: string;
 }
 
-interface SignupInput extends AuthInput {
-  name: string;
-}
-
 type AuthResult =
   | { ok: true; user: SessionUser }
   | { ok: false; message: string };
@@ -33,7 +29,6 @@ type AuthResult =
 interface AuthContextValue {
   user: SessionUser | null;
   loading: boolean;
-  signup: (input: SignupInput) => AuthResult;
   login: (input: AuthInput) => AuthResult;
   logout: () => void;
 }
@@ -73,37 +68,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  const signup = ({ name, email, password }: SignupInput): AuthResult => {
-    const users = safeParse<StoredUser[]>(localStorage.getItem(USERS_KEY), []);
-    const normalizedEmail = email.trim().toLowerCase();
-    const existing = users.find((item) => item.email === normalizedEmail);
-
-    if (existing) {
-      return { ok: false, message: "An account already exists with this email." };
-    }
-
-    const newUser: StoredUser = {
-      id: `u-${Date.now()}`,
-      name: name.trim(),
-      email: normalizedEmail,
-      password,
-      createdAt: new Date().toISOString(),
-    };
-
-    localStorage.setItem(USERS_KEY, JSON.stringify([newUser, ...users]));
-
-    const sessionUser: SessionUser = {
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-    };
-
-    localStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
-    setUser(sessionUser);
-
-    return { ok: true, user: sessionUser };
-  };
-
   const login = ({ email, password }: AuthInput): AuthResult => {
     const users = safeParse<StoredUser[]>(localStorage.getItem(USERS_KEY), []);
     const normalizedEmail = email.trim().toLowerCase();
@@ -134,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo(
-    () => ({ user, loading, signup, login, logout }),
+    () => ({ user, loading, login, logout }),
     [user, loading]
   );
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import NgoServiceEnquiryModal from "./NgoServiceEnquiryModal";
 
 interface ServiceItem {
@@ -564,10 +565,10 @@ export default function FssaiEatingHousePage() {
 
         {/* Category Navigation Bar */}
         <nav className="web-nav" aria-label="Services shortcuts">
-          <a href="#fssai-licensing" className="web-nav-link">Our FSSAI & Food Licensing Services</a>
-          <a href="#food-safety-compliance" className="web-nav-link">Food Safety Compliance & Regulatory Services</a>
-          <a href="#support-services" className="web-nav-link">Compliance Support</a>
-          <a href="#why-choose" className="web-nav-link">Why Choose Us</a>
+          <Link href="#fssai-licensing" className="web-nav-link">Our FSSAI & Food Licensing Services</Link>
+          <Link href="#food-safety-compliance" className="web-nav-link">Food Safety Compliance & Regulatory Services</Link>
+          <Link href="#support-services" className="web-nav-link">Compliance Support</Link>
+          <Link href="#why-choose" className="web-nav-link">Why Choose Us</Link>
         </nav>
 
         {/* SECTION 1 */}
