@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
+import { useSession } from "next-auth/react";
+import { io } from "socket.io-client";
 
 const documentTypes = [
   "Aadhaar Card",
@@ -47,6 +49,9 @@ export default function Documents() {
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
   const [message, setMessage] = useState<MessageState>({ text: "", tone: "neutral" });
+
+  const { data: session } = useSession();
+  const email = session?.user?.email?.trim().toLowerCase() || "";
 
   const getErrorMessage = (error: unknown): string =>
     error instanceof Error ? error.message : "Unable to upload document.";
@@ -94,6 +99,45 @@ export default function Documents() {
       active = false;
     };
   }, [reloadKey]);
+
+  useEffect(() => {
+    if (!email) {
+      return;
+    }
+
+    let socket: any = null;
+    const connectSocket = async () => {
+      try {
+        await fetch("/api/socket", { cache: "no-store" });
+        socket = io({
+          path: "/socket.io",
+          transports: ["websocket"],
+          query: { email },
+        });
+
+        socket.on("connect", () => {
+          console.log("Documents page connected to socket.");
+        });
+
+        socket.on("user-update", (payload: any) => {
+          console.log("Documents page received update:", payload);
+          if (payload.type === "document-status-updated" || payload.type === "document-uploaded") {
+            setReloadKey((value) => value + 1);
+          }
+        });
+      } catch (err) {
+        console.error("Failed to connect documents socket", err);
+      }
+    };
+
+    connectSocket();
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, [email]);
 
   const handleUpload = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

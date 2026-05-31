@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
+import { useSession } from "next-auth/react";
+import { io } from "socket.io-client";
 import {
   formatFinancialYear,
   getFinancialYearOptions,
@@ -124,12 +126,54 @@ export default function YearlyDocuments() {
     }
   };
 
+  const { data: session } = useSession();
+  const email = session?.user?.email?.trim().toLowerCase() || "";
+
   useEffect(() => {
     loadDocuments().catch((error: unknown) => {
       const text = error instanceof Error ? error.message : "Unable to load yearly documents.";
       setFeedback("error", text);
     });
   }, [reloadKey]);
+
+  useEffect(() => {
+    if (!email) {
+      return;
+    }
+
+    let socket: any = null;
+    const connectSocket = async () => {
+      try {
+        await fetch("/api/socket", { cache: "no-store" });
+        socket = io({
+          path: "/socket.io",
+          transports: ["websocket"],
+          query: { email },
+        });
+
+        socket.on("connect", () => {
+          console.log("YearlyDocuments page connected to socket.");
+        });
+
+        socket.on("user-update", (payload: any) => {
+          console.log("YearlyDocuments received update:", payload);
+          if (payload.type === "document-status-updated" || payload.type === "document-uploaded") {
+            loadDocuments().catch(() => {});
+          }
+        });
+      } catch (err) {
+        console.error("Failed to connect yearly documents socket", err);
+      }
+    };
+
+    connectSocket();
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, [email]);
 
   const validateFile = (file: File | null): string | null => {
     if (!file) {

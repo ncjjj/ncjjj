@@ -7,6 +7,7 @@ import {
   updateUserServiceAccessByEmail,
 } from "../../../../../db/queries/users";
 import { encodeServiceAccess } from "../../../../../lib/serviceAccess";
+import { emitAdminEvent, emitUserEvent } from "../../../../../lib/consultationRequestSocket";
 
 const assignServiceAccessSchema = z.object({
   email: z.string().trim().email("A valid email is required."),
@@ -39,6 +40,16 @@ export async function POST(request: Request) {
     if (!updated) {
       return NextResponse.json({ message: "Unable to update service access." }, { status: 500 });
     }
+
+    emitAdminEvent("user-service-access-updated", {
+      id: updated.id,
+      email: updated.email,
+      serviceAccess: updated.serviceAccess,
+    });
+
+    emitUserEvent(updated.email, "service-access-updated", {
+      serviceAccess: updated.serviceAccess,
+    });
 
     return NextResponse.json({
       message: "Service access updated successfully.",

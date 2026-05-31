@@ -4,7 +4,7 @@ import {
   updateConsultationRequestStatus,
   type ConsultationRequestStatus,
 } from "../../../../../db/queries/consultationRequests";
-import { emitConsultationRequestEvent } from "../../../../../lib/consultationRequestSocket";
+import { emitConsultationRequestEvent, emitAdminEvent, emitUserEvent } from "../../../../../lib/consultationRequestSocket";
 
 const statusSchema = z.object({
   status: z.enum(["pending", "seen", "contacted"]),
@@ -52,6 +52,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
         createdAt: updated.createdAt.toISOString(),
       },
     });
+
+    emitAdminEvent("consultation-request-updated", updated);
+    emitUserEvent(updated.email, "consultation-request-updated", updated);
 
     return NextResponse.json({ consultationRequest: updated });
   } catch (error) {

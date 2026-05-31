@@ -42,6 +42,12 @@ export function ensureConsultationRequestSocketServer(server: HttpServer) {
 
       if (email) {
         socket.join(getConsultationRequestRoomKey(email));
+        socket.join(`user:${email}`);
+      }
+
+      const isAdmin = socket.handshake.query.isAdmin === "true";
+      if (isAdmin) {
+        socket.join("admin-room");
       }
 
       socket.on("join-consultation-request-room", (payload: { email?: string } | undefined) => {
@@ -52,6 +58,7 @@ export function ensureConsultationRequestSocketServer(server: HttpServer) {
         }
 
         socket.join(getConsultationRequestRoomKey(roomEmail));
+        socket.join(`user:${roomEmail}`);
       });
     });
 
@@ -66,4 +73,19 @@ export function emitConsultationRequestEvent(email: string, payload: RequestSock
     "consultation-request-updated",
     payload
   );
+}
+
+export function emitAdminEvent(type: string, data: any) {
+  globalThis.consultationRequestSocketServer?.to("admin-room").emit("admin-update", {
+    type,
+    data,
+  });
+}
+
+export function emitUserEvent(email: string, type: string, data: any) {
+  const normalizedEmail = email.trim().toLowerCase();
+  globalThis.consultationRequestSocketServer?.to(`user:${normalizedEmail}`).emit("user-update", {
+    type,
+    data,
+  });
 }

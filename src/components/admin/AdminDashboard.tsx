@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { io } from "socket.io-client";
 import PasswordInput from "../common/PasswordInput";
 import { ADMIN_SERVICE_OPTIONS } from "../../lib/serviceAccess";
 import { formatFinancialYear } from "../../lib/yearlyDocumentTypes";
@@ -238,9 +239,49 @@ export default function AdminDashboard() {
     }
   };
 
+  const selectedUserRef = useRef(selectedUserForDocs);
+  useEffect(() => {
+    selectedUserRef.current = selectedUserForDocs;
+  }, [selectedUserForDocs]);
+
   useEffect(() => {
     loadData();
     loadStats();
+
+    let socket: any = null;
+    const connectSocket = async () => {
+      try {
+        await fetch("/api/socket", { cache: "no-store" });
+        socket = io({
+          path: "/socket.io",
+          transports: ["websocket"],
+          query: { isAdmin: "true" },
+        });
+
+        socket.on("connect", () => {
+          console.log("Admin connected to socket.io.");
+        });
+
+        socket.on("admin-update", (payload: any) => {
+          console.log("Admin received real-time update event:", payload);
+          loadData();
+          loadStats();
+          if (selectedUserRef.current) {
+            handleViewUserDocuments(selectedUserRef.current);
+          }
+        });
+      } catch (err) {
+        console.error("Failed to connect admin socket", err);
+      }
+    };
+
+    connectSocket();
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
   }, []);
 
   const handleViewUserDocuments = async (user: ProfileRow) => {

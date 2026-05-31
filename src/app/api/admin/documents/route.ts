@@ -1,9 +1,10 @@
 import { and, desc, eq, isNotNull, isNull, like } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "../../../../db/index";
-import { documents } from "../../../../db/schema";
+import { documents, users } from "../../../../db/schema";
 import { resolveSupabaseObjectUrl } from "../../../../lib/supabaseStorage";
 import { getAdminSessionFromRequest } from "../../../../lib/adminRequestSession";
+import { emitAdminEvent, emitUserEvent } from "../../../../lib/consultationRequestSocket";
 
 function isCategory(value: string): value is "all" | "service" | "permanent" | "yearly" {
   return ["all", "service", "permanent", "yearly"].includes(value);
@@ -120,15 +121,45 @@ export async function PATCH(request: Request) {
     }
 
     const db = getDb();
-    const updated = await db
+    const [updated] = await db
       .update(documents)
       .set({ uploadStatus })
       .where(eq(documents.id, documentId))
-      .returning({ id: documents.id });
+      .returning({
+        id: documents.id,
+        userId: documents.userId,
+        uploadStatus: documents.uploadStatus,
+        documentType: documents.documentType,
+        fileName: documents.fileName,
+      });
 
-    if (!updated || updated.length === 0) {
+    if (!updated) {
       return NextResponse.json({ message: "Document not found." }, { status: 404 });
     }
+
+    const targetUser = await db
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, updated.userId))
+      .limit(1)
+      .then((rows) => rows[0]);
+
+    if (targetUser?.email) {
+      emitUserEvent(targetUser.email, "document-status-updated", {
+        documentId: updated.id,
+        uploadStatus: updated.uploadStatus,
+        documentType: updated.documentType,
+        fileName: updated.fileName,
+      });
+    }
+
+    emitAdminEvent("document-status-updated", {
+      documentId: updated.id,
+      userId: updated.userId,
+      uploadStatus: updated.uploadStatus,
+      documentType: updated.documentType,
+      fileName: updated.fileName,
+    });
 
     return NextResponse.json({ message: "Document status updated successfully." });
   } catch (error) {

@@ -6,7 +6,7 @@ import { authOptions } from "../../../lib/auth";
 import { findUserById } from "../../../db/queries/users";
 import { findProfileByEmail, createProfile } from "../../../db/queries/profiles";
 import { createConsultationRequest } from "../../../db/queries/consultationRequests";
-import { emitConsultationRequestEvent } from "../../../lib/consultationRequestSocket";
+import { emitConsultationRequestEvent, emitAdminEvent } from "../../../lib/consultationRequestSocket";
 import { randomUUID } from "crypto";
 
 const enquirySchema = z.object({
@@ -101,6 +101,8 @@ export async function POST(request: NextRequest) {
         createdAt: enquiry.createdAt.toISOString(),
       },
     });
+
+    emitAdminEvent("consultation-request-created", enquiry);
 
     return NextResponse.json({
       message: "Your request has been submitted. Our team will contact you shortly.",

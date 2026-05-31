@@ -7,6 +7,7 @@ import { findUserByEmail, findUserByMobileNumber, createUser } from "../../../..
 import { findProfileByEmail, findProfileByPhone } from "../../../../db/queries/profiles";
 import { findLatestValidPasswordResetToken, markPasswordResetTokenUsed } from "../../../../db/queries/passwordResetTokens";
 import { encodeServiceAccess } from "../../../../lib/serviceAccess";
+import { emitAdminEvent } from "../../../../lib/consultationRequestSocket";
 
 const createUserSchema = z.object({
   name: z.string().trim().min(2, "Name is required."),
@@ -118,6 +119,12 @@ export async function POST(request: Request) {
       firmName: parsed.data.firmName?.trim() || "",
       aadhaarOtpVerified: parsed.data.aadhaarOtpVerified,
       serviceAccess: encodeServiceAccess(parsed.data.serviceAccess),
+    });
+
+    emitAdminEvent("user-created", {
+      id: user.id,
+      name: user.name,
+      email: user.email,
     });
 
     return NextResponse.json(

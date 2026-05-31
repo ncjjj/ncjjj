@@ -10,6 +10,7 @@ import {
 } from "../../../db/queries/permanentDocuments";
 import { permanentDocumentTypeSet } from "../../../lib/permanentDocumentTypes";
 import { resolveSupabaseObjectUrl } from "../../../lib/supabaseStorage";
+import { emitAdminEvent } from "../../../lib/consultationRequestSocket";
 
 const updateDetailsSchema = z.object({
   documentType: z.string().trim(),
@@ -89,6 +90,11 @@ export async function PATCH(request: Request) {
       panNumber: parsed.data.panNumber || null,
       accountNumber: parsed.data.accountNumber || null,
       gstNumber: parsed.data.gstNumber || null,
+    });
+
+    emitAdminEvent("document-numbers-updated", {
+      userId: session.user.id,
+      email: session.user.email,
     });
 
     return NextResponse.json({ document: updated, message: "Details updated successfully." });

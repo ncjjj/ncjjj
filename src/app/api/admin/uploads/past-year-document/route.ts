@@ -18,6 +18,10 @@ import {
   resolveSupabaseObjectUrl,
   uploadFileToSupabase,
 } from "../../../../../lib/supabaseStorage";
+import { getDb } from "../../../../../db/index";
+import { users } from "../../../../../db/schema";
+import { eq } from "drizzle-orm";
+import { emitAdminEvent, emitUserEvent } from "../../../../../lib/consultationRequestSocket";
 
 function getFileError(fileType: string, fileSize: number): string | null {
   if (!isAllowedYearlyDocumentMimeType(fileType)) {
@@ -116,6 +120,31 @@ export async function POST(request: NextRequest) {
     });
 
     uploadedPath = null;
+
+    const db = getDb();
+    const targetUser = await db
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+      .then((rows) => rows[0]);
+
+    if (targetUser?.email) {
+      emitUserEvent(targetUser.email, "document-uploaded", {
+        documentType: `yearly:${saved.documentSlot}`,
+        documentYear: saved.documentYear,
+        documentSlot: saved.documentSlot,
+        fileName: saved.fileName,
+      });
+    }
+
+    emitAdminEvent("document-uploaded", {
+      userId,
+      documentType: `yearly:${saved.documentSlot}`,
+      documentYear: saved.documentYear,
+      documentSlot: saved.documentSlot,
+      fileName: saved.fileName,
+    });
 
     return NextResponse.json({
       message: "Yearly document uploaded successfully.",

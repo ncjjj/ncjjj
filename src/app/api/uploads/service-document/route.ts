@@ -10,6 +10,7 @@ import {
   resolveSupabaseObjectUrl,
   uploadFileToSupabase,
 } from "../../../../lib/supabaseStorage";
+import { emitAdminEvent } from "../../../../lib/consultationRequestSocket";
 
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 
@@ -105,6 +106,14 @@ export async function POST(request: NextRequest) {
     });
 
     uploadedPath = null;
+
+    emitAdminEvent("document-uploaded", {
+      userId: session.user.id,
+      email: session.user.email,
+      documentType: created.documentType,
+      documentSlot: created.documentSlot,
+      fileName: created.fileName,
+    });
 
     return NextResponse.json({
       message: "Document uploaded successfully.",

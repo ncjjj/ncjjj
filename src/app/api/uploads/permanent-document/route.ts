@@ -18,6 +18,7 @@ import {
   resolveSupabaseObjectUrl,
   uploadFileToSupabase,
 } from "../../../../lib/supabaseStorage";
+import { emitAdminEvent } from "../../../../lib/consultationRequestSocket";
 
 function sanitizeText(value: unknown): string | null {
   const text = typeof value === "string" ? value.trim() : "";
@@ -106,6 +107,13 @@ export async function POST(request: NextRequest) {
     });
 
     uploadedPath = null;
+
+    emitAdminEvent("document-uploaded", {
+      userId: session.user.id,
+      email: session.user.email,
+      documentType: `permanent:${saved.documentType}`,
+      fileName: saved.fileName,
+    });
 
     return NextResponse.json({
       message: "Permanent document uploaded successfully.",
