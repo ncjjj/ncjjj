@@ -3,73 +3,84 @@ import "../styles/responsive.css";
 import AppProviders from "../context/AppProviders";
 import AppShell from "../components/layout/AppShell";
 import { StructuredData } from "../components/common/StructuredData";
+import {
+  absoluteUrl,
+  defaultDescription,
+  defaultKeywords,
+  defaultTitle,
+  metadataBase,
+  siteName,
+  siteUrl,
+  socialImagePath,
+} from "../lib/siteMetadata";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 type RootLayoutProps = {
   children: ReactNode;
 };
 
-export const metadata = {
+export const metadata: Metadata = {
+  metadataBase,
   title: {
-    default: "NCJ Legal LLP",
-    template: "%s | NCJ Legal LLP",
+    default: siteName,
+    template: `%s | ${siteName}`,
   },
-  description: "Expert GST and ITR filing services. Get professional tax consultation, accounting support, and document management. File your taxes with certified professionals.",
-  keywords: "GST filing, ITR filing, tax consultation, CA firm, accounting services, tax advisory",
-  authors: [{ name: "NCJ Legal LLP" }],
-  creator: "NCJ Legal LLP",
-  publisher: "NCJ Legal LLP",
+  applicationName: siteName,
+  description: defaultDescription,
+  keywords: defaultKeywords,
+  authors: [{ name: siteName }],
+  creator: siteName,
+  publisher: siteName,
+  category: "Legal, tax and business compliance services",
   icons: {
     icon: "/images/ncj.jpeg",
     shortcut: "/images/ncj.jpeg",
     apple: "/images/ncj.jpeg",
   },
-  
-  // Open Graph Tags (Social Media)
   openGraph: {
     type: "website",
     locale: "en_IN",
-    url: process.env.NEXT_PUBLIC_APP_URL || "https://yoursite.com",
-    siteName: "NCJ Legal LLP",
-    title: "NCJ Legal LLP - GST & ITR Filing Services",
-    description: "Expert tax consultation and filing services for GST, ITR, and accounting support",
+    url: siteUrl,
+    siteName,
+    title: `${siteName} - ${defaultTitle}`,
+    description: defaultDescription,
     images: [
       {
-        url: "/images/og-image.jpg",
+        url: socialImagePath,
         width: 1200,
         height: 630,
-        alt: "NCJ Legal LLP Services",
+        alt: `${siteName} services`,
       },
     ],
   },
-  
-  // Twitter Tags
   twitter: {
     card: "summary_large_image",
-    title: "NCJ Legal LLP - GST & ITR Filing Services",
-    description: "Expert tax consultation and filing services",
-    creator: "@yourhandle",
-    images: ["/images/og-image.jpg"],
+    title: `${siteName} - ${defaultTitle}`,
+    description: defaultDescription,
+    images: [socialImagePath],
   },
-  
-  // Additional Meta Tags
-  robots: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
+  },
   formatDetection: {
     telephone: true,
     address: true,
   },
-  
-  // Alternate Languages
   alternates: {
-    canonical: process.env.NEXT_PUBLIC_APP_URL || "https://yoursite.com",
-    languages: {
-      "en": "https://yoursite.com/en",
-      "hi": "https://yoursite.com/hi",
-    },
+    canonical: absoluteUrl("/"),
   },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -80,12 +91,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
       <head>
-        {/* Theme Color for Mobile */}
         <meta name="theme-color" content="#ffffff" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        
-        {/* Structured Data */}
         <StructuredData />
       </head>
       <body>

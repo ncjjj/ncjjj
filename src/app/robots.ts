@@ -1,8 +1,7 @@
 import type { MetadataRoute } from "next";
+import { absoluteUrl } from "../lib/siteMetadata";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://yoursite.com";
-
   return {
     rules: [
       {
@@ -16,6 +15,6 @@ export default function robots(): MetadataRoute.Robots {
         crawlDelay: 0,
       },
     ],
-    sitemap: `${baseUrl}/sitemap.xml`,
+    sitemap: absoluteUrl("/sitemap.xml"),
   };
 }

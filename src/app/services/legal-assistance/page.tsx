@@ -1,10 +1,19 @@
-import type { Metadata } from "next";
 import LegalAssistancePage from "../../../components/services/LegalAssistancePage";
+import { createPageMetadata } from "../../../lib/siteMetadata";
 
-export const metadata: Metadata = {
-  title: "Legal Services | NCJ Legal Business Solutions LLP",
-  description: "Professional Legal Documentation, Litigation Support & Advisory Solutions. Comprehensive legal drafting, advisory, dispute management, documentation, and procedural support across India.",
-};
+export const metadata = createPageMetadata({
+  title: "Legal Documentation and Advisory Services",
+  description:
+    "Professional legal documentation, litigation support, advisory, dispute management, drafting and procedural support services across India.",
+  path: "/services/legal-assistance",
+  keywords: [
+    "legal notice drafting",
+    "legal documentation services",
+    "agreement drafting",
+    "litigation support",
+    "business legal advisory",
+  ],
+});
 
 export default function Page() {
   return <LegalAssistancePage />;

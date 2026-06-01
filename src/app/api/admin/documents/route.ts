@@ -44,6 +44,9 @@ export async function GET(request: Request) {
       .select({
         id: documents.id,
         userId: documents.userId,
+        userName: users.name,
+        userEmail: users.email,
+        userPhone: users.mobileNumber,
         documentType: documents.documentType,
         documentYear: documents.documentYear,
         documentSlot: documents.documentSlot,
@@ -55,6 +58,7 @@ export async function GET(request: Request) {
         createdAt: documents.createdAt,
       })
       .from(documents)
+      .leftJoin(users, eq(users.id, documents.userId))
       .where(filters.length ? and(...filters) : undefined)
       .orderBy(desc(documents.createdAt));
 

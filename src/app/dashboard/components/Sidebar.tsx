@@ -13,6 +13,7 @@ type ServiceAccessResponse = {
 };
 
 const baseNavItems = [
+  { name: 'Required Documents', path: '/dashboard/required-documents' },
   { name: 'Profile Settings', path: '/dashboard/profile' },
   { name: 'Support', path: '/dashboard/support' },
 ];

@@ -1,9 +1,12 @@
 import AdminLoginForm from "../../../components/admin/AdminLoginForm";
+import { createPageMetadata } from "../../../lib/siteMetadata";
 
-export const metadata = {
-  title: "Admin Login | NCJ Legal Business Solutions LLP",
-  description: "Admin sign in for consultation management.",
-};
+export const metadata = createPageMetadata({
+  title: "Admin Login",
+  description: "Private sign in for NCJ Legal LLP administrators.",
+  path: "/admin/login",
+  noIndex: true,
+});
 
 type AdminLoginPageProps = {
   searchParams?: {

@@ -17,6 +17,7 @@ export async function GET() {
         firmName: profiles.firmName,
         createdAt: profiles.createdAt,
         userId: users.id,
+        serviceAccess: users.serviceAccess,
       })
       .from(profiles)
       .leftJoin(users, eq(users.email, profiles.email))

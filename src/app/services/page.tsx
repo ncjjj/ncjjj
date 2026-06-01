@@ -1,6 +1,19 @@
-"use client";
-
 import Link from "next/link";
+import { createPageMetadata } from "../../lib/siteMetadata";
+
+export const metadata = createPageMetadata({
+  title: "Business, Tax, Legal and Compliance Services",
+  description:
+    "Explore NCJ Legal LLP services for business registration, GST and ITR filing, accounting, licenses, ISO certification, NGO compliance, FSSAI and legal agreements.",
+  path: "/services",
+  keywords: [
+    "business services India",
+    "tax filing services",
+    "legal compliance services",
+    "government license consultant",
+    "ISO certification consultant",
+  ],
+});
 
 const services = [
   { label: "Startup / Business Startup", href: "/services/business-startup" },

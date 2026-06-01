@@ -2,6 +2,21 @@ import FirmProfile from "../../components/about/FirmProfile";
 import Credentials from "../../components/about/Credentials";
 import ExperienceAndRegistrations from "../../components/about/ExperienceAndRegistrations";
 import { getAboutPageData } from "./data";
+import { createPageMetadata } from "../../lib/siteMetadata";
+
+export const metadata = createPageMetadata({
+  title: "About NCJ Legal LLP",
+  description:
+    "Learn about NCJ Legal LLP, a professional services firm supporting clients with tax filing, GST, accounting, legal documentation and business compliance.",
+  path: "/about",
+  keywords: [
+    "about NCJ Legal LLP",
+    "tax consultant firm",
+    "legal compliance firm",
+    "GST consultant",
+    "business advisory India",
+  ],
+});
 
 export default async function AboutPage() {
   const aboutData = await getAboutPageData();
