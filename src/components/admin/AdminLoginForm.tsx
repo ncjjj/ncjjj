@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import PasswordInput from "../common/PasswordInput";
+import { toast } from "../common/ToastContainer";
 
 type AdminLoginFormProps = {
   callbackUrl?: string;
@@ -15,6 +16,12 @@ export default function AdminLoginForm({ callbackUrl = "/admin" }: AdminLoginFor
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (message) {
+      toast?.error(message);
+    }
+  }, [message]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

@@ -19,7 +19,7 @@ import {
   resolveSupabaseObjectUrl,
   uploadFileToSupabase,
 } from "../../../../lib/supabaseStorage";
-import { emitAdminEvent } from "../../../../lib/consultationRequestSocket";
+import { emitAdminEvent, emitUserEvent } from "../../../../lib/consultationRequestSocket";
 
 function getFileError(fileType: string, fileSize: number): string | null {
   if (!isAllowedYearlyDocumentMimeType(fileType)) {
@@ -122,6 +122,13 @@ export async function POST(request: NextRequest) {
       documentSlot: saved.documentSlot,
       fileName: saved.fileName,
     });
+
+    if (session.user.email) {
+      emitUserEvent(session.user.email, "document-uploaded", {
+        documentType: `yearly:${saved.documentSlot}`,
+        documentYear: saved.documentYear,
+      });
+    }
 
     return NextResponse.json({
       message: "Yearly document uploaded successfully.",

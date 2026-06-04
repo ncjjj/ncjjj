@@ -928,14 +928,15 @@ input, textarea, select { padding: 12px; font-size: 16px; }
 }
 
 /* Improve visual response when hovering the Services trigger */
-.site-services-dropdown:hover .dropdown {
+.site-services-dropdown .dropdown.open:hover {
   transform: translateX(-50%) translateY(0) scale(1.02);
   box-shadow: 0 18px 48px rgba(0,0,0,0.12);
 }
 
-/* Highlight the trigger when hovered to show the boxed state */
+/* Highlight the trigger when hovered/open to show the boxed state */
 .site-services-dropdown .services-trigger:hover,
-.site-services-dropdown .services-trigger:focus {
+.site-services-dropdown .services-trigger:focus,
+.site-services-dropdown .services-trigger.open {
   background: rgba(212,175,55,0.06);
   border-radius: 10px;
   padding: 8px 12px;
@@ -1823,4 +1824,19 @@ img, picture, video { max-width: 100%; height: auto; }
   .about-reg-box {
     padding: 20px !important;
   }
+}
+
+/* Custom Toast Animations */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

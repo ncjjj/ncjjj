@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from "react";
+import { toast } from "../../../components/common/ToastContainer";
 import type { ChangeEvent, FormEvent } from "react";
 import { useSession } from "next-auth/react";
 import useSWR from "swr";
@@ -74,6 +75,16 @@ export default function ProfileSettings() {
   const { profileImageUrl, applyAvatarPayload } = useProfileImage({
     userId: session?.user?.id ?? null,
   });
+
+  useEffect(() => {
+    if (message) {
+      if (message.toLowerCase().includes("successfully")) {
+        toast?.success(message);
+      } else {
+        toast?.error(message);
+      }
+    }
+  }, [message]);
 
   useEffect(() => {
     if (profileResponse?.user && !hasHydratedProfile) {

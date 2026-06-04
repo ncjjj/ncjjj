@@ -134,3 +134,30 @@ export async function revokeAdminSessionByTokenHash(tokenHash: string): Promise<
     .set({ revokedAt: new Date() })
     .where(eq(adminSessions.tokenHash, tokenHash));
 }
+
+export async function updateAdminAccount(
+  adminId: string,
+  input: {
+    username?: string | undefined;
+    email?: string | undefined;
+    passwordHash?: string | undefined;
+  }
+): Promise<void> {
+  const db = getDb();
+  const updateData: any = {};
+  if (input.username !== undefined) {
+    updateData.username = input.username.trim().toLowerCase();
+  }
+  if (input.email !== undefined) {
+    updateData.email = input.email.trim().toLowerCase();
+  }
+  if (input.passwordHash !== undefined) {
+    updateData.passwordHash = input.passwordHash;
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return;
+  }
+
+  await db.update(adminAccounts).set(updateData).where(eq(adminAccounts.id, adminId));
+}

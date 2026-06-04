@@ -4,6 +4,10 @@ import React, { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useSession } from "next-auth/react";
 import { io } from "socket.io-client";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { setDocuments, setDocumentsLoading } from "../../store/slices/userSlice";
+
+import { toast } from "../../components/common/ToastContainer";
 
 const documentTypes = [
   "Aadhaar Card",
@@ -41,14 +45,27 @@ type MessageState = {
 };
 
 export default function Documents() {
-  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const dispatch = useAppDispatch();
+  const documents = useAppSelector((s) => s.user.documents);
+  const loading = useAppSelector((s) => s.user.documentsLoading);
   const [newFile, setNewFile] = useState<File | null>(null);
   const [documentType, setDocumentType] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
   const [message, setMessage] = useState<MessageState>({ text: "", tone: "neutral" });
+
+  useEffect(() => {
+    if (message.text) {
+      if (message.tone === "success") {
+        toast?.success(message.text);
+      } else if (message.tone === "error") {
+        toast?.error(message.text);
+      } else {
+        toast?.info(message.text);
+      }
+    }
+  }, [message]);
 
   const { data: session } = useSession();
   const email = session?.user?.email?.trim().toLowerCase() || "";
@@ -60,7 +77,7 @@ export default function Documents() {
     let active = true;
 
     const loadDocuments = async () => {
-      setLoading(true);
+      dispatch(setDocumentsLoading(true));
 
       try {
         const response = await fetch("/api/documents", { cache: "no-store" });
@@ -71,24 +88,24 @@ export default function Documents() {
         }
 
         if (active) {
-          setDocuments(
+          dispatch(setDocuments(
             (payload?.documents || []).map((doc) => ({
               id: doc.id,
               name: doc.fileName,
               type: doc.documentType,
               url: doc.signedUrl,
-              status: "Uploaded",
+              status: "Uploaded" as const,
             }))
-          );
+          ));
         }
-      } catch {
+      } catch (error: unknown) {
         if (active) {
-          setDocuments([]);
-          setMessage({ text: "Unable to load uploaded documents.", tone: "error" });
+          setMessage({ text: getErrorMessage(error), tone: "error" });
+          dispatch(setDocuments([]));
         }
       } finally {
         if (active) {
-          setLoading(false);
+          dispatch(setDocumentsLoading(false));
         }
       }
     };
@@ -121,7 +138,11 @@ export default function Documents() {
 
         socket.on("user-update", (payload: any) => {
           console.log("Documents page received update:", payload);
-          if (payload.type === "document-status-updated" || payload.type === "document-uploaded") {
+          if (
+            payload.type === "document-status-updated" ||
+            payload.type === "document-uploaded" ||
+            payload.type === "document-deleted"
+          ) {
             setReloadKey((value) => value + 1);
           }
         });

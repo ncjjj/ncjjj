@@ -45,12 +45,8 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [hoveredNavItem, setHoveredNavItem] = useState<string | null>(null);
   const [servicesMenuOpen, setServicesMenuOpen] = useState(false);
-  const [servicesTriggerHovered, setServicesTriggerHovered] = useState(false);
   const [startupSubmenuOpen, setStartupSubmenuOpen] = useState(false);
   const [complianceSubmenuOpen, setComplianceSubmenuOpen] = useState(false);
-  const servicesCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const startupSubmenuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const complianceSubmenuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const servicesTriggerRef = useRef<HTMLButtonElement | null>(null);
   const servicesMenuRef = useRef<HTMLDivElement | null>(null);
   const startupSubmenuRef = useRef<HTMLDivElement | null>(null);
@@ -68,26 +64,7 @@ export default function Header() {
   const [mobileComplianceOpen, setMobileComplianceOpen] = useState(false);
   
 
-  const clearServicesCloseTimer = () => {
-    if (servicesCloseTimerRef.current) {
-      clearTimeout(servicesCloseTimerRef.current);
-      servicesCloseTimerRef.current = null;
-    }
-  };
 
-  const clearStartupSubmenuCloseTimer = () => {
-    if (startupSubmenuCloseTimerRef.current) {
-      clearTimeout(startupSubmenuCloseTimerRef.current);
-      startupSubmenuCloseTimerRef.current = null;
-    }
-  };
-
-  const clearComplianceSubmenuCloseTimer = () => {
-    if (complianceSubmenuCloseTimerRef.current) {
-      clearTimeout(complianceSubmenuCloseTimerRef.current);
-      complianceSubmenuCloseTimerRef.current = null;
-    }
-  };
 
   const currentPath = pathname ?? "";
   const isServicesRoute = currentPath === "/services" || currentPath.startsWith("/services/");
@@ -129,60 +106,27 @@ export default function Header() {
   };
 
   const openServicesMenu = () => {
-    clearServicesCloseTimer();
     setServicesMenuOpen(true);
   };
 
   const closeServicesMenu = () => {
-    clearServicesCloseTimer();
     setServicesMenuOpen(false);
   };
 
-  const scheduleCloseServicesMenu = () => {
-    clearServicesCloseTimer();
-
-    servicesCloseTimerRef.current = setTimeout(() => {
-      setServicesMenuOpen(false);
-      servicesCloseTimerRef.current = null;
-    }, 160);
-  };
-
   const openStartupSubmenu = () => {
-    clearStartupSubmenuCloseTimer();
     setStartupSubmenuOpen(true);
   };
 
   const closeStartupSubmenu = () => {
-    clearStartupSubmenuCloseTimer();
     setStartupSubmenuOpen(false);
   };
 
-  const scheduleCloseStartupSubmenu = () => {
-    clearStartupSubmenuCloseTimer();
-
-    startupSubmenuCloseTimerRef.current = setTimeout(() => {
-      setStartupSubmenuOpen(false);
-      startupSubmenuCloseTimerRef.current = null;
-    }, 160);
-  };
-
   const openComplianceSubmenu = () => {
-    clearComplianceSubmenuCloseTimer();
     setComplianceSubmenuOpen(true);
   };
 
   const closeComplianceSubmenu = () => {
-    clearComplianceSubmenuCloseTimer();
     setComplianceSubmenuOpen(false);
-  };
-
-  const scheduleCloseComplianceSubmenu = () => {
-    clearComplianceSubmenuCloseTimer();
-
-    complianceSubmenuCloseTimerRef.current = setTimeout(() => {
-      setComplianceSubmenuOpen(false);
-      complianceSubmenuCloseTimerRef.current = null;
-    }, 160);
   };
 
   useEffect(() => {
@@ -198,17 +142,28 @@ export default function Header() {
     setServicesMenuOpen(false);
     setStartupSubmenuOpen(false);
     setComplianceSubmenuOpen(false);
-    clearStartupSubmenuCloseTimer();
-    clearComplianceSubmenuCloseTimer();
   }, [pathname]);
 
   useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        servicesMenuRef.current &&
+        !servicesMenuRef.current.contains(event.target as Node) &&
+        servicesTriggerRef.current &&
+        !servicesTriggerRef.current.contains(event.target as Node)
+      ) {
+        setServicesMenuOpen(false);
+        setStartupSubmenuOpen(false);
+        setComplianceSubmenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      clearServicesCloseTimer();
-      clearStartupSubmenuCloseTimer();
-      clearComplianceSubmenuCloseTimer();
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+
 
   return (
     <header
@@ -291,9 +246,6 @@ export default function Header() {
           <div
             className="site-services-dropdown"
             style={{ position: "relative", insetBlockStart: 0, display: "flex", alignItems: "center" }}
-            onMouseEnter={openServicesMenu}
-            onMouseLeave={scheduleCloseServicesMenu}
-            onFocus={openServicesMenu}
             onBlur={(event) => {
               const nextFocused = event.relatedTarget as Node | null;
 
@@ -327,10 +279,11 @@ export default function Header() {
               aria-haspopup="menu"
               aria-controls={servicesMenuId}
               aria-describedby={servicesHintId}
-              onMouseEnter={() => setServicesTriggerHovered(true)}
-              onMouseLeave={() => setServicesTriggerHovered(false)}
-              onFocus={() => setServicesTriggerHovered(true)}
-              onBlur={() => setServicesTriggerHovered(false)}
+              onClick={() => {
+                setServicesMenuOpen(!servicesMenuOpen);
+                setStartupSubmenuOpen(false);
+                setComplianceSubmenuOpen(false);
+              }}
               onKeyDown={(event) => {
                 if (event.key === "Escape") {
                   event.preventDefault();
@@ -388,16 +341,14 @@ export default function Header() {
               aria-label="Services menu"
               aria-describedby={servicesHintId}
               aria-hidden={!servicesMenuOpen}
-              onMouseEnter={openServicesMenu}
-              onMouseLeave={scheduleCloseServicesMenu}
             >
               <div
                 className="dropdown-grid"
               >
                 {services.map((service, i) => (
                   service.name === "Startup" ? (
-                    <div key={service.name} style={{ position: "relative" }} onMouseEnter={openStartupSubmenu} onMouseLeave={scheduleCloseStartupSubmenu}>
-                      <Link href={service.href} role="menuitem" tabIndex={servicesMenuOpen ? 0 : -1} aria-haspopup="menu" aria-expanded={startupSubmenuOpen} aria-controls={startupSubmenuId} className="dropdown-link" onClick={(event) => { event.preventDefault(); event.stopPropagation(); }} onKeyDown={(event) => {
+                    <div key={service.name} style={{ position: "relative" }}>
+                      <Link href={service.href} role="menuitem" tabIndex={servicesMenuOpen ? 0 : -1} aria-haspopup="menu" aria-expanded={startupSubmenuOpen} aria-controls={startupSubmenuId} className="dropdown-link" onClick={(event) => { event.preventDefault(); event.stopPropagation(); setStartupSubmenuOpen(!startupSubmenuOpen); setComplianceSubmenuOpen(false); }} onKeyDown={(event) => {
                           const currentIndex = getServiceMenuItemIndex(event.currentTarget);
 
                           if (currentIndex === -1) {
@@ -450,7 +401,7 @@ export default function Header() {
                         <span aria-hidden="true" style={{ fontSize: "12px", color: "#b89b5e" }}>›</span>
                       </Link>
 
-                      <div ref={startupSubmenuRef} id={startupSubmenuId} role="menu" aria-label="Startup submenu" aria-hidden={!startupSubmenuOpen} onMouseEnter={openStartupSubmenu} onMouseLeave={scheduleCloseStartupSubmenu} className={`submenu ${startupSubmenuOpen ? 'open' : ''}`}>
+                      <div ref={startupSubmenuRef} id={startupSubmenuId} role="menu" aria-label="Startup submenu" aria-hidden={!startupSubmenuOpen} className={`submenu ${startupSubmenuOpen ? 'open' : ''}`}>
                         <div style={{ display: "grid", gap: "10px" }}>
                           {startupSubmenuItems.map((item) => (
                             <Link key={item.name} href={item.href} role="menuitem" tabIndex={startupSubmenuOpen ? 0 : -1} onClick={() => { closeStartupSubmenu(); closeServicesMenu(); }} className="dropdown-link">
@@ -461,8 +412,8 @@ export default function Header() {
                       </div>
                     </div>
                   ) : service.name === "Compliance" ? (
-                    <div key={service.name} style={{ position: "relative" }} onMouseEnter={openComplianceSubmenu} onMouseLeave={scheduleCloseComplianceSubmenu}>
-                      <Link href={service.href} role="menuitem" tabIndex={servicesMenuOpen ? 0 : -1} aria-haspopup="menu" aria-expanded={complianceSubmenuOpen} aria-controls={complianceSubmenuId} className="dropdown-link" onClick={(event) => { event.preventDefault(); event.stopPropagation(); }} onKeyDown={(event) => {
+                    <div key={service.name} style={{ position: "relative" }}>
+                      <Link href={service.href} role="menuitem" tabIndex={servicesMenuOpen ? 0 : -1} aria-haspopup="menu" aria-expanded={complianceSubmenuOpen} aria-controls={complianceSubmenuId} className="dropdown-link" onClick={(event) => { event.preventDefault(); event.stopPropagation(); setComplianceSubmenuOpen(!complianceSubmenuOpen); setStartupSubmenuOpen(false); }} onKeyDown={(event) => {
                           const currentIndex = getServiceMenuItemIndex(event.currentTarget);
 
                           if (currentIndex === -1) {
@@ -515,7 +466,7 @@ export default function Header() {
                         <span aria-hidden="true" style={{ fontSize: "12px", color: "#b89b5e" }}>›</span>
                       </Link>
 
-                      <div ref={complianceSubmenuRef} id={complianceSubmenuId} role="menu" aria-label="Compliance submenu" aria-hidden={!complianceSubmenuOpen} onMouseEnter={openComplianceSubmenu} onMouseLeave={scheduleCloseComplianceSubmenu} className={`submenu ${complianceSubmenuOpen ? 'open' : ''}`}>
+                      <div ref={complianceSubmenuRef} id={complianceSubmenuId} role="menu" aria-label="Compliance submenu" aria-hidden={!complianceSubmenuOpen} className={`submenu ${complianceSubmenuOpen ? 'open' : ''}`}>
                         <div style={{ display: "grid", gap: "8px" }}>
                           {complianceSubmenuItems.map((item) => (
                             <Link key={item.name} href={item.href} role="menuitem" tabIndex={complianceSubmenuOpen ? 0 : -1} onClick={() => { closeComplianceSubmenu(); closeServicesMenu(); }} className="dropdown-link">

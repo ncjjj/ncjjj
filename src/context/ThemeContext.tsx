@@ -1,61 +1,57 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
-
-type ThemeMode = "light" | "dark";
-
-type ThemeContextValue = {
-  theme: ThemeMode;
-  toggleTheme: () => void;
-};
-
-const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { setTheme as setThemeAction, toggleTheme as toggleThemeAction } from "../store/slices/themeSlice";
 
 type ThemeProviderProps = {
   children: ReactNode;
 };
 
+/**
+ * ThemeProvider now acts as an initialiser — it reads localStorage and the
+ * system preference on mount, dispatches the initial value to the Redux store,
+ * and keeps the <html> class in sync with whatever the Redux theme state is.
+ * The context API is no longer used; components call `useThemeContext()`.
+ */
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<ThemeMode>("light");
+  const dispatch = useAppDispatch();
+  const theme = useAppSelector((state) => state.theme.theme);
 
+  // Initialise from localStorage / system preference once
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-
-    if (savedTheme === "light" || savedTheme === "dark") {
-      setTheme(savedTheme);
-      document.documentElement.classList.add(savedTheme);
+    const saved = localStorage.getItem("theme");
+    if (saved === "light" || saved === "dark") {
+      dispatch(setThemeAction(saved));
     } else {
       const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const defaultTheme = systemDark ? "dark" : "light";
-      setTheme(defaultTheme);
-      document.documentElement.classList.add(defaultTheme);
+      dispatch(setThemeAction(systemDark ? "dark" : "light"));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Sync <html> class and localStorage whenever theme changes
   useEffect(() => {
     document.documentElement.classList.remove("light", "dark");
     document.documentElement.classList.add(theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
-  };
-
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <>{children}</>;
 }
 
+/**
+ * Drop-in replacement for the old context-based hook.
+ * Same return shape — callers need no changes.
+ */
 export function useThemeContext() {
-  const context = useContext(ThemeContext);
+  const dispatch = useAppDispatch();
+  const theme = useAppSelector((state) => state.theme.theme);
 
-  if (!context) {
-    throw new Error("useThemeContext must be used within ThemeProvider");
-  }
+  const toggleTheme = useCallback(() => {
+    dispatch(toggleThemeAction());
+  }, [dispatch]);
 
-  return context;
+  return { theme, toggleTheme };
 }

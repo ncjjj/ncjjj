@@ -6,12 +6,26 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { io } from "socket.io-client";
 import PasswordInput from "../common/PasswordInput";
+import { toast } from "../common/ToastContainer";
 import { ADMIN_SERVICE_OPTIONS, decodeServiceAccess } from "../../lib/serviceAccess";
 import {
   formatFinancialYear,
   getYearlyDocumentLabel,
   type YearlyDocumentSlot,
 } from "../../lib/yearlyDocumentTypes";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import {
+  setAdminProfile,
+  setConsultationRequests,
+  updateConsultationRequest,
+  setProfiles,
+  setStats,
+  setSocketStatus,
+  setActiveTab,
+  setAdminLoading,
+  setAdminLoadingStats,
+  updateTaskStatus,
+} from "../../store/slices/adminSlice";
 
 type ConsultationRequest = {
   id: string;
@@ -143,15 +157,6 @@ type AdminYearlyDocumentRow = {
 
 const STATUS_OPTIONS: ConsultationRequest["status"][] = ["pending", "seen", "contacted"];
 
-const SIDEBAR_ITEMS: Array<{ href: string; label: string }> = [
-  { href: "#overview", label: "Overview" },
-  { href: "#add-user", label: "Add User / Onboarding" },
-  { href: "#service-access", label: "Service Taken" },
-  { href: "#consultation-requests", label: "Consultation Requests" },
-  { href: "#registered-profiles", label: "Registered Profiles" },
-  { href: "#past-year-uploads", label: "Past Year Uploads" },
-];
-
 function emptyUserForm(): CreateUserFormState {
   return {
     name: "",
@@ -213,20 +218,27 @@ function formatDobInput(value: string): string {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [consultationRequests, setConsultationRequests] = useState<ConsultationRequest[]>([]);
-  const [profiles, setProfiles] = useState<ProfileRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useAppDispatch();
+
+  // ── Redux global state ────────────────────────────────────────────────────
+  const adminProfile = useAppSelector((s) => s.admin.adminProfile);
+  const consultationRequests = useAppSelector((s) => s.admin.consultationRequests);
+  const profiles = useAppSelector((s) => s.admin.profiles);
+  const stats = useAppSelector((s) => s.admin.stats);
+  const socketStatus = useAppSelector((s) => s.admin.socketStatus);
+  const activeTab = useAppSelector((s) => s.admin.activeTab);
+  const loading = useAppSelector((s) => s.admin.loading);
+  const loadingStats = useAppSelector((s) => s.admin.loadingStats);
+
+  // ── Local UI state (component-scoped, not shared) ─────────────────────────
   const [message, setMessage] = useState<{ type: "error" | "success" | ""; text: string }>({ type: "", text: "" });
   const [userForm, setUserForm] = useState<CreateUserFormState>(emptyUserForm);
   const [creatingUser, setCreatingUser] = useState(false);
   const [serviceEmail, setServiceEmail] = useState("");
   const [serviceAccess, setServiceAccess] = useState<string[]>([]);
   const [savingServiceAccess, setSavingServiceAccess] = useState(false);
-
-  const [activeTab, setActiveTab] = useState<string>("overview");
   const [modalServiceAccess, setModalServiceAccess] = useState<string[]>([]);
   const [savingModalServiceAccess, setSavingModalServiceAccess] = useState(false);
-
   const [yearlyUploadDrafts, setYearlyUploadDrafts] = useState<Record<YearlyUploadCardKey, YearlyUploadDraft>>(
     YEARLY_UPLOAD_CARD_DEFAULTS
   );
@@ -235,50 +247,16 @@ export default function AdminDashboard() {
   const [loadingYearlyDocuments, setLoadingYearlyDocuments] = useState(false);
   const [yearlyDocumentsError, setYearlyDocumentsError] = useState("");
   const [activeYearAccordion, setActiveYearAccordion] = useState<string | null>("2025");
-
-  type DueTaskItem = {
-    id: string;
-    type: "document" | "consultation";
-    userId?: string | null;
-    userName: string;
-    userEmail: string;
-    userPhone: string;
-    serviceName: string;
-    documentType?: string;
-    documentYear?: number;
-    financialYear?: string;
-    fileName?: string;
-    fileUrl?: string;
-    note?: string;
-    createdAt: string;
-    status: string;
-  };
-
-  type DashboardStats = {
-    totalRegisteredUsers: number;
-    totalGstUsers: number;
-    totalTdsUsers: number;
-    totalIncomeTaxUsers: number;
-    currentFinancialYear: string;
-    incomeTaxPendency: {
-      due: number;
-      wip: number;
-      complete: number;
-    };
-    totalDueTasks: number;
-    totalWipTasks: number;
-    totalCompleteTasks: number;
-    dueTasksList: DueTaskItem[];
-    wipTasksList: DueTaskItem[];
-    completeTasksList: DueTaskItem[];
-  };
-
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loadingStats, setLoadingStats] = useState(true);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [viewingTasksType, setViewingTasksType] = useState<"due" | "wip" | "complete" | null>(null);
 
-  const loadStats = async () => {
-    setLoadingStats(true);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const loadStats = async (silent = false) => {
+    if (!silent) {
+      dispatch(setAdminLoadingStats(true));
+    }
     try {
       const response = await fetch("/api/admin/dashboard-stats", { cache: "no-store" });
       if (!response.ok) {
@@ -286,12 +264,26 @@ export default function AdminDashboard() {
       }
       const payload = await response.json().catch(() => null);
       if (payload) {
-        setStats(payload);
+        dispatch(setStats(payload));
       }
     } catch (err) {
       console.error("Failed to load dashboard stats", err);
     } finally {
-      setLoadingStats(false);
+      if (!silent) {
+        dispatch(setAdminLoadingStats(false));
+      }
+    }
+  };
+
+  const fetchAdminProfile = async () => {
+    try {
+      const res = await fetch("/api/admin/profile");
+      if (res.ok) {
+        const data = await res.json();
+        dispatch(setAdminProfile(data.admin));
+      }
+    } catch (err) {
+      console.error("Failed to fetch admin profile", err);
     }
   };
 
@@ -406,8 +398,10 @@ export default function AdminDashboard() {
     return groups;
   }, [yearlyDocuments]);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (silent = false) => {
+    if (!silent) {
+      dispatch(setAdminLoading(true));
+    }
 
     try {
       const [requestsResponse, profilesResponse] = await Promise.all([
@@ -425,18 +419,22 @@ export default function AdminDashboard() {
       const requestsPayload = await requestsResponse.json().catch(() => ({}));
       const profilesPayload = await profilesResponse.json().catch(() => ({}));
 
-      setConsultationRequests(requestsPayload.consultationRequests || []);
-      setProfiles(profilesPayload.profiles || []);
+      dispatch(setConsultationRequests(requestsPayload.consultationRequests || []));
+      dispatch(setProfiles(profilesPayload.profiles || []));
     } catch (error) {
       setMessage({ type: "error", text: error instanceof Error ? error.message : "Unable to load admin data." });
     } finally {
-      setLoading(false);
+      if (!silent) {
+        dispatch(setAdminLoading(false));
+      }
     }
   };
 
-  const loadYearlyDocuments = async () => {
-    setLoadingYearlyDocuments(true);
-    setYearlyDocumentsError("");
+  const loadYearlyDocuments = async (silent = false) => {
+    if (!silent) {
+      setLoadingYearlyDocuments(true);
+      setYearlyDocumentsError("");
+    }
 
     try {
       const response = await fetch("/api/admin/documents?category=yearly", { cache: "no-store" });
@@ -448,9 +446,13 @@ export default function AdminDashboard() {
 
       setYearlyDocuments(payload?.documents || []);
     } catch (error) {
-      setYearlyDocumentsError(error instanceof Error ? error.message : "Unable to load yearly documents.");
+      if (!silent) {
+        setYearlyDocumentsError(error instanceof Error ? error.message : "Unable to load yearly documents.");
+      }
     } finally {
-      setLoadingYearlyDocuments(false);
+      if (!silent) {
+        setLoadingYearlyDocuments(false);
+      }
     }
   };
 
@@ -463,6 +465,7 @@ export default function AdminDashboard() {
     loadData();
     loadYearlyDocuments();
     loadStats();
+    fetchAdminProfile();
 
     let socket: any = null;
     const connectSocket = async () => {
@@ -476,15 +479,36 @@ export default function AdminDashboard() {
 
         socket.on("connect", () => {
           console.log("Admin connected to socket.io.");
+          dispatch(setSocketStatus("connected"));
+        });
+
+        socket.on("disconnect", () => {
+          dispatch(setSocketStatus("disconnected"));
         });
 
         socket.on("admin-update", (payload: any) => {
           console.log("Admin received real-time update event:", payload);
-          loadData();
-          loadYearlyDocuments();
-          loadStats();
+          
+          if (payload?.type === "document-status-updated" && payload?.data) {
+            dispatch(updateTaskStatus({
+              taskId: payload.data.documentId,
+              type: "document",
+              newStatus: payload.data.uploadStatus,
+            }));
+          } else if (payload?.type === "consultation-request-updated" && payload?.data) {
+            dispatch(updateTaskStatus({
+              taskId: payload.data.id,
+              type: "consultation",
+              newStatus: payload.data.status,
+            }));
+            dispatch(updateConsultationRequest(payload.data));
+          }
+
+          loadData(true);
+          loadYearlyDocuments(true);
+          loadStats(true);
           if (selectedUserRef.current) {
-            handleViewUserDocuments(selectedUserRef.current);
+            handleViewUserDocuments(selectedUserRef.current, true);
           }
         });
       } catch (err) {
@@ -494,18 +518,30 @@ export default function AdminDashboard() {
 
     connectSocket();
 
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+
     return () => {
       if (socket) {
         socket.disconnect();
       }
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
-  const handleViewUserDocuments = async (user: ProfileRow) => {
+  // (Profile settings removed — admin profile data lives in Redux store)
+
+  const handleViewUserDocuments = async (user: ProfileRow, silent = false) => {
     setSelectedUserForDocs(user);
-    setLoadingUserDocs(true);
-    setUserDocsError("");
-    setUserDocuments([]);
+    if (!silent) {
+      setLoadingUserDocs(true);
+      setUserDocsError("");
+      setUserDocuments([]);
+    }
 
     try {
       const targetUserId = user.userId || user.id;
@@ -516,9 +552,13 @@ export default function AdminDashboard() {
       const payload = await response.json().catch(() => ({}));
       setUserDocuments(payload.documents || []);
     } catch (err: any) {
-      setUserDocsError(err.message || "Failed to load user documents.");
+      if (!silent) {
+        setUserDocsError(err.message || "Failed to load user documents.");
+      }
     } finally {
-      setLoadingUserDocs(false);
+      if (!silent) {
+        setLoadingUserDocs(false);
+      }
     }
   };
 
@@ -564,23 +604,21 @@ export default function AdminDashboard() {
         throw new Error(payload?.message || "Failed to update service access.");
       }
 
-      // Update local profiles list
-      setProfiles((current) =>
-        current.map((item) =>
+      dispatch(setProfiles(
+        profiles.map((item) =>
           item.id === selectedUserForDocs.id
             ? { ...item, serviceAccess: modalServiceAccess.join(",") }
             : item
         )
-      );
+      ));
 
-      // Update selected profile view
       setSelectedUserForDocs((current) =>
         current ? { ...current, serviceAccess: modalServiceAccess.join(",") } : null
       );
 
-      alert("Services updated successfully.");
+      toast?.success("Services updated successfully.");
     } catch (err: any) {
-      alert(err.message || "Failed to update services.");
+      toast?.error(err.message || "Failed to update services.");
     } finally {
       setSavingModalServiceAccess(false);
     }
@@ -605,21 +643,21 @@ export default function AdminDashboard() {
     const isYearly = !!(doc.documentYear && doc.documentSlot);
 
     return (
-      <div key={doc.id} className="flex flex-col justify-between p-4 rounded-2xl border border-[#e8dcc0] bg-white shadow-sm hover:bg-[#faf6ed] hover:shadow transition duration-200 space-y-3">
+      <div key={doc.id} className="flex flex-col justify-between p-4 rounded-2xl border border-amber-200 bg-white shadow-sm hover:bg-amber-50/20 hover:shadow transition duration-200 space-y-3">
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-[#d6b86a] to-[#b89b5e] text-white text-xs">
+          <div className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs">
             📄
           </div>
           <div className="min-w-0 font-medium flex-1">
-            <p className="font-semibold text-sm text-[#3b2f1c] truncate" title={doc.fileName}>{doc.fileName}</p>
-            <p className="text-xs text-[#8a7340] mt-0.5">{getDocTypeLabel(doc)}</p>
-            {doc.mimeType && <p className="text-[10px] text-gray-400 mt-0.5">{doc.mimeType}</p>}
+            <p className="font-semibold text-sm text-stone-800 truncate" title={doc.fileName}>{doc.fileName}</p>
+            <p className="text-xs text-amber-700 mt-0.5">{getDocTypeLabel(doc)}</p>
+            {doc.mimeType && <p className="text-[10px] text-stone-400 mt-0.5">{doc.mimeType}</p>}
             {doc.uploadStatus && !isYearly && (
               <span className={`inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${
                 doc.uploadStatus === "completed"
                   ? "bg-emerald-100 text-emerald-800"
                   : doc.uploadStatus === "verified"
-                  ? "bg-blue-100 text-blue-800"
+                  ? "bg-sky-100 text-sky-800"
                   : "bg-rose-100 text-rose-800"
               }`}>
                 {doc.uploadStatus === "completed"
@@ -633,8 +671,8 @@ export default function AdminDashboard() {
         </div>
 
         {!isYearly && (
-          <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#f3ebda]">
-            <span className="text-xs font-semibold text-[#5c4a2e]">Verify Status:</span>
+          <div className="flex items-center justify-between gap-2 pt-2 border-t border-amber-100">
+            <span className="text-xs font-semibold text-stone-700">Verify Status:</span>
             <select
               value={doc.uploadStatus || "uploaded"}
               onChange={async (e) => {
@@ -647,14 +685,14 @@ export default function AdminDashboard() {
                   });
                   if (!response.ok) throw new Error("Failed to update status");
                   if (selectedUserForDocs) {
-                    await handleViewUserDocuments(selectedUserForDocs);
+                    await handleViewUserDocuments(selectedUserForDocs, true);
                   }
-                  await loadStats();
+                  await loadStats(true);
                 } catch (err) {
-                  alert("Failed to update status");
+                  toast?.error("Failed to update status");
                 }
               }}
-              className="rounded-lg border border-[#e5d7b6] bg-white px-2 py-1 text-xs text-[#3b2f1c] font-medium outline-none focus:border-[#b89b5e]"
+              className="rounded-lg border border-amber-200 bg-white px-2 py-1 text-xs text-stone-800 font-medium outline-none focus:border-amber-500"
             >
               <option value="uploaded">Uploaded (Due)</option>
               <option value="verified">Verified (WIP)</option>
@@ -663,8 +701,8 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-2 border-t border-[#f3ebda]">
-          <span className="text-[10px] text-[#7a6a4f]">
+        <div className="flex items-center justify-between pt-2 border-t border-amber-100">
+          <span className="text-[10px] text-stone-500">
             Uploaded {formatDisplayDate(doc.createdAt)}
           </span>
           {doc.signedUrl ? (
@@ -672,12 +710,12 @@ export default function AdminDashboard() {
               href={doc.signedUrl}
               target="_blank"
               rel="noreferrer"
-              className="rounded-lg bg-[#f5e6c8] px-3 py-1.5 text-xs font-semibold text-[#6b5b3e] hover:bg-[#e8dcc0] transition"
+              className="rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-200 transition"
             >
               View Document
             </a>
           ) : (
-            <span className="text-xs text-red-500 font-medium">Link Unavailable</span>
+            <span className="text-xs text-rose-500 font-medium">Link Unavailable</span>
           )}
         </div>
       </div>
@@ -686,41 +724,41 @@ export default function AdminDashboard() {
 
   const renderYearlyUploadCard = (doc: AdminYearlyDocumentRow) => {
     return (
-      <div key={doc.id} className="flex flex-col justify-between rounded-2xl border border-[#e8dcc0] bg-white p-4 shadow-sm transition hover:bg-[#faf6ed] hover:shadow space-y-3">
+      <div key={doc.id} className="flex flex-col justify-between rounded-2xl border border-amber-200 bg-white p-4 shadow-sm transition hover:bg-amber-50/20 hover:shadow space-y-3">
         <div className="flex items-start gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-[#d6b86a] to-[#b89b5e] text-xs text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs text-white">
             📄
           </div>
           <div className="min-w-0 font-medium flex-1">
-            <p className="truncate text-sm font-semibold text-[#3b2f1c]" title={doc.fileName}>{doc.fileName}</p>
-            <p className="text-xs text-[#8a7340] mt-0.5">{getDocTypeLabel(doc)}</p>
-            <p className="text-[10px] text-gray-500 mt-1">
+            <p className="truncate text-sm font-semibold text-stone-800" title={doc.fileName}>{doc.fileName}</p>
+            <p className="text-xs text-amber-700 mt-0.5">{getDocTypeLabel(doc)}</p>
+            <p className="text-[10px] text-stone-500 mt-1">
               {doc.userName || "Unknown user"} {doc.userEmail ? `• ${doc.userEmail}` : ""}
             </p>
-            {doc.userPhone ? <p className="text-[10px] text-gray-400 mt-0.5">{doc.userPhone}</p> : null}
+            {doc.userPhone ? <p className="text-[10px] text-stone-400 mt-0.5">{doc.userPhone}</p> : null}
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-2 border-t border-[#f3ebda] pt-2">
-          <span className="text-[10px] text-[#7a6a4f]">Uploaded {formatDisplayDate(doc.createdAt)}</span>
+        <div className="flex items-center justify-between gap-2 border-t border-amber-100 pt-2">
+          <span className="text-[10px] text-stone-500">Uploaded {formatDisplayDate(doc.createdAt)}</span>
           {doc.signedUrl ? (
             <a
               href={doc.signedUrl}
               target="_blank"
               rel="noreferrer"
-              className="rounded-lg bg-[#f5e6c8] px-3 py-1.5 text-xs font-semibold text-[#6b5b3e] transition hover:bg-[#e8dcc0]"
+              className="rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 transition hover:bg-amber-200"
             >
               View Document
             </a>
           ) : (
-            <span className="text-xs font-medium text-red-500">Link Unavailable</span>
+            <span className="text-xs font-medium text-rose-500">Link Unavailable</span>
           )}
         </div>
       </div>
     );
   };
 
-  const updateStatus = async (requestId: string, status: ConsultationRequest["status"]) => {
+  const updateStatus = async (requestId: string, status: ConsultationRequest["status"], silent = false) => {
     setMessage({ type: "", text: "" });
 
     const response = await fetch(`/api/admin/consultation-requests/${requestId}`, {
@@ -739,10 +777,8 @@ export default function AdminDashboard() {
       return;
     }
 
-    setConsultationRequests((current) =>
-      current.map((item) => (item.id === requestId ? payload.consultationRequest! : item))
-    );
-    void loadStats();
+    dispatch(updateConsultationRequest(payload.consultationRequest!));
+    void loadStats(silent);
   };
 
   const handleLogout = async () => {
@@ -768,90 +804,90 @@ export default function AdminDashboard() {
     );
   };
 
-    const updateYearlyUploadDraft = (key: YearlyUploadCardKey, updater: (current: YearlyUploadDraft) => YearlyUploadDraft) => {
-      setYearlyUploadDrafts((current) => ({
-        ...current,
-        [key]: updater(current[key]),
-      }));
-    };
+  const updateYearlyUploadDraft = (key: YearlyUploadCardKey, updater: (current: YearlyUploadDraft) => YearlyUploadDraft) => {
+    setYearlyUploadDrafts((current) => ({
+      ...current,
+      [key]: updater(current[key]),
+    }));
+  };
 
-    const queueYearlyUpload = (key: YearlyUploadCardKey) => {
-      const draft = yearlyUploadDrafts[key];
-      const file = draft.file;
+  const queueYearlyUpload = (key: YearlyUploadCardKey) => {
+    const draft = yearlyUploadDrafts[key];
+    const file = draft.file;
 
-      if (!file) {
-        setMessage({ type: "error", text: "Choose a file before adding this past year upload." });
-        return;
-      }
+    if (!file) {
+      setMessage({ type: "error", text: "Choose a file before adding this past year upload." });
+      return;
+    }
 
-      if (!draft.year.trim()) {
-        setMessage({ type: "error", text: "Select a year before adding this past year upload." });
-        return;
-      }
+    if (!draft.year.trim()) {
+      setMessage({ type: "error", text: "Select a year before adding this past year upload." });
+      return;
+    }
 
-      setQueuedYearlyUploads((current) => {
-        const next = current.filter((item) => item.key !== key);
-        return [...next, { key, slot: draft.slot, year: draft.year.trim(), file }];
-      });
+    setQueuedYearlyUploads((current) => {
+      const next = current.filter((item) => item.key !== key);
+      return [...next, { key, slot: draft.slot, year: draft.year.trim(), file }];
+    });
 
-      updateYearlyUploadDraft(key, (current) => createYearlyUploadDraft(current.slot, current.year));
+    updateYearlyUploadDraft(key, (current) => createYearlyUploadDraft(current.slot, current.year));
 
-      const input = yearlyUploadInputRefs.current[key];
+    const input = yearlyUploadInputRefs.current[key];
+    if (input) {
+      input.value = "";
+    }
+
+    setMessage({ type: "success", text: `${getYearlyDocumentLabel(draft.slot)} added to the upload queue.` });
+  };
+
+  const clearYearlyUploadQueue = () => {
+    setQueuedYearlyUploads([]);
+    setYearlyUploadDrafts(YEARLY_UPLOAD_CARD_DEFAULTS);
+
+    Object.values(yearlyUploadInputRefs.current).forEach((input) => {
       if (input) {
         input.value = "";
       }
+    });
+  };
 
-      setMessage({ type: "success", text: `${getYearlyDocumentLabel(draft.slot)} added to the upload queue.` });
-    };
+  const uploadQueuedYearlyDocuments = async (userId: string, userName: string) => {
+    for (const upload of queuedYearlyUploads) {
+      const formData = new FormData();
+      formData.append("file", upload.file);
+      formData.append("userId", userId);
+      formData.append("year", upload.year);
+      formData.append("documentSlot", upload.slot);
 
-    const clearYearlyUploadQueue = () => {
-      setQueuedYearlyUploads([]);
-      setYearlyUploadDrafts(YEARLY_UPLOAD_CARD_DEFAULTS);
-
-      Object.values(yearlyUploadInputRefs.current).forEach((input) => {
-        if (input) {
-          input.value = "";
-        }
+      const uploadRes = await fetch("/api/admin/uploads/past-year-document", {
+        method: "POST",
+        body: formData,
       });
-    };
 
-    const uploadQueuedYearlyDocuments = async (userId: string, userName: string) => {
-      for (const upload of queuedYearlyUploads) {
-        const formData = new FormData();
-        formData.append("file", upload.file);
-        formData.append("userId", userId);
-        formData.append("year", upload.year);
-        formData.append("documentSlot", upload.slot);
-
-        const uploadRes = await fetch("/api/admin/uploads/past-year-document", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!uploadRes.ok) {
-          const uploadErr = await uploadRes.json().catch(() => null);
-          throw new Error(
-            `${getYearlyDocumentLabel(upload.slot)} upload failed: ${uploadErr?.message || "unknown error"}`
-          );
-        }
+      if (!uploadRes.ok) {
+        const uploadErr = await uploadRes.json().catch(() => null);
+        throw new Error(
+          `${getYearlyDocumentLabel(upload.slot)} upload failed: ${uploadErr?.message || "unknown error"}`
+        );
       }
+    }
 
-      setMessage({
-        type: "success",
-        text: `Created credentials for ${userName}. All queued past year documents were uploaded successfully.`,
-      });
-    };
+    setMessage({
+      type: "success",
+      text: `Created credentials for ${userName}. All queued past year documents were uploaded successfully.`,
+    });
+  };
 
   const handleCreateUser = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage({ type: "", text: "" });
     setOtpError("");
 
-      if (queuedYearlyUploads.length !== YEARLY_UPLOAD_CARD_META.length) {
-        setMessage({
-          type: "error",
-          text: "Add all 4 past year upload boxes before creating the user.",
-        });
+    if (queuedYearlyUploads.length !== YEARLY_UPLOAD_CARD_META.length) {
+      setMessage({
+        type: "error",
+        text: "Add all 4 past year upload boxes before creating the user.",
+      });
       return;
     }
 
@@ -942,166 +978,328 @@ export default function AdminDashboard() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[#fffcf5] px-3 py-5 text-[#3b2f1c] sm:px-4 sm:py-8">
-      <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8">
-        {/* Modern Sidebar Selector */}
-        <aside className="h-fit rounded-3xl border border-[#e8dcc0]/80 bg-white/75 p-5 shadow-xl lg:sticky lg:top-4 backdrop-blur-md">
-          <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.25em] text-[#8a7340] px-1">NCJ Control</h2>
-          <nav className="space-y-1.5">
-            {SIDEBAR_ITEMS.map((item) => {
-              const tabId = item.href.slice(1);
-              const isSelected = activeTab === tabId;
-              return (
-                <button
-                  key={item.href}
-                  type="button"
-                  onClick={() => setActiveTab(tabId)}
-                  className={`w-full text-left block rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 border ${
-                    isSelected
-                      ? "border-[#b89b5e]/70 bg-gradient-to-r from-[#faf5e9] to-white text-[#5c4a2e] shadow-sm font-semibold"
-                      : "border-transparent text-[#6b5b3e] hover:bg-[#fcfaf5] hover:text-[#5c4a2e]"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </nav>
-        </aside>
+  // Profile settings section removed per requirements.
 
-        {/* Dashboard Tabs Main Container */}
-        <div className="space-y-6">
-          {/* Glassmorphism Header */}
-          <div className="flex flex-col gap-4 rounded-3xl border border-[#e8dcc0] bg-white p-6 shadow-xl sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <h1 className="text-2xl font-bold text-[#3b2f1c] sm:text-3xl tracking-tight">Admin Dashboard</h1>
-              <p className="text-sm text-[#7a6a4f] mt-1 text-justify">User onboarding, service assignment, consultation requests, and profiles</p>
+  return (
+    <div className="min-h-screen bg-[#fffcf5] text-stone-800 flex flex-col font-sans">
+      {/* Premium Sticky Topbar Navigation Header */}
+      <header className="sticky top-0 z-40 w-full bg-[#1c160c] text-[#f5efe4] border-b border-amber-900/40 px-4 py-3 shadow-md flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {/* Mobile Hamburger toggle */}
+          <button
+            type="button"
+            onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+            className="lg:hidden p-2 rounded-lg text-amber-200 hover:bg-stone-800 transition"
+            aria-label="Toggle Sidebar"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+
+          {/* Legal Brand Logo */}
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md">
+              {/* Scales of justice icon SVG */}
+              <svg className="w-5 h-5 text-stone-900" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7V3m0 0L4 3m2 0h3m-1 18H5M21 6l-3 1m0 0l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9V3m0 0l-2 0m2 0h3m-7 18h7M12 5v16m0 0h-3m3 0h3" />
+              </svg>
             </div>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="w-full rounded-xl bg-gradient-to-r from-[#3b2f1c] to-[#5c4c2f] hover:from-[#2c2214] hover:to-[#4a3d24] px-5 py-3 text-sm font-semibold text-white sm:w-auto shadow-md transition duration-150"
-            >
-              Logout
-            </button>
+            <div>
+              <span className="font-serif text-lg font-bold tracking-wide bg-gradient-to-r from-amber-200 via-amber-400 to-amber-200 bg-clip-text text-transparent">
+                NCJ Legal LLP
+              </span>
+              <span className="hidden sm:inline-block text-[10px] text-amber-400/80 font-semibold tracking-widest block uppercase ml-1">
+                Admin Panel
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {/* Socket.io Live status indicator */}
+          <div className="flex items-center gap-2 bg-stone-900/80 border border-stone-800 rounded-full px-3 py-1 text-xs">
+            <span className="relative flex h-2 w-2">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${socketStatus === "connected" ? "bg-emerald-400" : "bg-stone-500"}`}></span>
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${socketStatus === "connected" ? "bg-emerald-500" : "bg-stone-600"}`}></span>
+            </span>
+            <span className="text-[10px] text-stone-300 font-medium">
+              {socketStatus === "connected" ? "Live Sync Active" : "Reconnecting..."}
+            </span>
           </div>
 
+          {/* Admin profile dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="flex items-center gap-2 bg-stone-900 border border-amber-900/40 px-3 py-1.5 rounded-full hover:bg-stone-850 transition duration-150 text-left outline-none"
+            >
+              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center text-stone-900 font-bold text-xs shadow-inner">
+                {adminProfile ? adminProfile.username.charAt(0).toUpperCase() : "A"}
+              </div>
+              <div className="hidden md:block min-w-0">
+                <p className="text-xs font-semibold leading-tight truncate w-24 text-stone-200">
+                  {adminProfile ? adminProfile.username : "Loading..."}
+                </p>
+                <p className="text-[9px] text-amber-400 font-medium tracking-wide">System Admin</p>
+              </div>
+              <svg className={`w-3.5 h-3.5 text-amber-400/80 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {isDropdownOpen && (
+              <div className="absolute right-0 mt-2.5 w-60 rounded-2xl border border-amber-900/30 bg-stone-950 text-[#f5efe4] p-2 shadow-2xl z-50 animate-fade-in">
+                <div className="px-3 py-2 border-b border-stone-800/80 mb-1">
+                  <p className="text-xs text-stone-400">Signed in as</p>
+                  <p className="text-sm font-semibold truncate text-stone-200">{adminProfile?.username || "Admin"}</p>
+                  <p className="text-[10px] text-stone-400 truncate mt-0.5">{adminProfile?.email}</p>
+                </div>
+                <div className="h-px bg-stone-900 my-1" />
+                <button
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full text-left flex items-center gap-2 px-3 py-2.5 text-xs text-rose-400 rounded-xl hover:bg-rose-950/40 hover:text-rose-300 transition font-medium"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Logout Session
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Layout Container */}
+      <div className="flex-1 flex relative">
+        {/* Left Sidebar Menu */}
+        <aside
+          className={`lg:w-64 w-64 bg-[#231b10] text-[#eae2d5] border-r border-amber-950/50 p-4 shrink-0 flex flex-col justify-between fixed lg:sticky top-[61px] bottom-0 left-0 z-30 transition-transform duration-300 transform lg:translate-x-0 ${
+            isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          }`}
+        >
+          <div className="space-y-6">
+            <div className="px-2">
+              <h2 className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-500/80">Navigation Control</h2>
+            </div>
+
+            <nav className="space-y-1">
+              {[
+                {
+                  id: "overview",
+                  label: "Overview",
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
+                    </svg>
+                  ),
+                },
+                {
+                  id: "add-user",
+                  label: "Client Onboarding",
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                  ),
+                },
+                {
+                  id: "service-access",
+                  label: "Service Access",
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  ),
+                },
+                {
+                  id: "consultation-requests",
+                  label: "Consultation Requests",
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                  ),
+                },
+                {
+                  id: "registered-profiles",
+                  label: "Client Profiles",
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  ),
+                },
+                {
+                  id: "past-year-uploads",
+                  label: "Document Archive",
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                    </svg>
+                  ),
+                },
+
+              ].map((item) => {
+                const isSelected = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      dispatch(setActiveTab(item.id));
+                      setIsMobileSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-xs font-semibold tracking-wide transition-all duration-150 ${
+                      isSelected
+                        ? "bg-amber-400 text-stone-950 shadow-md font-bold"
+                        : "text-amber-100/70 hover:bg-stone-800/60 hover:text-white"
+                    }`}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="text-[10px] text-stone-500/80 font-medium px-2 leading-relaxed mt-8">
+            <p className="font-semibold text-stone-400">NCJ Legal LLP</p>
+            <p>Admin Portal v1.0.0</p>
+            <p className="mt-1">© {new Date().getFullYear()} All rights reserved.</p>
+          </div>
+        </aside>
+
+        {/* Mobile Sidebar Overlay backdrop */}
+        {isMobileSidebarOpen && (
+          <div
+            onClick={() => setIsMobileSidebarOpen(false)}
+            className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs z-20 lg:hidden"
+          />
+        )}
+
+        {/* Main Content Area */}
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 space-y-6">
+          {/* Dashboard Page Status Messages */}
           {message.text ? (
-            <p
-              className={`rounded-xl p-4 text-sm font-semibold shadow-sm ${
+            <div
+              className={`rounded-2xl p-4 text-sm font-semibold shadow-sm border animate-fade-in flex items-center justify-between gap-3 ${
                 message.type === "success"
-                  ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : "border border-red-200 bg-red-50 text-red-700"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : "border-rose-200 bg-rose-50 text-rose-800"
               }`}
             >
-              {message.text}
-            </p>
+              <span>{message.text}</span>
+              <button
+                type="button"
+                onClick={() => setMessage({ type: "", text: "" })}
+                className="text-stone-400 hover:text-stone-700 font-bold"
+              >
+                ✕
+              </button>
+            </div>
           ) : null}
 
           {/* TAB 1: OVERVIEW */}
           {activeTab === "overview" && (
             <section id="overview" className="space-y-6 animate-fade-in">
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-amber-200/40 pb-4">
+                <div>
+                  <h1 className="text-2xl font-bold font-serif tracking-tight text-stone-900">Dashboard Overview</h1>
+                  <p className="text-xs text-stone-500">Real-time status check, statistics, and pending administrative tasks.</p>
+                </div>
+                <button
+                  onClick={() => loadStats()}
+                  className="self-start md:self-auto rounded-xl border border-amber-300 bg-white hover:bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-800 transition shadow-xs"
+                >
+                  Refresh Analytics
+                </button>
+              </div>
+
               {loadingStats ? (
-                <div className="flex items-center justify-center p-12 rounded-3xl border border-[#e8dcc0] bg-white shadow-sm">
-                  <span className="text-sm text-[#7a6a4f] font-medium animate-pulse">Loading statistics...</span>
+                <div className="flex items-center justify-center p-20 rounded-3xl border border-amber-200 bg-white shadow-xs">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
+                    <span className="text-xs text-stone-500 font-medium">Loading statistics...</span>
+                  </div>
                 </div>
               ) : stats ? (
                 <div className="space-y-6">
-                  {/* Row 1: Users Stats */}
+                  {/* Row 1: Users Stats Cards */}
                   <div>
-                    <h3 className="mb-3 text-sm font-bold uppercase tracking-[0.2em] text-[#8a7340]">User Analytics</h3>
+                    <h3 className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-amber-800">User Analytics</h3>
                     <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-                      {/* Total Registered Users */}
-                      <div className="group rounded-3xl border border-[#e8dcc0] bg-white p-5 shadow-sm hover:shadow-md hover:scale-[1.01] transition duration-300">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#8a7340]">Registered Users</span>
-                          <span className="text-2xl">👥</span>
+                      {[
+                        { label: "Registered Users", count: stats.totalRegisteredUsers, desc: "Total system accounts", emoji: "👥" },
+                        { label: "Income Tax Users", count: stats.totalIncomeTaxUsers, desc: "Access to Income Tax", emoji: "📄" },
+                        { label: "GST Users", count: stats.totalGstUsers, desc: "Access to GST", emoji: "🛍️" },
+                        { label: "TDS Users", count: stats.totalTdsUsers, desc: "Access to TDS", emoji: "💼" },
+                      ].map((card, i) => (
+                        <div key={i} className="group rounded-3xl border border-amber-200 bg-white p-5 shadow-xs hover:shadow-md hover:scale-[1.01] transition-all duration-200">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-stone-500">{card.label}</span>
+                            <span className="text-xl">{card.emoji}</span>
+                          </div>
+                          <p className="mt-4 text-3xl font-extrabold text-stone-900 tracking-tight">{card.count}</p>
+                          <p className="mt-1 text-[10px] text-stone-500">{card.desc}</p>
                         </div>
-                        <p className="mt-4 text-3xl font-extrabold text-[#3b2f1c]">{stats.totalRegisteredUsers}</p>
-                        <p className="mt-1 text-xs text-gray-500">Total system accounts</p>
-                      </div>
-
-                      {/* Total Income Tax Users */}
-                      <div className="group rounded-3xl border border-[#e8dcc0] bg-white p-5 shadow-sm hover:shadow-md hover:scale-[1.01] transition duration-300">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#8a7340]">Income Tax Users</span>
-                          <span className="text-2xl">📄</span>
-                        </div>
-                        <p className="mt-4 text-3xl font-extrabold text-[#3b2f1c]">{stats.totalIncomeTaxUsers}</p>
-                        <p className="mt-1 text-xs text-gray-500">Access to Income Tax</p>
-                      </div>
-
-                      {/* Total GST Users */}
-                      <div className="group rounded-3xl border border-[#e8dcc0] bg-white p-5 shadow-sm hover:shadow-md hover:scale-[1.01] transition duration-300">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#8a7340]">GST Users</span>
-                          <span className="text-2xl">🛍️</span>
-                        </div>
-                        <p className="mt-4 text-3xl font-extrabold text-[#3b2f1c]">{stats.totalGstUsers}</p>
-                        <p className="mt-1 text-xs text-gray-500">Access to GST</p>
-                      </div>
-
-                      {/* Total TDS Users */}
-                      <div className="group rounded-3xl border border-[#e8dcc0] bg-white p-5 shadow-sm hover:shadow-md hover:scale-[1.01] transition duration-300">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#8a7340]">TDS Users</span>
-                          <span className="text-2xl">💼</span>
-                        </div>
-                        <p className="mt-4 text-3xl font-extrabold text-[#3b2f1c]">{stats.totalTdsUsers}</p>
-                        <p className="mt-1 text-xs text-gray-500">Access to TDS</p>
-                      </div>
+                      ))}
                     </div>
                   </div>
 
                   {/* Row 2: Income Tax Pendency */}
                   <div>
                     <div className="mb-3 flex items-center justify-between">
-                      <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-[#8a7340]">
-                        Income Tax Pendency
+                      <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-800">
+                        Income Tax Return Pendency Status
                       </h3>
-                      <span className="text-xs font-semibold text-[#7a6a4f] bg-[#fbf4e7] border border-[#e8dcc0] px-3 py-1 rounded-full">
-                        FY {stats.currentFinancialYear}
+                      <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-200 px-3 py-1 rounded-full">
+                        TY {stats.currentFinancialYear}
                       </span>
                     </div>
                     <div className="grid gap-4 md:grid-cols-3">
                       {/* Due Task Count (Red) */}
                       <div
                         onClick={() => setViewingTasksType("due")}
-                        className="group cursor-pointer rounded-3xl border border-red-200 bg-red-50/40 p-5 shadow-sm hover:shadow-md hover:scale-[1.01] transition duration-300"
+                        className="group cursor-pointer rounded-3xl border border-rose-200 bg-rose-50/30 p-5 shadow-xs hover:shadow-md hover:scale-[1.01] transition-all duration-200"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold uppercase tracking-[0.1em] text-red-800">Due Task Count</span>
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-red-100 text-sm">⚠️</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-rose-800">Due Task Count</span>
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-100 text-sm">⚠️</span>
                         </div>
-                        <p className="mt-4 text-3xl font-extrabold text-red-900">{stats.totalDueTasks}</p>
-                        <p className="mt-1 text-xs text-red-700">Click to view all pending tasks and user uploads</p>
+                        <p className="mt-4 text-3xl font-extrabold text-rose-900 tracking-tight">{stats.totalDueTasks}</p>
+                        <p className="mt-1 text-[10px] text-rose-700">Click to view all pending tasks and user uploads</p>
                       </div>
 
                       {/* Work In Progress (Blue) */}
                       <div
                         onClick={() => setViewingTasksType("wip")}
-                        className="group cursor-pointer rounded-3xl border border-blue-200 bg-blue-50/40 p-5 shadow-sm hover:shadow-md hover:scale-[1.01] transition duration-300"
+                        className="group cursor-pointer rounded-3xl border border-sky-200 bg-sky-50/30 p-5 shadow-xs hover:shadow-md hover:scale-[1.01] transition-all duration-200"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold uppercase tracking-[0.1em] text-blue-800">Work In Progress</span>
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-sm">⚙️</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-sky-850">Work In Progress</span>
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-100 text-sm">⚙️</span>
                         </div>
-                        <p className="mt-4 text-3xl font-extrabold text-blue-900">{stats.totalWipTasks}</p>
-                        <p className="mt-1 text-xs text-blue-700">Click to view all verified tasks in progress</p>
+                        <p className="mt-4 text-3xl font-extrabold text-sky-900 tracking-tight">{stats.totalWipTasks}</p>
+                        <p className="mt-1 text-[10px] text-sky-700">Click to view all verified tasks in progress</p>
                       </div>
 
                       {/* Complete (Green) */}
                       <div
                         onClick={() => setViewingTasksType("complete")}
-                        className="group cursor-pointer rounded-3xl border border-emerald-200 bg-emerald-50/40 p-5 shadow-sm hover:shadow-md hover:scale-[1.01] transition duration-300"
+                        className="group cursor-pointer rounded-3xl border border-emerald-200 bg-emerald-50/30 p-5 shadow-xs hover:shadow-md hover:scale-[1.01] transition-all duration-200"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold uppercase tracking-[0.1em] text-emerald-800">Complete</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-emerald-850">Complete</span>
                           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-sm">✓</span>
                         </div>
-                        <p className="mt-4 text-3xl font-extrabold text-emerald-900">{stats.totalCompleteTasks}</p>
-                        <p className="mt-1 text-xs text-emerald-700">Click to view all completed and filed tasks</p>
+                        <p className="mt-4 text-3xl font-extrabold text-emerald-900 tracking-tight">{stats.totalCompleteTasks}</p>
+                        <p className="mt-1 text-[10px] text-emerald-700">Click to view all completed and filed tasks</p>
                       </div>
                     </div>
                   </div>
@@ -1112,224 +1310,231 @@ export default function AdminDashboard() {
 
           {/* TAB 2: ADD USER ONBOARDING */}
           {activeTab === "add-user" && (
-            <section id="add-user" className="rounded-3xl border border-[#e8dcc0] bg-white p-6 shadow-xl space-y-6 animate-fade-in">
-              <div className="mb-2">
-                <h2 className="text-xl font-bold text-[#3b2f1c] sm:text-2xl">Onboard New Client</h2>
-                <p className="text-sm text-[#7a6a4f] mt-1 text-justify">Create client accounts, assign initial services, and upload files.</p>
+            <section id="add-user" className="rounded-3xl border border-amber-200 bg-white p-6 shadow-md space-y-6 animate-fade-in">
+              <div className="border-b border-amber-100 pb-3">
+                <h2 className="text-xl font-serif font-bold text-stone-900">Onboard New Client</h2>
+                <p className="text-xs text-stone-500 mt-1">Create client login credentials, verify their email address, set service access and upload past year documents.</p>
               </div>
 
-              <form className="grid gap-4 lg:grid-cols-2" onSubmit={handleCreateUser}>
-                <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-[#3b2f1c]" htmlFor="admin-user-name">Full Name</label>
-                  <input
-                    id="admin-user-name"
-                    value={userForm.name}
-                    onChange={(event) => setUserForm((current) => ({ ...current, name: event.target.value }))}
-                    className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e] transition"
-                    placeholder="Enter Full Name"
-                    required
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-[#3b2f1c]" htmlFor="admin-user-email">Email ID</label>
-                  <div className="flex gap-2">
+              <form className="space-y-6" onSubmit={handleCreateUser}>
+                {/* Onboarding fields grouped */}
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div className="grid gap-1">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="admin-user-name">Full Name</label>
                     <input
-                      id="admin-user-email"
-                      type="email"
-                      value={userForm.email}
-                      onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))}
-                      className="w-full flex-1 rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e] disabled:bg-gray-100 disabled:text-gray-500 transition"
-                      placeholder="Enter Email ID"
+                      id="admin-user-name"
+                      value={userForm.name}
+                      onChange={(event) => setUserForm((current) => ({ ...current, name: event.target.value }))}
+                      className="w-full rounded-xl border border-amber-200 bg-[#fffdfa] px-4 py-2.5 outline-none focus:border-amber-500 focus:bg-white transition"
+                      placeholder="e.g. John Doe"
                       required
-                      disabled={otpSent}
                     />
-                    <button
-                      type="button"
-                      onClick={handleSendOtp}
-                      disabled={sendingOtp || !userForm.email}
-                      className="rounded-xl bg-[#5f4c2b] px-4 py-3 text-sm font-semibold text-white hover:bg-[#4d3d22] transition disabled:opacity-50 whitespace-nowrap"
-                    >
-                      {sendingOtp ? "Sending..." : otpSent ? "Resend OTP" : "Send OTP"}
-                    </button>
-                    {otpSent && (
+                  </div>
+
+                  <div className="grid gap-1">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="admin-user-email">Email ID</label>
+                    <div className="flex gap-2">
+                      <input
+                        id="admin-user-email"
+                        type="email"
+                        value={userForm.email}
+                        onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))}
+                        className="w-full flex-1 rounded-xl border border-amber-200 bg-[#fffdfa] px-4 py-2.5 outline-none focus:border-amber-500 focus:bg-white disabled:bg-stone-100 disabled:text-stone-400 transition"
+                        placeholder="e.g. john@example.com"
+                        required
+                        disabled={otpSent}
+                      />
                       <button
                         type="button"
-                        onClick={() => {
-                          setOtpSent(false);
-                          setOtpSentEmail("");
-                          setUserForm((current) => ({ ...current, otp: "" }));
-                        }}
-                        className="rounded-xl bg-gray-200 px-3 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-300 transition"
+                        onClick={handleSendOtp}
+                        disabled={sendingOtp || !userForm.email}
+                        className="rounded-xl bg-amber-600 hover:bg-amber-700 px-4 py-2.5 text-xs font-bold text-white transition disabled:opacity-50 whitespace-nowrap shadow-xs"
                       >
-                        Change
+                        {sendingOtp ? "Sending..." : otpSent ? "Resend OTP" : "Send OTP"}
                       </button>
+                      {otpSent && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOtpSent(false);
+                            setOtpSentEmail("");
+                            setUserForm((current) => ({ ...current, otp: "" }));
+                          }}
+                          className="rounded-xl bg-stone-200 px-3 py-2.5 text-xs font-semibold text-stone-700 hover:bg-stone-300 transition"
+                        >
+                          Change
+                        </button>
+                      )}
+                    </div>
+                    {otpError && <p className="text-xs text-rose-600 font-semibold mt-1">{otpError}</p>}
+                    {otpSent && !otpError && (
+                      <p className="text-xs text-emerald-600 font-semibold mt-1">OTP sent to {otpSentEmail}.</p>
                     )}
                   </div>
-                  {otpError && <p className="text-xs text-red-600 font-semibold mt-1">{otpError}</p>}
-                  {otpSent && !otpError && (
-                    <p className="text-xs text-emerald-600 font-semibold mt-1">OTP sent to {otpSentEmail}.</p>
-                  )}
-                </div>
 
-                {otpSent && (
-                  <div className="grid gap-2">
-                    <label className="text-sm font-semibold text-[#3b2f1c]" htmlFor="admin-user-otp">Email OTP Code (6 digits)</label>
+                  {otpSent && (
+                    <div className="grid gap-1">
+                      <label className="text-xs font-semibold text-stone-700" htmlFor="admin-user-otp">Email OTP Code (6 digits)</label>
+                      <input
+                        id="admin-user-otp"
+                        type="text"
+                        pattern="\d{6}"
+                        maxLength={6}
+                        value={userForm.otp}
+                        onChange={(event) => setUserForm((current) => ({ ...current, otp: event.target.value.replace(/\D/g, "") }))}
+                        className="w-full rounded-xl border border-amber-200 bg-[#fffdfa] px-4 py-2.5 outline-none focus:border-amber-500 focus:bg-white"
+                        placeholder="Enter 6-digit OTP"
+                        required
+                      />
+                    </div>
+                  )}
+
+                  <div className="grid gap-1">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="admin-user-mobile">Phone Number</label>
                     <input
-                      id="admin-user-otp"
-                      type="text"
-                      pattern="\d{6}"
-                      maxLength={6}
-                      value={userForm.otp}
-                      onChange={(event) => setUserForm((current) => ({ ...current, otp: event.target.value.replace(/\D/g, "") }))}
-                      className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
-                      placeholder="Enter 6-digit OTP code"
+                      id="admin-user-mobile"
+                      type="tel"
+                      value={userForm.mobileNumber}
+                      onChange={(event) => {
+                        setUserForm((current) => ({ ...current, mobileNumber: event.target.value }));
+                      }}
+                      className="w-full rounded-xl border border-amber-200 bg-[#fffdfa] px-4 py-2.5 outline-none focus:border-amber-500 focus:bg-white"
+                      placeholder="e.g. +91 9999999999"
                       required
                     />
                   </div>
-                )}
 
-                <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-[#3b2f1c]" htmlFor="admin-user-mobile">Phone Number</label>
-                  <input
-                    id="admin-user-mobile"
-                    type="tel"
-                    value={userForm.mobileNumber}
-                    onChange={(event) => {
-                      setUserForm((current) => ({ ...current, mobileNumber: event.target.value }));
-                    }}
-                    className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
-                    placeholder="Enter Phone Number"
+                  <div className="grid gap-1">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="admin-user-pan">PAN Card Number</label>
+                    <input
+                      id="admin-user-pan"
+                      value={userForm.panCard}
+                      onChange={(event) => setUserForm((current) => ({ ...current, panCard: event.target.value.toUpperCase() }))}
+                      className="w-full rounded-xl border border-amber-200 bg-[#fffdfa] px-4 py-2.5 outline-none focus:border-amber-500 focus:bg-white"
+                      placeholder="e.g. ABCDE1234F"
+                    />
+                  </div>
+
+                  <div className="grid gap-1">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="admin-user-aadhaar">Aadhaar Card (Mandatory)</label>
+                    <input
+                      id="admin-user-aadhaar"
+                      value={userForm.aadhaarCard}
+                      onChange={(event) => {
+                        setUserForm((current) => ({ ...current, aadhaarCard: event.target.value }));
+                      }}
+                      className="w-full rounded-xl border border-amber-200 bg-[#fffdfa] px-4 py-2.5 outline-none focus:border-amber-500 focus:bg-white"
+                      placeholder="e.g. 1234 5678 9012"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid gap-1">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="admin-user-dob">Date of Birth</label>
+                    <input
+                      id="admin-user-dob"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="bday"
+                      value={userForm.dob}
+                      onChange={(event) => setUserForm((current) => ({ ...current, dob: formatDobInput(event.target.value) }))}
+                      className="w-full rounded-xl border border-amber-200 bg-[#fffdfa] px-4 py-2.5 outline-none focus:border-amber-500 focus:bg-white"
+                      placeholder="DD/MM/YYYY"
+                      pattern="\d{2}/\d{2}/\d{4}"
+                    />
+                  </div>
+
+                  <div className="grid gap-1">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="admin-user-gender">Gender</label>
+                    <select
+                      id="admin-user-gender"
+                      value={userForm.gender}
+                      onChange={(event) => setUserForm((current) => ({ ...current, gender: event.target.value }))}
+                      className="w-full rounded-xl border border-amber-200 bg-[#fffdfa] px-4 py-2.5 outline-none focus:border-amber-500 focus:bg-white"
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="grid gap-1">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="admin-user-citizen">Citizenship</label>
+                    <input
+                      id="admin-user-citizen"
+                      value={userForm.citizen}
+                      onChange={(event) => setUserForm((current) => ({ ...current, citizen: event.target.value }))}
+                      className="w-full rounded-xl border border-amber-200 bg-[#fffdfa] px-4 py-2.5 outline-none focus:border-amber-500 focus:bg-white"
+                      placeholder="e.g. Indian"
+                    />
+                  </div>
+
+                  <div className="grid gap-1">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="admin-user-residential-status">Residential Status</label>
+                    <input
+                      id="admin-user-residential-status"
+                      value={userForm.residentialStatus}
+                      onChange={(event) => setUserForm((current) => ({ ...current, residentialStatus: event.target.value }))}
+                      className="w-full rounded-xl border border-amber-200 bg-[#fffdfa] px-4 py-2.5 outline-none focus:border-amber-500 focus:bg-white"
+                      placeholder="e.g. Resident"
+                    />
+                  </div>
+
+                  <div className="grid gap-1">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="admin-user-firm">Firm Name (Optional)</label>
+                    <input
+                      id="admin-user-firm"
+                      value={userForm.firmName}
+                      onChange={(event) => setUserForm((current) => ({ ...current, firmName: event.target.value }))}
+                      className="w-full rounded-xl border border-amber-200 bg-[#fffdfa] px-4 py-2.5 outline-none focus:border-amber-500 focus:bg-white"
+                      placeholder="e.g. Acme Corp"
+                    />
+                  </div>
+
+                  <PasswordInput
+                    id="admin-user-password"
+                    label="Account Password"
+                    value={userForm.password}
+                    onChange={(value) => setUserForm((current) => ({ ...current, password: value }))}
                     required
+                    autoComplete="new-password"
+                    className="grid gap-1"
+                    labelClassName="text-xs font-semibold text-stone-700"
+                    inputClassName="w-full rounded-xl border border-amber-200 bg-[#fffdfa] px-4 py-2.5 pr-20 outline-none focus:border-amber-500 focus:bg-white"
+                    buttonClassName="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-amber-200 bg-white px-3 py-1 text-[10px] font-semibold text-stone-600 transition hover:bg-amber-50"
+                    placeholder="Enter Secure Password"
                   />
-                </div>
 
-                <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-[#3b2f1c]" htmlFor="admin-user-pan">PAN Card</label>
-                  <input
-                    id="admin-user-pan"
-                    value={userForm.panCard}
-                    onChange={(event) => setUserForm((current) => ({ ...current, panCard: event.target.value.toUpperCase() }))}
-                    className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
-                    placeholder="Enter PAN Card"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-[#3b2f1c]" htmlFor="admin-user-aadhaar">Aadhaar Card (Mandatory)</label>
-                  <input
-                    id="admin-user-aadhaar"
-                    value={userForm.aadhaarCard}
-                    onChange={(event) => {
-                      setUserForm((current) => ({ ...current, aadhaarCard: event.target.value }));
-                    }}
-                    className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
-                    placeholder="Enter Aadhaar Card Number"
+                  <PasswordInput
+                    id="admin-user-confirm-password"
+                    label="Confirm Password"
+                    value={userForm.confirmPassword}
+                    onChange={(value) => setUserForm((current) => ({ ...current, confirmPassword: value }))}
                     required
+                    autoComplete="new-password"
+                    className="grid gap-1"
+                    labelClassName="text-xs font-semibold text-stone-700"
+                    inputClassName="w-full rounded-xl border border-amber-200 bg-[#fffdfa] px-4 py-2.5 pr-20 outline-none focus:border-amber-500 focus:bg-white"
+                    buttonClassName="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-amber-200 bg-white px-3 py-1 text-[10px] font-semibold text-stone-600 transition hover:bg-amber-50"
+                    placeholder="Retype Password"
                   />
                 </div>
 
-                <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-[#3b2f1c]" htmlFor="admin-user-dob">Date of Birth</label>
-                  <input
-                    id="admin-user-dob"
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="bday"
-                    value={userForm.dob}
-                    onChange={(event) => setUserForm((current) => ({ ...current, dob: formatDobInput(event.target.value) }))}
-                    className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
-                    placeholder="DD/MM/YYYY"
-                    pattern="\d{2}/\d{2}/\d{4}"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-[#3b2f1c]" htmlFor="admin-user-gender">Gender</label>
-                  <select
-                    id="admin-user-gender"
-                    value={userForm.gender}
-                    onChange={(event) => setUserForm((current) => ({ ...current, gender: event.target.value }))}
-                    className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
-                  >
-                    <option value="">Select Gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-[#3b2f1c]" htmlFor="admin-user-citizen">Citizen</label>
-                  <input
-                    id="admin-user-citizen"
-                    value={userForm.citizen}
-                    onChange={(event) => setUserForm((current) => ({ ...current, citizen: event.target.value }))}
-                    className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
-                    placeholder="Enter Citizenship (e.g. Indian)"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-[#3b2f1c]" htmlFor="admin-user-residential-status">Residential Status</label>
-                  <input
-                    id="admin-user-residential-status"
-                    value={userForm.residentialStatus}
-                    onChange={(event) => setUserForm((current) => ({ ...current, residentialStatus: event.target.value }))}
-                    className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
-                    placeholder="Enter Residential Status"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-[#3b2f1c]" htmlFor="admin-user-firm">Firm Name</label>
-                  <input
-                    id="admin-user-firm"
-                    value={userForm.firmName}
-                    onChange={(event) => setUserForm((current) => ({ ...current, firmName: event.target.value }))}
-                    className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
-                    placeholder="Enter Firm Name"
-                  />
-                </div>
-
-                <PasswordInput
-                  id="admin-user-password"
-                  label="Password"
-                  value={userForm.password}
-                  onChange={(value) => setUserForm((current) => ({ ...current, password: value }))}
-                  required
-                  autoComplete="new-password"
-                  className="grid gap-2"
-                  labelClassName="text-sm font-semibold text-[#3b2f1c]"
-                  inputClassName="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 pr-20 outline-none focus:border-[#b89b5e]"
-                  buttonClassName="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-[#e5d7b6] bg-white px-3 py-1 text-xs font-semibold text-[#6b5b3e] transition hover:bg-[#f6efdf]"
-                  placeholder="Enter Password"
-                />
-
-                <PasswordInput
-                  id="admin-user-confirm-password"
-                  label="Confirm Password"
-                  value={userForm.confirmPassword}
-                  onChange={(value) => setUserForm((current) => ({ ...current, confirmPassword: value }))}
-                  required
-                  autoComplete="new-password"
-                  className="grid gap-2"
-                  labelClassName="text-sm font-semibold text-[#3b2f1c]"
-                  inputClassName="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 pr-20 outline-none focus:border-[#b89b5e]"
-                  buttonClassName="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-[#e5d7b6] bg-white px-3 py-1 text-xs font-semibold text-[#6b5b3e] transition hover:bg-[#f6efdf]"
-                  placeholder="Confirm Password"
-                />
-
-                <div className="lg:col-span-2 grid gap-3 rounded-2xl border border-[#eadfc7] bg-[#fdf7eb]/60 p-5 shadow-sm">
-                  <p className="text-sm font-bold text-[#4a3a22]">Service Taken (Sidebar Accessibility Options)</p>
+                {/* Services Taken Group */}
+                <div className="grid gap-3 rounded-2xl border border-amber-200 bg-amber-50/20 p-5 shadow-xs">
+                  <div>
+                    <h4 className="text-sm font-bold text-stone-900">Service Taken (Sidebar Accessibility Options)</h4>
+                    <p className="text-[10px] text-stone-500">Tick the modules this client is allowed to access.</p>
+                  </div>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {ADMIN_SERVICE_OPTIONS.map((option) => (
-                      <label key={option.value} className="flex items-center gap-2 text-xs text-[#4a3a22] cursor-pointer hover:bg-white/40 p-1.5 rounded transition">
+                      <label key={option.value} className="flex items-center gap-2 text-xs text-stone-700 cursor-pointer hover:bg-white/60 p-1.5 rounded transition">
                         <input
                           type="checkbox"
                           checked={userForm.serviceAccess.includes(option.value)}
                           onChange={() => toggleService(option.value, "userForm")}
-                          className="accent-[#b89b5e]"
+                          className="accent-amber-600"
                         />
                         {option.label}
                       </label>
@@ -1337,11 +1542,11 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Upload Section nested here */}
-                <div id="upload-past-year" className="lg:col-span-2 grid gap-4 rounded-2xl border border-[#eadfc7] bg-[#fdf7eb]/60 p-5 shadow-sm">
+                {/* Upload Past Year Section */}
+                <div id="upload-past-year" className="grid gap-4 rounded-2xl border border-amber-200 bg-amber-50/20 p-5 shadow-xs">
                   <div>
-                    <p className="text-sm font-bold text-[#4a3a22]">Upload Past Year Documents</p>
-                    <p className="text-xs text-[#7a6a4f] mt-1 text-justify">Add all 4 upload cards before creating the client user.</p>
+                    <h4 className="text-sm font-bold text-stone-900">Upload Past Year Documents</h4>
+                    <p className="text-[10px] text-stone-500">Please queue all 4 files (ITR, Computation, P/L, Balance Sheet) before creating the profile.</p>
                   </div>
 
                   <div className="flex flex-col gap-3">
@@ -1349,45 +1554,21 @@ export default function AdminDashboard() {
                       const draft = yearlyUploadDrafts[card.key];
 
                       return (
-                        <div key={card.key} className="flex flex-col md:flex-row md:items-end justify-between gap-4 rounded-2xl border border-[#eadfc7] bg-white p-4 shadow-sm min-w-0 overflow-hidden">
+                        <div key={card.key} className="flex flex-col md:flex-row md:items-end justify-between gap-4 rounded-2xl border border-amber-200 bg-white p-4 shadow-sm min-w-0 overflow-hidden">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="text-sm font-bold text-[#3b2f1c]">{card.title}</p>
+                              <p className="text-sm font-bold text-stone-850">{card.title}</p>
                               <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${
                                 draft.file ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
                               }`}>
                                 {draft.file ? "Queued" : "Pending"}
                               </span>
                             </div>
-                            <p className="text-xs text-[#7a6a4f] mt-0.5 leading-snug">{card.description}</p>
+                            <p className="text-xs text-stone-500 mt-0.5 leading-snug">{card.description}</p>
                           </div>
 
-                          {card.slotOptions ? (
-                            <div className="flex flex-wrap gap-2 md:mb-1">
-                              {card.slotOptions.map((slot) => (
-                                <button
-                                  key={slot}
-                                  type="button"
-                                  onClick={() =>
-                                    updateYearlyUploadDraft(card.key, (current) => ({
-                                      ...current,
-                                      slot,
-                                    }))
-                                  }
-                                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
-                                    draft.slot === slot
-                                      ? "border-[#b89b5e] bg-[#f5e6c8] text-[#5f4c2b]"
-                                      : "border-[#e5d7b6] bg-white text-[#7a6a4f] hover:bg-[#fbf4e7]"
-                                  }`}
-                                >
-                                  {slot === "last_year_bs" ? "B/S" : "P/L"}
-                                </button>
-                              ))}
-                            </div>
-                          ) : null}
-
                           <div className="grid gap-1 w-full md:w-36 shrink-0">
-                            <label className="text-[10px] font-semibold text-[#7a6a4f]" htmlFor={`${card.key}-year`}>
+                            <label className="text-[10px] font-bold text-stone-600" htmlFor={`${card.key}-year`}>
                               Select Year
                             </label>
                             <select
@@ -1399,7 +1580,7 @@ export default function AdminDashboard() {
                                   year: e.target.value,
                                 }))
                               }
-                              className="w-full rounded-lg border border-[#e5d7b6] bg-white px-2.5 py-2 text-xs outline-none focus:border-[#b89b5e]"
+                              className="w-full rounded-lg border border-amber-200 bg-white px-2.5 py-2 text-xs outline-none focus:border-amber-500"
                             >
                               <option value="2023">2023-2024</option>
                               <option value="2024">2024-2025</option>
@@ -1409,8 +1590,8 @@ export default function AdminDashboard() {
                           </div>
 
                           <div className="grid gap-1 w-full md:w-64 min-w-0 overflow-hidden shrink-0">
-                            <label className="text-[10px] font-semibold text-[#7a6a4f]" htmlFor={`${card.key}-file`}>
-                              File
+                            <label className="text-[10px] font-bold text-stone-600" htmlFor={`${card.key}-file`}>
+                              Select PDF / Image File
                             </label>
                             <input
                               id={`${card.key}-file`}
@@ -1425,7 +1606,7 @@ export default function AdminDashboard() {
                                   file: e.target.files?.[0] || null,
                                 }))
                               }
-                              className="w-full max-w-full overflow-hidden text-ellipsis rounded-lg border border-[#e5d7b6] bg-white p-1 text-xs outline-none focus:border-[#b89b5e]"
+                              className="w-full max-w-full overflow-hidden text-ellipsis rounded-lg border border-amber-200 bg-white p-1 text-xs outline-none focus:border-amber-500"
                             />
                           </div>
 
@@ -1433,7 +1614,7 @@ export default function AdminDashboard() {
                             type="button"
                             onClick={() => queueYearlyUpload(card.key)}
                             disabled={!draft.file}
-                            className="w-full md:w-auto shrink-0 rounded-xl bg-[#5f4c2b] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#4d3d22] disabled:cursor-not-allowed disabled:opacity-50"
+                            className="w-full md:w-auto shrink-0 rounded-xl bg-amber-600 hover:bg-amber-700 px-4 py-2.5 text-xs font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-50 shadow-xs"
                           >
                             Add file
                           </button>
@@ -1443,13 +1624,13 @@ export default function AdminDashboard() {
                   </div>
 
                   {queuedYearlyUploads.length > 0 && (
-                    <div className="grid gap-2 rounded-2xl border border-[#eadfc7] bg-[#fffaf0] p-4">
-                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8a7340]">Queued Upload Files</p>
+                    <div className="grid gap-2 rounded-2xl border border-amber-200 bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-amber-800">Queued Upload Files ({queuedYearlyUploads.length}/4)</p>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {queuedYearlyUploads.map((item) => (
                           <span
                             key={item.key}
-                            className="inline-flex items-center gap-2 rounded-full border border-[#d9c9a4] bg-white px-3 py-1.5 text-xs font-semibold text-[#5c4a2e]"
+                            className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50/50 px-3 py-1.5 text-xs font-semibold text-stone-800"
                           >
                             {getYearlyDocumentLabel(item.slot)} · FY {formatFinancialYear(Number(item.year))}
                           </span>
@@ -1459,16 +1640,17 @@ export default function AdminDashboard() {
                   )}
                 </div>
 
-                <div className="lg:col-span-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-[#eadfc7]/55">
-                  <p className="text-xs text-[#7a6a4f] text-justify">
-                    {!otpSent ? "Verify client email first to enable creation." : "Password will be stored securely."}
+                {/* Form submit footer */}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-amber-200/50">
+                  <p className="text-xs text-stone-500 leading-snug">
+                    {!otpSent ? "Verification OTP must be successfully sent and verified to create a client." : "User details and document attachments will be persisted securely."}
                   </p>
                   <button
                     type="submit"
                     disabled={creatingUser || !otpSent || !userForm.otp || userForm.email.trim().toLowerCase() !== otpSentEmail.trim().toLowerCase()}
-                    className="rounded-xl bg-gradient-to-r from-[#6b5b3e] to-[#b89b5e] hover:from-[#5c4e33] hover:to-[#a3874c] px-6 py-3 font-bold text-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition duration-150"
+                    className="rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-750 hover:to-amber-800 px-6 py-3 font-bold text-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition duration-150"
                   >
-                    {creatingUser ? "Creating Account..." : "Create User Profile"}
+                    {creatingUser ? "Processing Onboarding..." : "Onboard Client & Upload Files"}
                   </button>
                 </div>
               </form>
@@ -1477,22 +1659,22 @@ export default function AdminDashboard() {
 
           {/* TAB 3: SERVICES ASSIGNMENT */}
           {activeTab === "service-access" && (
-            <section id="service-access" className="rounded-3xl border border-[#e8dcc0] bg-white p-6 shadow-xl space-y-4 animate-fade-in">
-              <div>
-                <h2 className="text-xl font-bold text-[#3b2f1c] sm:text-2xl">Service Access Control</h2>
-                <p className="text-sm text-[#7a6a4f] mt-1 text-justify">Enable sidebar sections on client dashboards.</p>
+            <section id="service-access" className="rounded-3xl border border-amber-200 bg-white p-6 shadow-md space-y-6 animate-fade-in">
+              <div className="border-b border-amber-100 pb-3">
+                <h2 className="text-xl font-serif font-bold text-stone-900">Service Access Control</h2>
+                <p className="text-xs text-stone-500 mt-1">Assign sidebar sections and page accessibility for existing client accounts.</p>
               </div>
 
               <form className="space-y-4" onSubmit={handleAssignServiceAccess}>
-                <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-[#3b2f1c]" htmlFor="service-access-email">Select Client Profile</label>
+                <div className="grid gap-1">
+                  <label className="text-xs font-semibold text-stone-700" htmlFor="service-access-email">Select Client Profile</label>
                   <input
                     id="service-access-email"
                     list="admin-profile-emails"
                     value={serviceEmail}
                     onChange={(event) => setServiceEmail(event.target.value)}
-                    className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
-                    placeholder="Type client email..."
+                    className="w-full rounded-xl border border-amber-200 bg-[#fffdfa] px-4 py-3 outline-none focus:border-amber-500"
+                    placeholder="Type client email to search..."
                     required
                   />
                   <datalist id="admin-profile-emails">
@@ -1504,14 +1686,14 @@ export default function AdminDashboard() {
                   </datalist>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 rounded-2xl border border-[#f0e6d3] p-4 bg-[#fffdfa]">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 rounded-2xl border border-amber-100 p-4 bg-amber-50/10">
                   {ADMIN_SERVICE_OPTIONS.map((option) => (
-                    <label key={option.value} className="flex items-center gap-2 text-xs text-[#4a3a22] cursor-pointer hover:bg-[#faf6ed] p-1.5 rounded transition">
+                    <label key={option.value} className="flex items-center gap-2 text-xs text-stone-700 cursor-pointer hover:bg-white/60 p-1.5 rounded transition">
                       <input
                         type="checkbox"
                         checked={serviceAccess.includes(option.value)}
                         onChange={() => toggleService(option.value, "serviceAccess")}
-                        className="accent-[#b89b5e]"
+                        className="accent-amber-600"
                       />
                       {option.label}
                     </label>
@@ -1521,7 +1703,7 @@ export default function AdminDashboard() {
                 <button
                   type="submit"
                   disabled={savingServiceAccess}
-                  className="rounded-xl bg-[#5f4c2b] hover:bg-[#4d3d22] px-6 py-3 text-sm font-semibold text-white disabled:opacity-70 shadow transition"
+                  className="rounded-xl bg-amber-600 hover:bg-amber-700 px-6 py-3 text-xs font-bold text-white disabled:opacity-70 shadow transition"
                 >
                   {savingServiceAccess ? "Saving Services..." : "Save Assigned Services"}
                 </button>
@@ -1531,26 +1713,26 @@ export default function AdminDashboard() {
 
           {/* TAB 4: CONSULTATION REQUESTS */}
           {activeTab === "consultation-requests" && (
-            <section id="consultation-requests" className="rounded-3xl border border-[#e8dcc0] bg-white p-6 shadow-xl space-y-4 animate-fade-in">
-              <div className="flex items-center justify-between">
+            <section id="consultation-requests" className="rounded-3xl border border-amber-200 bg-white p-6 shadow-md space-y-4 animate-fade-in">
+              <div className="flex items-center justify-between border-b border-amber-100 pb-3">
                 <div>
-                  <h2 className="text-xl font-bold text-[#3b2f1c] sm:text-2xl">Consultation Enquiries</h2>
-                  <p className="text-sm text-[#7a6a4f] mt-1 text-justify">Review callback and service consultation requests.</p>
+                  <h2 className="text-xl font-serif font-bold text-stone-900">Consultation Enquiries</h2>
+                  <p className="text-xs text-stone-500 mt-1">Review callback requests and legal consultancy consultation requests.</p>
                 </div>
-                <button type="button" onClick={loadData} className="rounded-lg border border-[#e5d7b6] px-3 py-1.5 text-xs font-semibold text-[#8a7340] hover:bg-[#faf6ed] transition">
-                  Refresh
+                <button type="button" onClick={() => loadData()} className="rounded-xl border border-amber-200 bg-white px-4 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50 transition">
+                  Refresh List
                 </button>
               </div>
 
               {loading ? (
-                <p className="text-sm text-[#7a6a4f] py-4 text-center">Loading requests...</p>
+                <p className="text-xs text-stone-500 py-12 text-center">Loading consultation requests...</p>
               ) : consultationRequests.length === 0 ? (
-                <p className="text-sm text-[#7a6a4f] py-4 text-center">No consultation requests yet.</p>
+                <p className="text-xs text-stone-500 py-12 text-center">No consultation requests found.</p>
               ) : (
-                <div className="overflow-x-auto rounded-2xl border border-[#f0e6d3]">
-                  <table className="min-w-full divide-y divide-[#eadfc7] text-sm">
+                <div className="overflow-x-auto rounded-2xl border border-amber-100">
+                  <table className="min-w-full divide-y divide-amber-100 text-xs">
                     <thead className="bg-[#fbfaf6]">
-                      <tr className="text-left text-[#8a7340]">
+                      <tr className="text-left text-amber-800">
                         <th className="py-3 px-4 font-bold">Client Name</th>
                         <th className="py-3 px-4 font-bold">Email</th>
                         <th className="py-3 px-4 font-bold">Phone</th>
@@ -1560,26 +1742,26 @@ export default function AdminDashboard() {
                         <th className="py-3 px-4 font-bold">Date</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#f0e6d3] bg-white">
+                    <tbody className="divide-y divide-amber-50 bg-white text-stone-700">
                       {consultationRequests.map((item) => (
-                        <tr key={item.id} className="hover:bg-[#fffcf7] transition-colors">
-                          <td className="py-4 px-4 font-semibold text-[#3b2f1c]">{item.fullName}</td>
-                          <td className="py-4 px-4 text-gray-600">{item.email}</td>
-                          <td className="py-4 px-4 text-gray-600">{item.phone}</td>
-                          <td className="py-4 px-4 text-gray-600">
-                            <span className="font-semibold text-xs bg-amber-55 text-[#5c4c2f] px-2 py-0.5 rounded-full border border-amber-200">
+                        <tr key={item.id} className="hover:bg-amber-50/10 transition-colors">
+                          <td className="py-4 px-4 font-semibold text-stone-900">{item.fullName}</td>
+                          <td className="py-4 px-4">{item.email}</td>
+                          <td className="py-4 px-4">{item.phone}</td>
+                          <td className="py-4 px-4">
+                            <span className="font-semibold text-[10px] bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full border border-amber-200">
                               {item.serviceName}
                             </span>
-                            {item.firmName && <p className="text-[10px] text-gray-500 mt-1">{item.firmName}</p>}
+                            {item.firmName && <p className="text-[10px] text-stone-400 mt-1">{item.firmName}</p>}
                           </td>
-                          <td className="py-4 px-4 max-w-[200px] truncate text-gray-600" title={item.note || ""}>
+                          <td className="py-4 px-4 max-w-[200px] truncate" title={item.note || ""}>
                             {item.note || "-"}
                           </td>
                           <td className="py-4 px-4">
                             <select
                               value={item.status}
                               onChange={(event) => updateStatus(item.id, event.target.value as ConsultationRequest["status"])}
-                              className="rounded-lg border border-[#e5d7b6] bg-white px-2 py-1 text-xs text-[#3b2f1c] font-semibold outline-none focus:border-[#b89b5e] transition"
+                              className="rounded-lg border border-amber-200 bg-white px-2 py-1 text-xs text-stone-800 font-semibold outline-none focus:border-amber-500 transition"
                             >
                               {STATUS_OPTIONS.map((status) => (
                                 <option key={status} value={status}>
@@ -1588,7 +1770,7 @@ export default function AdminDashboard() {
                               ))}
                             </select>
                           </td>
-                          <td className="py-4 px-4 text-xs text-gray-500">{formatDisplayDate(item.createdAt)}</td>
+                          <td className="py-4 px-4 text-stone-500">{formatDisplayDate(item.createdAt)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1598,23 +1780,23 @@ export default function AdminDashboard() {
             </section>
           )}
 
-          {/* TAB 5: REGISTERED PROFILES (CLICK TO MANAGE) */}
+          {/* TAB 5: REGISTERED PROFILES */}
           {activeTab === "registered-profiles" && (
-            <section id="registered-profiles" className="rounded-3xl border border-[#e8dcc0] bg-white p-6 shadow-xl space-y-4 animate-fade-in">
-              <div>
-                <h2 className="text-xl font-bold text-[#3b2f1c] sm:text-2xl">Client Profiles</h2>
-                <p className="text-sm text-[#7a6a4f] mt-1 text-justify">Select a client below to access, upload documents, and manage assigned services.</p>
+            <section id="registered-profiles" className="rounded-3xl border border-amber-200 bg-white p-6 shadow-md space-y-4 animate-fade-in">
+              <div className="border-b border-amber-100 pb-3">
+                <h2 className="text-xl font-serif font-bold text-stone-900">Client Profiles</h2>
+                <p className="text-xs text-stone-500 mt-1">Select a client profile below to manage, view uploaded files, or alter service scopes.</p>
               </div>
 
               {loading ? (
-                <p className="text-sm text-[#7a6a4f] py-4 text-center">Loading profiles...</p>
+                <p className="text-xs text-stone-500 py-12 text-center">Loading client profiles...</p>
               ) : profiles.length === 0 ? (
-                <p className="text-sm text-[#7a6a4f] py-4 text-center">No profiles found.</p>
+                <p className="text-xs text-stone-500 py-12 text-center">No profiles found.</p>
               ) : (
-                <div className="overflow-x-auto rounded-2xl border border-[#f0e6d3]">
-                  <table className="min-w-full divide-y divide-[#eadfc7] text-sm">
+                <div className="overflow-x-auto rounded-2xl border border-amber-100">
+                  <table className="min-w-full divide-y divide-amber-100 text-xs">
                     <thead className="bg-[#fbfaf6]">
-                      <tr className="text-left text-[#8a7340]">
+                      <tr className="text-left text-amber-800">
                         <th className="py-3 px-4 font-bold">Client Name</th>
                         <th className="py-3 px-4 font-bold">Email</th>
                         <th className="py-3 px-4 font-bold">Phone</th>
@@ -1624,7 +1806,7 @@ export default function AdminDashboard() {
                         <th className="py-3 px-4 text-right font-bold">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#f0e6d3] bg-white">
+                    <tbody className="divide-y divide-amber-50 bg-white text-stone-700">
                       {profiles.map((item) => (
                         <tr
                           key={item.id}
@@ -1632,13 +1814,13 @@ export default function AdminDashboard() {
                             handleViewUserDocuments(item);
                             setModalServiceAccess(decodeServiceAccess(item.serviceAccess));
                           }}
-                          className="hover:bg-[#fffcf5] cursor-pointer transition duration-150"
+                          className="hover:bg-amber-50/20 cursor-pointer transition duration-150"
                         >
-                          <td className="py-4 px-4 font-semibold text-[#3b2f1c]">{item.fullName}</td>
-                          <td className="py-4 px-4 text-gray-600">{item.email}</td>
-                          <td className="py-4 px-4 text-gray-600">{item.phone}</td>
-                          <td className="py-4 px-4 text-gray-600">{item.firmName || "-"}</td>
-                          <td className="py-4 px-4 text-xs text-gray-500">{formatDisplayDate(item.createdAt)}</td>
+                          <td className="py-4 px-4 font-semibold text-stone-900">{item.fullName}</td>
+                          <td className="py-4 px-4">{item.email}</td>
+                          <td className="py-4 px-4">{item.phone}</td>
+                          <td className="py-4 px-4">{item.firmName || "-"}</td>
+                          <td className="py-4 px-4 text-stone-500">{formatDisplayDate(item.createdAt)}</td>
                           <td className="py-4 px-4">
                             {item.userId ? (
                               <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
@@ -1653,9 +1835,9 @@ export default function AdminDashboard() {
                           <td className="py-4 px-4 text-right">
                             <button
                               type="button"
-                              className="rounded-lg bg-[#faf0da] px-3 py-1.5 text-xs font-semibold text-[#8a7340] hover:bg-[#b89b5e] hover:text-white transition duration-150"
+                              className="rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-600 hover:text-white transition duration-150 shadow-xs"
                             >
-                              Manage
+                              Manage Client
                             </button>
                           </td>
                         </tr>
@@ -1667,69 +1849,67 @@ export default function AdminDashboard() {
             </section>
           )}
 
-          {/* TAB 6: PAST YEAR UPLOADS GRID */}
+          {/* TAB 6: PAST YEAR UPLOADS ACCORDION */}
           {activeTab === "past-year-uploads" && (
-            <section id="past-year-uploads" className="rounded-3xl border border-[#e8dcc0] bg-white p-6 shadow-xl space-y-6 animate-fade-in">
-              <div className="flex items-center justify-between">
+            <section id="past-year-uploads" className="rounded-3xl border border-amber-200 bg-white p-6 shadow-md space-y-6 animate-fade-in">
+              <div className="flex items-center justify-between border-b border-amber-100 pb-3">
                 <div>
-                  <h2 className="text-xl font-bold text-[#3b2f1c] sm:text-2xl">Uploaded Yearly Documents</h2>
-                  <p className="text-sm text-[#7a6a4f] mt-1 text-justify">Review documents grouped by financial year and client.</p>
+                  <h2 className="text-xl font-serif font-bold text-stone-900">Uploaded Yearly Documents</h2>
+                  <p className="text-xs text-stone-500 mt-1">Review onboarding and yearly documents grouped by financial year and client.</p>
                 </div>
-                <button type="button" onClick={loadYearlyDocuments} className="rounded-lg border border-[#e5d7b6] px-3 py-1.5 text-xs font-semibold text-[#8a7340] hover:bg-[#faf6ed] transition">
-                  Refresh
+                <button type="button" onClick={() => loadYearlyDocuments()} className="rounded-xl border border-amber-200 bg-white px-4 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50 transition">
+                  Refresh List
                 </button>
               </div>
 
               {loadingYearlyDocuments ? (
-                <p className="text-sm text-[#7a6a4f] py-4 text-center">Loading documents...</p>
+                <p className="text-xs text-stone-500 py-12 text-center">Loading documents...</p>
               ) : yearlyDocumentsError ? (
-                <p className="text-sm text-red-600 py-4 text-center">{yearlyDocumentsError}</p>
+                <p className="text-xs text-rose-600 py-12 text-center">{yearlyDocumentsError}</p>
               ) : Object.keys(groupedYearlyDocs).length === 0 ? (
-                <p className="text-sm text-[#7a6a4f] py-4 text-center">No past year uploads found.</p>
+                <p className="text-xs text-stone-500 py-12 text-center">No yearly uploads found.</p>
               ) : (
                 <div className="space-y-4">
                   {Object.entries(groupedYearlyDocs)
-                    .sort((a, b) => Number(b[0]) - Number(a[0])) // Sort years descending
+                    .sort((a, b) => Number(b[0]) - Number(a[0]))
                     .map(([yearKey, usersMap]) => {
                       const isExpanded = activeYearAccordion === yearKey;
                       const clientsCount = Object.keys(usersMap).length;
 
                       return (
-                        <div key={yearKey} className="rounded-2xl border border-[#e8dcc0] overflow-hidden bg-white shadow-sm transition">
-                          {/* Accordion Header */}
+                        <div key={yearKey} className="rounded-2xl border border-amber-200 overflow-hidden bg-white shadow-xs transition">
                           <button
                             type="button"
                             onClick={() => setActiveYearAccordion(isExpanded ? null : yearKey)}
-                            className="w-full flex items-center justify-between p-4 bg-[#fbf9f4] hover:bg-[#faf6ed] transition text-[#3b2f1c] font-semibold text-base border-b border-[#e8dcc0]"
+                            className="w-full flex items-center justify-between p-4 bg-[#fbf9f4] hover:bg-amber-50/20 transition text-stone-900 font-semibold text-base border-b border-amber-100"
                           >
                             <div className="flex items-center gap-3">
                               <span className="text-lg">📅</span>
-                              <span>Financial Year {formatFinancialYear(Number(yearKey))}</span>
-                              <span className="rounded-full bg-[#f0e4cc] px-2 py-0.5 text-xs font-bold text-[#8a7340]">
+                              <span className="font-serif">Financial Year {formatFinancialYear(Number(yearKey))}</span>
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
                                 {clientsCount} {clientsCount === 1 ? "Client" : "Clients"}
                               </span>
                             </div>
-                            <span className="text-sm text-[#8a7340] font-bold">
+                            <span className="text-xs text-amber-800 font-bold">
                               {isExpanded ? "▲ Collapse" : "▼ Expand"}
                             </span>
                           </button>
 
-                          {/* Accordion Content */}
                           {isExpanded && (
-                            <div className="p-4 bg-white divide-y divide-[#f3ebda]">
+                            <div className="p-4 bg-white divide-y divide-amber-100">
                               {Object.entries(usersMap).map(([userId, clientData]) => (
                                 <div key={userId} className="py-4 first:pt-0 last:pb-0 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                                   {/* Client Info */}
                                   <div className="xl:w-1/4 min-w-0">
                                     <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#b89b5e] to-[#d6b86a] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center text-stone-900 font-bold text-sm shrink-0">
                                         {clientData.userName.charAt(0).toUpperCase()}
                                       </div>
                                       <div className="min-w-0">
-                                        <h4 className="font-bold text-sm text-[#3b2f1c] truncate">{clientData.userName}</h4>
-                                        <p className="text-xs text-gray-500 truncate">{clientData.userEmail}</p>
+                                        <h4 className="font-bold text-sm text-stone-850 truncate">{clientData.userName}</h4>
+                                        <p className="text-xs text-stone-500 truncate">{clientData.userEmail}</p>
                                         {clientData.userPhone && (
-                                          <p className="text-[10px] text-gray-400 mt-0.5">{clientData.userPhone}</p>
+                                          <p className="text-[10px] text-stone-400 mt-0.5">{clientData.userPhone}</p>
                                         )}
                                       </div>
                                     </div>
@@ -1743,13 +1923,13 @@ export default function AdminDashboard() {
 
                                       if (doc) {
                                         return (
-                                          <div key={slotKey} className="flex flex-col justify-between p-3 rounded-xl border border-[#e8dcc0] bg-[#faf8f4] hover:bg-[#f6efdf] transition gap-2 min-w-0">
+                                          <div key={slotKey} className="flex flex-col justify-between p-3 rounded-xl border border-amber-200 bg-[#faf8f4] hover:bg-amber-50/20 transition gap-2 min-w-0">
                                             <div className="min-w-0">
-                                              <p className="text-[11px] font-bold text-[#8a7340] uppercase tracking-wider">{label}</p>
-                                              <p className="text-xs font-medium text-[#3b2f1c] mt-1 truncate" title={doc.fileName}>
+                                              <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">{label}</p>
+                                              <p className="text-xs font-semibold text-stone-900 mt-1 truncate" title={doc.fileName}>
                                                 {doc.fileName}
                                               </p>
-                                              <p className="text-[9px] text-gray-400 mt-0.5">
+                                              <p className="text-[9px] text-stone-400 mt-0.5">
                                                 Uploaded {formatDisplayDate(doc.createdAt)}
                                               </p>
                                             </div>
@@ -1758,12 +1938,12 @@ export default function AdminDashboard() {
                                                 href={doc.signedUrl}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="w-full text-center rounded-lg bg-[#b89b5e] hover:bg-[#a3874c] py-1.5 text-xs font-semibold text-white transition block mt-1"
+                                                className="w-full text-center rounded-lg bg-amber-600 hover:bg-amber-700 py-1.5 text-xs font-bold text-white transition block mt-1 shadow-xs"
                                               >
-                                                View Document
+                                                View File
                                               </a>
                                             ) : (
-                                              <span className="w-full text-center text-[10px] font-medium text-red-500 block py-1.5 mt-1">
+                                              <span className="w-full text-center text-[10px] font-medium text-rose-500 block py-1.5 mt-1">
                                                 Link Unavailable
                                               </span>
                                             )}
@@ -1771,9 +1951,9 @@ export default function AdminDashboard() {
                                         );
                                       } else {
                                         return (
-                                          <div key={slotKey} className="flex flex-col justify-center items-center p-4 rounded-xl border border-dashed border-[#eadfc7] bg-gray-50/50 text-center gap-1">
-                                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{label}</p>
-                                            <span className="text-[10px] text-gray-400 italic mt-1">
+                                          <div key={slotKey} className="flex flex-col justify-center items-center p-4 rounded-xl border border-dashed border-amber-200 bg-stone-50 text-center gap-1">
+                                            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">{label}</p>
+                                            <span className="text-[9px] text-stone-400 italic mt-1">
                                               Not Uploaded
                                             </span>
                                           </div>
@@ -1792,46 +1972,49 @@ export default function AdminDashboard() {
               )}
             </section>
           )}
-        </div>
+
+          {/* TAB 7: ADMIN PROFILE SETTINGS */}
+          {/* Profile Settings tab removed */}
+        </main>
       </div>
 
-      {/* Unified User Details / Documents / Services Modal */}
+      {/* Unified Client Details Modal */}
       {selectedUserForDocs && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-6xl rounded-3xl border border-[#e8dcc0] bg-white p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1c160c]/60 p-4 backdrop-blur-xs animate-fade-in">
+          <div className="w-full max-w-6xl rounded-3xl border border-amber-200 bg-white p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-[#f0e6d3] pb-4">
+            <div className="flex items-center justify-between border-b border-amber-100 pb-4">
               <div>
-                <h3 className="text-xl font-bold text-[#3b2f1c] flex items-center gap-2">
+                <h3 className="text-xl font-bold font-serif text-stone-900 flex items-center gap-2">
                   <span>Manage Client:</span>
-                  <span className="text-[#8a7340]">{selectedUserForDocs.fullName}</span>
+                  <span className="text-amber-800">{selectedUserForDocs.fullName}</span>
                 </h3>
-                <p className="text-xs text-[#7a6a4f] mt-1">
+                <p className="text-xs text-stone-500 mt-1">
                   {selectedUserForDocs.email} • {selectedUserForDocs.phone}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedUserForDocs(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#fbf4e7] hover:bg-[#f6efdf] text-lg font-bold text-[#5c4929] transition"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-amber-100 hover:bg-amber-200 text-stone-800 font-bold text-sm transition"
               >
                 ✕
               </button>
             </div>
 
             {/* Split-pane Modal Content Layout */}
-            <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
+            <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
               {/* Left Column: Profile Card & Service access editor */}
-              <div className="space-y-6 lg:border-r lg:border-[#f0e6d3] lg:pr-6">
+              <div className="space-y-6 lg:border-r lg:border-amber-100 lg:pr-6">
                 {/* Profile Meta Info card */}
-                <div className="rounded-2xl border border-[#e8dcc0]/70 bg-[#fffdfa] p-4 space-y-3">
+                <div className="rounded-2xl border border-amber-200 bg-amber-50/10 p-4 space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#b89b5e] to-[#d6b86a] flex items-center justify-center text-white text-lg font-bold">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center text-stone-900 text-lg font-bold">
                       {selectedUserForDocs.fullName.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <h4 className="font-bold text-[#3b2f1c] text-sm truncate max-w-[150px]">{selectedUserForDocs.fullName}</h4>
-                      <span className={`inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      <h4 className="font-bold text-stone-900 text-sm truncate max-w-[150px]">{selectedUserForDocs.fullName}</h4>
+                      <span className={`inline-block mt-1 text-[9px] font-bold px-2 py-0.5 rounded-full ${
                         selectedUserForDocs.userId
                           ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
                           : "bg-amber-100 text-amber-800 border border-amber-200"
@@ -1840,7 +2023,7 @@ export default function AdminDashboard() {
                       </span>
                     </div>
                   </div>
-                  <div className="text-xs text-[#5c4c2f] space-y-2 pt-2 border-t border-[#f3ebda]">
+                  <div className="text-xs text-stone-700 space-y-2 pt-2 border-t border-amber-100">
                     <p><strong>Email:</strong> {selectedUserForDocs.email}</p>
                     <p><strong>Phone:</strong> {selectedUserForDocs.phone}</p>
                     {selectedUserForDocs.firmName && <p><strong>Firm Name:</strong> {selectedUserForDocs.firmName}</p>}
@@ -1850,16 +2033,16 @@ export default function AdminDashboard() {
 
                 {/* Services Assignment Block */}
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between border-b border-[#f3ebda] pb-1">
-                    <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8a7340]">
-                      Services Taken
+                  <div className="flex items-center justify-between border-b border-amber-100 pb-1">
+                    <h4 className="font-bold text-[10px] uppercase tracking-wider text-amber-800">
+                      Services Scope
                     </h4>
                   </div>
                   {selectedUserForDocs.userId ? (
                     <div className="space-y-4">
-                      <div className="max-h-[260px] overflow-y-auto rounded-xl border border-[#e8dcc0] p-3 bg-[#fdfdfc] space-y-1">
+                      <div className="max-h-[240px] overflow-y-auto rounded-xl border border-amber-200 p-3 bg-stone-50 space-y-1">
                         {ADMIN_SERVICE_OPTIONS.map((option) => (
-                          <label key={option.value} className="flex items-center gap-2 text-xs text-[#4a3a22] cursor-pointer hover:bg-[#faf6ed] p-1.5 rounded transition">
+                          <label key={option.value} className="flex items-center gap-2 text-xs text-stone-700 cursor-pointer hover:bg-amber-100/40 p-1.5 rounded transition">
                             <input
                               type="checkbox"
                               checked={modalServiceAccess.includes(option.value)}
@@ -1870,7 +2053,7 @@ export default function AdminDashboard() {
                                     : [...current, option.value]
                                 )
                               }
-                              className="accent-[#b89b5e]"
+                              className="accent-amber-600"
                             />
                             {option.label}
                           </label>
@@ -1880,9 +2063,9 @@ export default function AdminDashboard() {
                         type="button"
                         onClick={handleSaveModalServiceAccess}
                         disabled={savingModalServiceAccess}
-                        className="w-full rounded-xl bg-[#5f4c2b] hover:bg-[#4d3d22] py-3 text-xs font-semibold text-white transition disabled:opacity-50 shadow-md"
+                        className="w-full rounded-xl bg-amber-600 hover:bg-amber-700 py-3 text-xs font-bold text-white transition disabled:opacity-50 shadow-xs"
                       >
-                        {savingModalServiceAccess ? "Saving Services..." : "Save Assigned Services"}
+                        {savingModalServiceAccess ? "Saving Scope..." : "Save Service Scope"}
                       </button>
                     </div>
                   ) : (
@@ -1896,11 +2079,11 @@ export default function AdminDashboard() {
               {/* Right Column: User Documents Viewer */}
               <div className="space-y-6">
                 {loadingUserDocs ? (
-                  <p className="text-center text-sm text-[#7a6a4f] py-12 animate-pulse">Loading documents...</p>
+                  <p className="text-center text-xs text-stone-500 py-12">Loading client documents...</p>
                 ) : userDocsError ? (
-                  <p className="text-center text-sm text-red-600 py-12">{userDocsError}</p>
+                  <p className="text-center text-xs text-rose-600 py-12">{userDocsError}</p>
                 ) : userDocuments.length === 0 ? (
-                  <p className="text-center text-sm text-[#7a6a4f] py-12">No documents uploaded by this user yet.</p>
+                  <p className="text-center text-xs text-stone-500 py-12">No documents uploaded by this user yet.</p>
                 ) : (
                   <div className="space-y-6">
                     {/* General Documents List */}
@@ -1909,7 +2092,7 @@ export default function AdminDashboard() {
                       if (personal.length === 0) return null;
                       return (
                         <div className="space-y-3">
-                          <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8a7340] border-b border-[#f3ebda] pb-1">Personal & General Documents</h4>
+                          <h4 className="font-bold text-[10px] uppercase tracking-wider text-amber-800 border-b border-amber-100 pb-1">Personal & General Documents</h4>
                           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {personal.map(doc => renderDocCard(doc))}
                           </div>
@@ -1923,7 +2106,7 @@ export default function AdminDashboard() {
                       if (yearly.length === 0) return null;
                       return (
                         <div className="space-y-3">
-                          <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8a7340] border-b border-[#f3ebda] pb-1">Yearly Documents</h4>
+                          <h4 className="font-bold text-[10px] uppercase tracking-wider text-amber-800 border-b border-amber-100 pb-1">Yearly Documents</h4>
                           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {yearly.map(doc => renderDocCard(doc))}
                           </div>
@@ -1937,7 +2120,7 @@ export default function AdminDashboard() {
                       if (service.length === 0) return null;
                       return (
                         <div className="space-y-3">
-                          <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8a7340] border-b border-[#f3ebda] pb-1">Service Uploads</h4>
+                          <h4 className="font-bold text-[10px] uppercase tracking-wider text-amber-800 border-b border-amber-100 pb-1">Service Uploads</h4>
                           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {service.map(doc => renderDocCard(doc))}
                           </div>
@@ -1954,12 +2137,12 @@ export default function AdminDashboard() {
 
       {/* Due/WIP/Complete Tasks Modal */}
       {viewingTasksType && stats && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-5xl rounded-3xl border border-[#e8dcc0] bg-white p-6 shadow-2xl space-y-6 max-h-[85vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1c160c]/60 p-4 backdrop-blur-xs animate-fade-in">
+          <div className="w-full max-w-5xl rounded-3xl border border-amber-200 bg-white p-6 shadow-2xl space-y-6 max-h-[85vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-[#f0e6d3] pb-4">
+            <div className="flex items-center justify-between border-b border-amber-100 pb-4">
               <div>
-                <h3 className="text-2xl font-bold text-[#3b2f1c] flex items-center gap-2">
+                <h3 className="text-xl font-bold font-serif text-stone-900 flex items-center gap-2">
                   <span>
                     {viewingTasksType === "due" && "⚠️"}
                     {viewingTasksType === "wip" && "⚙️"}
@@ -1969,7 +2152,7 @@ export default function AdminDashboard() {
                   {viewingTasksType === "wip" && `Work In Progress Tasks (${stats.totalWipTasks})`}
                   {viewingTasksType === "complete" && `Completed Tasks (${stats.totalCompleteTasks})`}
                 </h3>
-                <p className="text-xs text-[#7a6a4f] mt-1">
+                <p className="text-xs text-stone-500 mt-1">
                   {viewingTasksType === "due" && "List of all pending service requests and files uploaded by users that require attention."}
                   {viewingTasksType === "wip" && "List of all verified tasks that are currently being processed."}
                   {viewingTasksType === "complete" && "List of all service tasks and return filings that are complete."}
@@ -1978,7 +2161,7 @@ export default function AdminDashboard() {
               <button
                 type="button"
                 onClick={() => setViewingTasksType(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#fbf4e7] hover:bg-[#f6efdf] text-lg font-bold text-[#5c4929] transition"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-amber-100 hover:bg-amber-200 text-stone-850 font-bold text-sm transition"
               >
                 ✕
               </button>
@@ -1986,12 +2169,12 @@ export default function AdminDashboard() {
 
             {/* Modal Body */}
             {(viewingTasksType === "due" ? stats.dueTasksList : viewingTasksType === "wip" ? stats.wipTasksList : stats.completeTasksList).length === 0 ? (
-              <p className="text-center text-sm text-[#7a6a4f] py-12">No tasks in this category at the moment.</p>
+              <p className="text-center text-xs text-stone-500 py-12">No tasks in this category at the moment.</p>
             ) : (
-              <div className="overflow-x-auto rounded-2xl border border-[#f0e6d3]">
-                <table className="min-w-full divide-y divide-[#eadfc7] text-sm">
+              <div className="overflow-x-auto rounded-2xl border border-amber-100">
+                <table className="min-w-full divide-y divide-amber-100 text-xs">
                   <thead className="bg-[#fbfaf6]">
-                    <tr className="text-left text-[#8a7340]">
+                    <tr className="text-left text-amber-800">
                       <th className="py-3 px-4 font-semibold">User Details</th>
                       <th className="py-3 px-4 font-semibold">Type</th>
                       <th className="py-3 px-4 font-semibold">Service Name</th>
@@ -2000,24 +2183,24 @@ export default function AdminDashboard() {
                       <th className="py-3 px-4 font-semibold text-right">Action / Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#f0e6d3] bg-white text-[#3b2f1c]">
+                  <tbody className="divide-y divide-amber-50 bg-white text-stone-750">
                     {(viewingTasksType === "due" ? stats.dueTasksList : viewingTasksType === "wip" ? stats.wipTasksList : stats.completeTasksList).map((task) => (
-                      <tr key={task.id} className="hover:bg-[#fffdf8] transition-colors">
+                      <tr key={task.id} className="hover:bg-amber-50/10 transition-colors">
                         <td className="py-4 px-4">
-                          <p className="font-semibold text-sm">{task.userName}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{task.userEmail}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{task.userPhone || "-"}</p>
+                          <p className="font-bold text-stone-900">{task.userName}</p>
+                          <p className="text-[10px] text-stone-500 mt-0.5">{task.userEmail}</p>
+                          <p className="text-[10px] text-stone-500 mt-0.5">{task.userPhone || "-"}</p>
                         </td>
                         <td className="py-4 px-4">
-                          <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded-full ${
                             task.type === "document"
-                              ? "bg-blue-100 text-blue-800"
+                              ? "bg-sky-100 text-sky-850"
                               : "bg-purple-100 text-purple-800"
                           }`}>
                             {task.type === "document" ? "File Upload" : "Service Taken"}
                           </span>
                         </td>
-                        <td className="py-4 px-4 font-medium">
+                        <td className="py-4 px-4 font-semibold">
                           {task.type === "document"
                             ? getDocTypeLabel({ documentType: task.documentType, documentSlot: task.financialYear, documentYear: task.documentYear })
                             : task.serviceName}
@@ -2025,24 +2208,24 @@ export default function AdminDashboard() {
                         <td className="py-4 px-4 max-w-[200px] truncate">
                           {task.type === "document" ? (
                             <div>
-                              <p className="text-xs font-semibold text-gray-600">File:</p>
+                              <p className="text-[10px] font-bold text-stone-500">File:</p>
                               <p className="text-xs break-all" title={task.fileName}>{task.fileName}</p>
                               {task.financialYear && (
-                                <p className="text-[10px] text-amber-800 font-semibold bg-amber-50 rounded px-1.5 py-0.5 inline-block mt-1">
+                                <p className="text-[9px] text-amber-800 font-bold bg-amber-50 rounded px-1.5 py-0.5 inline-block mt-1">
                                   FY {task.financialYear}
                                 </p>
                               )}
                             </div>
                           ) : (
                             <div>
-                              <p className="text-xs font-semibold text-gray-600">Note:</p>
+                              <p className="text-[10px] font-bold text-stone-500">Note:</p>
                               <p className="text-xs whitespace-pre-wrap line-clamp-2" title={task.note || ""}>
                                 {task.note || "-"}
                               </p>
                             </div>
                           )}
                         </td>
-                        <td className="py-4 px-4 text-xs text-gray-500">
+                        <td className="py-4 px-4 text-stone-500">
                           {formatDisplayDate(task.createdAt)}
                         </td>
                         <td className="py-4 px-4">
@@ -2051,7 +2234,7 @@ export default function AdminDashboard() {
                               <button
                                 type="button"
                                 onClick={() => handleViewUserFromTask(task.userId || "", task.userName, task.userEmail, task.userPhone)}
-                                className="rounded-lg bg-[#faf0da] px-3 py-1.5 text-xs font-semibold text-[#8a7340] hover:bg-[#b89b5e] hover:text-white transition duration-150"
+                                className="rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-600 hover:text-white transition duration-150 shadow-xs"
                               >
                                 Manage Client
                               </button>
@@ -2062,6 +2245,11 @@ export default function AdminDashboard() {
                                 value={task.status}
                                 onChange={async (e) => {
                                   const newStatus = e.target.value;
+                                  dispatch(updateTaskStatus({
+                                    taskId: task.id,
+                                    type: "document",
+                                    newStatus,
+                                  }));
                                   try {
                                     const response = await fetch("/api/admin/documents", {
                                       method: "PATCH",
@@ -2069,12 +2257,13 @@ export default function AdminDashboard() {
                                       body: JSON.stringify({ documentId: task.id, uploadStatus: newStatus }),
                                     });
                                     if (!response.ok) throw new Error("Failed to update status");
-                                    await loadStats();
+                                    await loadStats(true);
                                   } catch (err) {
-                                    alert("Failed to update status");
+                                    toast?.error("Failed to update status");
+                                    await loadStats(false);
                                   }
                                 }}
-                                className="rounded-lg border border-[#e5d7b6] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#b89b5e]"
+                                className="rounded-lg border border-amber-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-amber-500 font-medium"
                               >
                                 <option value="uploaded">Uploaded (Due)</option>
                                 <option value="verified">Verified (WIP)</option>
@@ -2085,14 +2274,19 @@ export default function AdminDashboard() {
                                 value={task.status}
                                 onChange={async (e) => {
                                   const newStatus = e.target.value as ConsultationRequest["status"];
+                                  dispatch(updateTaskStatus({
+                                    taskId: task.id,
+                                    type: "consultation",
+                                    newStatus,
+                                  }));
                                   try {
-                                    await updateStatus(task.id, newStatus);
-                                    await loadStats();
+                                    await updateStatus(task.id, newStatus, true);
                                   } catch (err) {
-                                    alert("Failed to update status");
+                                    toast?.error("Failed to update status");
+                                    await loadStats(false);
                                   }
                                 }}
-                                className="rounded-lg border border-[#e5d7b6] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#b89b5e]"
+                                className="rounded-lg border border-amber-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-amber-500 font-medium"
                               >
                                 <option value="pending">Pending</option>
                                 <option value="seen">Seen</option>

@@ -3,28 +3,22 @@
 import Link from "next/link";
 
 const startupLinks = [
+  { name: "NGO", href: "/services/ngo" },
   { name: "Business Registration", href: "/services/business-startup" },
-  { name: "NGO Registration", href: "/services/ngo" },
-  { name: "Section 8 Company", href: "/services/ngo#section-8-company-registration" },
   { name: "Government Registration", href: "/services/registration" },
-];
-
-const licenseLinks = [
-  { name: "FSSAI Food License", href: "/services/fssai" },
   { name: "Government Licenses", href: "/services/licenses" },
+  { name: "FSSAI and Eating Licenses", href: "/services/fssai" },
   { name: "ISO Certifications", href: "/services/iso-certifications" },
 ];
 
 const complianceLinks = [
-  { name: "Tax Filing & GST", href: "/services/gst-consultation" },
-  { name: "Income Tax Return Filing", href: "/services/income-tax-filing" },
-  { name: "TDS Return Filing", href: "/services/tds-return-filing" },
-  { name: "Accounting & CFO", href: "/services/accounting-support" },
+  { name: "Tax Filing", href: "/services/gst-consultation" },
+  { name: "Accounting and CFO", href: "/services/accounting-support" },
+  { name: "Contracts and agreements", href: "/services/contracts-agreements" },
 ];
 
 const legalLinks = [
-  { name: "Contracts & Agreements", href: "/services/contracts-agreements" },
-  { name: "Legal Assistance", href: "/services/legal-assistance" },
+  { name: "Legal Services", href: "/services/legal-assistance" },
 ];
 
 export default function Footer() {
@@ -70,23 +64,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Column 2: Licenses */}
-          <div>
-            <h4 style={{ fontSize: "14px", fontWeight: "700", color: "#f2d16b", marginBottom: "20px", textTransform: "uppercase", letterSpacing: "1px" }}>
-              Licenses
-            </h4>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "2px" }}>
-              {licenseLinks.map((item) => (
-                <li key={item.name}>
-                  <Link href={item.href} className="footer-submenu-link">
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Column 3: Compliance */}
+          {/* Column 2: Compliance */}
           <div>
             <h4 style={{ fontSize: "14px", fontWeight: "700", color: "#f2d16b", marginBottom: "20px", textTransform: "uppercase", letterSpacing: "1px" }}>
               Compliance
@@ -102,7 +80,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Column 4: Legal Services */}
+          {/* Column 3: Legal Services */}
           <div>
             <h4 style={{ fontSize: "14px", fontWeight: "700", color: "#f2d16b", marginBottom: "20px", textTransform: "uppercase", letterSpacing: "1px" }}>
               Legal Services
@@ -175,9 +153,16 @@ export default function Footer() {
               <span>✉️</span> info@ncjlegal.com
             </a>
             <span style={{ color: "rgba(255,255,255,0.15)" }}>|</span>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-              <span>📍</span> Mainpuri, Uttar Pradesh - 205001, India
-            </div>
+            <a 
+              href="https://maps.app.goo.gl/ppqy2b4Q7NmqBaFh7" 
+              target="_blank" 
+              rel="noreferrer"
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#b8a88a", transition: "color 0.2s", textDecoration: "none" }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#f2d16b'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#b8a88a'}
+            >
+              <span>📍</span> Opposite of Purushottam Collection, Station Road Mainpuri.
+            </a>
           </div>
 
           {/* Legal Disclaimer text */}

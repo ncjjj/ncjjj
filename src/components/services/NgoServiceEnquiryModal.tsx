@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { toast } from "../common/ToastContainer";
 import type { FormEvent } from "react";
 import type { NgoServiceItem } from "../../app/services/ngo/data";
 
@@ -51,6 +52,18 @@ export default function NgoServiceEnquiryModal({ service, open, onClose }: NgoSe
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (message) {
+      toast?.success(message);
+    }
+  }, [message]);
+
+  useEffect(() => {
+    if (error) {
+      toast?.error(error);
+    }
+  }, [error]);
 
   const resetForm = useCallback(() => {
     setAddress("");

@@ -7,6 +7,7 @@ import {
   listDocumentsForUser,
 } from "../../../db/queries/documents";
 import { deleteSupabaseObjects, resolveSupabaseObjectUrl } from "../../../lib/supabaseStorage";
+import { emitAdminEvent, emitUserEvent } from "../../../lib/consultationRequestSocket";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -85,6 +86,18 @@ export async function DELETE(request: Request) {
 
     if (!deleted) {
       return NextResponse.json({ message: "Unable to delete document." }, { status: 500 });
+    }
+
+    emitAdminEvent("document-deleted", {
+      userId: session.user.id,
+      email: session.user.email,
+      documentId: body.documentId,
+    });
+
+    if (session.user.email) {
+      emitUserEvent(session.user.email, "document-deleted", {
+        documentId: body.documentId,
+      });
     }
 
     return NextResponse.json({ message: "Document deleted successfully." });

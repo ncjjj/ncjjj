@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { io } from "socket.io-client";
 import { getFinancialYearLabel, getFinancialYearOptions } from "../../lib/yearlyDocumentTypes";
+import { toast } from "../common/ToastContainer";
 
 type ServiceDocument = {
   id: string;
@@ -10,6 +13,7 @@ type ServiceDocument = {
   financialYear: string | null;
   createdAt: string;
   viewUrl: string | null;
+  uploadStatus?: string;
 };
 
 type Props = {
@@ -48,15 +52,31 @@ export default function ServiceDocumentManager({
   sectionLabel,
   requiresFinancialYear,
 }: Props) {
+  const { data: session } = useSession();
+  const email = session?.user?.email?.trim().toLowerCase() || "";
+
   const defaultFinancialYear = requiresFinancialYear ? getFinancialYearLabel() : "";
   const [financialYearOptions, setFinancialYearOptions] = useState<string[]>([]);
   const [uploadRows, setUploadRows] = useState<UploadRow[]>([createUploadRow(defaultFinancialYear)]);
   const [documents, setDocuments] = useState<ServiceDocument[]>([]);
+  const [locked, setLocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [message, setMessage] = useState<MessageState>({ type: "", text: "" });
+
+  useEffect(() => {
+    if (message.text) {
+      if (message.type === "success") {
+        toast?.success(message.text);
+      } else if (message.type === "error") {
+        toast?.error(message.text);
+      } else {
+        toast?.info(message.text);
+      }
+    }
+  }, [message]);
 
   useEffect(() => {
     setFinancialYearOptions(getFinancialYearOptions().map((item) => item.label));
@@ -78,23 +98,27 @@ export default function ServiceDocumentManager({
         const payload = (await response.json().catch(() => null)) as {
           message?: string;
           documents?: ServiceDocument[];
+          locked?: boolean;
         } | null;
 
         if (!response.ok) {
           if (active) {
             setMessage({ type: "error", text: payload?.message || "Unable to load documents." });
             setDocuments([]);
+            setLocked(false);
           }
           return;
         }
 
         if (active) {
           setDocuments(payload?.documents || []);
+          setLocked(!!payload?.locked);
         }
       } catch {
         if (active) {
           setMessage({ type: "error", text: "Unable to load documents right now." });
           setDocuments([]);
+          setLocked(false);
         }
       } finally {
         if (active) {
@@ -109,6 +133,49 @@ export default function ServiceDocumentManager({
       active = false;
     };
   }, [serviceKey, sectionKey, reloadKey]);
+
+  useEffect(() => {
+    if (!email) {
+      return;
+    }
+
+    let socket: any = null;
+    const connectSocket = async () => {
+      try {
+        await fetch("/api/socket", { cache: "no-store" });
+        socket = io({
+          path: "/socket.io",
+          transports: ["websocket"],
+          query: { email },
+        });
+
+        socket.on("connect", () => {
+          console.log("ServiceDocumentManager connected to socket.");
+        });
+
+        socket.on("user-update", (payload: any) => {
+          console.log("ServiceDocumentManager received update:", payload);
+          if (
+            payload.type === "document-status-updated" ||
+            payload.type === "document-uploaded" ||
+            payload.type === "document-deleted"
+          ) {
+            setReloadKey((value) => value + 1);
+          }
+        });
+      } catch (err) {
+        console.error("Failed to connect service documents socket", err);
+      }
+    };
+
+    connectSocket();
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, [email]);
 
   const addUploadRow = () => {
     setUploadRows((previous) => [...previous, createUploadRow(defaultFinancialYear)]);
@@ -225,108 +292,118 @@ export default function ServiceDocumentManager({
         </p>
       ) : null}
 
-      <form onSubmit={handleSubmit} className="grid gap-4 rounded-2xl border border-[#e9dbc0] bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
+      {locked ? (
+        <div className="rounded-2xl border border-emerald-250 bg-emerald-50/40 p-5 shadow-sm flex items-center gap-3 animate-fade-in">
+          <span className="text-2xl shrink-0">✓</span>
           <div>
-            <h2 className="text-lg font-semibold text-[#2f2310]">Upload Documents</h2>
-            <p className="text-sm text-[#7a6a4f]">Click the plus icon to add another file upload row.</p>
+            <h3 className="text-sm font-bold text-emerald-800">ITR Filing Completed</h3>
+            <p className="text-xs text-emerald-700 mt-0.5">This service has been successfully processed and completed by our administrator. No further document uploads are required.</p>
           </div>
-          <button
-            type="button"
-            onClick={addUploadRow}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#d7c8a7] bg-white text-xl font-semibold text-[#5f4c2b] shadow-sm transition hover:bg-[#fbf4e7]"
-            aria-label="Add another document upload row"
-            title="Add another document"
-          >
-            +
-          </button>
         </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="grid gap-4 rounded-2xl border border-[#e9dbc0] bg-white p-5 shadow-sm animate-fade-in">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-[#2f2310]">Upload Documents</h2>
+              <p className="text-sm text-[#7a6a4f]">Click the plus icon to add another file upload row.</p>
+            </div>
+            <button
+              type="button"
+              onClick={addUploadRow}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#d7c8a7] bg-white text-xl font-semibold text-[#5f4c2b] shadow-sm transition hover:bg-[#fbf4e7]"
+              aria-label="Add another document upload row"
+              title="Add another document"
+            >
+              +
+            </button>
+          </div>
 
-        <div className="grid gap-4">
-          {uploadRows.map((row, index) => (
-            <section key={row.id} className="rounded-2xl border border-[#e9dbc0] bg-[#fffdf9] p-4 shadow-sm">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold text-[#4a3a22]">Document {index + 1}</h3>
-                <button
-                  type="button"
-                  onClick={() => removeUploadRow(row.id)}
-                  className="rounded-lg border border-[#e2d3b2] bg-white px-3 py-1.5 text-xs font-semibold text-[#5f4c2b] hover:bg-[#fbf4e7]"
-                >
-                  Remove
-                </button>
-              </div>
+          <div className="grid gap-4">
+            {uploadRows.map((row, index) => (
+              <section key={row.id} className="rounded-2xl border border-[#e9dbc0] bg-[#fffdf9] p-4 shadow-sm">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold text-[#4a3a22]">Document {index + 1}</h3>
+                  <button
+                    type="button"
+                    onClick={() => removeUploadRow(row.id)}
+                    className="rounded-lg border border-[#e2d3b2] bg-white px-3 py-1.5 text-xs font-semibold text-[#5f4c2b] hover:bg-[#fbf4e7]"
+                  >
+                    Remove
+                  </button>
+                </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-[#4a3a22]" htmlFor={`service-document-name-${row.id}`}>
-                    Document Name
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-2">
+                    <label className="text-sm font-semibold text-[#4a3a22]" htmlFor={`service-document-name-${row.id}`}>
+                      Document Name
+                    </label>
+                    <input
+                      id={`service-document-name-${row.id}`}
+                      value={row.documentName}
+                      onChange={(event) => updateUploadRow(row.id, { documentName: event.target.value })}
+                      className="rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
+                      placeholder="Enter your document name"
+                      required
+                    />
+                  </div>
+
+                  {requiresFinancialYear ? (
+                    <div className="grid gap-2">
+                      <label className="text-sm font-semibold text-[#4a3a22]" htmlFor={`service-financial-year-${row.id}`}>
+                        Financial Year
+                      </label>
+                      <select
+                        id={`service-financial-year-${row.id}`}
+                        value={row.financialYear}
+                        onChange={(event) => updateUploadRow(row.id, { financialYear: event.target.value })}
+                        className="rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
+                        required
+                      >
+                        <option value="">Select Financial Year</option>
+                        {financialYearOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="mt-4 grid gap-2">
+                  <label className="text-sm font-semibold text-[#4a3a22]" htmlFor={`service-upload-file-${row.id}`}>
+                    Upload Document
                   </label>
                   <input
-                    id={`service-document-name-${row.id}`}
-                    value={row.documentName}
-                    onChange={(event) => updateUploadRow(row.id, { documentName: event.target.value })}
+                    id={`service-upload-file-${row.id}`}
+                    type="file"
+                    onChange={(event) => updateUploadRow(row.id, { file: event.target.files?.[0] || null })}
                     className="rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
-                    placeholder="Enter your document name"
                     required
                   />
                 </div>
+              </section>
+            ))}
+          </div>
 
-                {requiresFinancialYear ? (
-                  <div className="grid gap-2">
-                    <label className="text-sm font-semibold text-[#4a3a22]" htmlFor={`service-financial-year-${row.id}`}>
-                      Financial Year
-                    </label>
-                    <select
-                      id={`service-financial-year-${row.id}`}
-                      value={row.financialYear}
-                      onChange={(event) => updateUploadRow(row.id, { financialYear: event.target.value })}
-                      className="rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
-                      required
-                    >
-                      <option value="">Select Financial Year</option>
-                      {financialYearOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="mt-4 grid gap-2">
-                <label className="text-sm font-semibold text-[#4a3a22]" htmlFor={`service-upload-file-${row.id}`}>
-                  Upload Document
-                </label>
-                <input
-                  id={`service-upload-file-${row.id}`}
-                  type="file"
-                  onChange={(event) => updateUploadRow(row.id, { file: event.target.files?.[0] || null })}
-                  className="rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
-                  required
-                />
-              </div>
-            </section>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-xl bg-[#5f4c2b] px-5 py-3 text-sm font-semibold text-white disabled:opacity-70"
-          >
-            {submitting ? "Submitting..." : "Submit All"}
-          </button>
-          <button
-            type="button"
-            onClick={handleCancel}
-            className="rounded-xl border border-[#d7c8a7] bg-white px-5 py-3 text-sm font-semibold text-[#5f4c2b] hover:bg-[#fbf4e7]"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-xl bg-[#5f4c2b] px-5 py-3 text-sm font-semibold text-white disabled:opacity-70"
+            >
+              {submitting ? "Submitting..." : "Submit All"}
+            </button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="rounded-xl border border-[#d7c8a7] bg-white px-5 py-3 text-sm font-semibold text-[#5f4c2b] hover:bg-[#fbf4e7]"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
 
       <div className="rounded-2xl border border-[#e9dbc0] bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-[#2f2310]">Uploaded Documents</h2>
@@ -344,6 +421,7 @@ export default function ServiceDocumentManager({
                   <th className="py-3 pr-4">File</th>
                   <th className="py-3 pr-4">Financial Year</th>
                   <th className="py-3 pr-4">Uploaded</th>
+                  <th className="py-3 pr-4">Status</th>
                   <th className="py-3 pr-4">Actions</th>
                 </tr>
               </thead>
@@ -354,6 +432,23 @@ export default function ServiceDocumentManager({
                     <td className="py-3 pr-4">{item.fileName}</td>
                     <td className="py-3 pr-4">{item.financialYear || "-"}</td>
                     <td className="py-3 pr-4">{new Date(item.createdAt).toLocaleString()}</td>
+                    <td className="py-3 pr-4">
+                      <span
+                        className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          item.uploadStatus === "completed"
+                            ? "bg-emerald-100 text-emerald-800 border border-emerald-250"
+                            : item.uploadStatus === "verified"
+                            ? "bg-sky-100 text-sky-800 border border-sky-200"
+                            : "bg-amber-100 text-amber-800 border border-amber-200"
+                        }`}
+                      >
+                        {item.uploadStatus === "completed"
+                          ? "Completed (ITR Filed)"
+                          : item.uploadStatus === "verified"
+                          ? "Verified (WIP)"
+                          : "Uploaded (Due)"}
+                      </span>
+                    </td>
                     <td className="py-3 pr-4">
                       <div className="flex gap-2">
                         {item.viewUrl ? (
@@ -369,8 +464,8 @@ export default function ServiceDocumentManager({
                         <button
                           type="button"
                           onClick={() => handleDelete(item.id)}
-                          disabled={deletingId === item.id}
-                          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 disabled:opacity-70"
+                          disabled={deletingId === item.id || item.uploadStatus === "completed"}
+                          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {deletingId === item.id ? "Deleting..." : "Delete"}
                         </button>

@@ -8,6 +8,7 @@ import {
   findProfileByEmail,
   updateProfileByEmail,
 } from "../../../db/queries/profiles";
+import { emitAdminEvent, emitUserEvent } from "../../../lib/consultationRequestSocket";
 
 const profileUpdateSchema = z.object({
   name: z.string().trim().min(1, "Name is required."),
@@ -98,6 +99,17 @@ export async function PATCH(request: NextRequest) {
 
     if (!updatedUser) {
       return NextResponse.json({ message: "User not found." }, { status: 404 });
+    }
+
+    emitAdminEvent("user-profile-updated", {
+      userId: session.user.id,
+      email: normalizedEmail,
+    });
+
+    if (session.user.email) {
+      emitUserEvent(session.user.email, "profile-updated", {
+        userId: session.user.id,
+      });
     }
 
     return NextResponse.json({ user: updatedUser });

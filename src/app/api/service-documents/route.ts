@@ -5,6 +5,7 @@ import { authOptions } from "../../../lib/auth";
 import { getDb } from "../../../db/index";
 import { documents } from "../../../db/schema";
 import { deleteSupabaseObjects, resolveSupabaseObjectUrl } from "../../../lib/supabaseStorage";
+import { emitAdminEvent, emitUserEvent } from "../../../lib/consultationRequestSocket";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -115,6 +116,18 @@ export async function DELETE(request: Request) {
     await db
       .delete(documents)
       .where(and(eq(documents.id, body.documentId), eq(documents.userId, session.user.id)));
+
+    emitAdminEvent("document-deleted", {
+      userId: session.user.id,
+      email: session.user.email,
+      documentId: body.documentId,
+    });
+
+    if (session.user.email) {
+      emitUserEvent(session.user.email, "document-deleted", {
+        documentId: body.documentId,
+      });
+    }
 
     return NextResponse.json({ message: "Document deleted successfully." });
   } catch (error) {

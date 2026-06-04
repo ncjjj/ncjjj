@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "../common/ToastContainer";
 import type { FormEvent } from "react";
 import { z } from "zod";
 import {
@@ -131,6 +132,18 @@ export default function ServiceForm({ serviceId }: ServiceFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (message) {
+      toast?.success(message);
+    }
+  }, [message]);
+
+  useEffect(() => {
+    if (error) {
+      toast?.error(error);
+    }
+  }, [error]);
 
   const service = useMemo(() => getServiceMeta(serviceId), [serviceId]);
 

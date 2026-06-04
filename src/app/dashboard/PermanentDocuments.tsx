@@ -4,6 +4,12 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useSession } from "next-auth/react";
 import { io } from "socket.io-client";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import {
+  setPermanentDocuments,
+  setPermanentDocumentNumbers,
+  setPermanentDocumentsLoading,
+} from "../../store/slices/userSlice";
 import {
   getPermanentDocumentDescription,
   getPermanentDocumentLabel,
@@ -60,6 +66,8 @@ const emptyPendingFiles = permanentDocumentTypes.reduce<Record<PermanentDocument
   {} as Record<PermanentDocumentType, File | null>
 );
 
+import { toast } from "../../components/common/ToastContainer";
+
 function formatFileSize(size: number): string {
   const megabytes = size / (1024 * 1024);
   return `${megabytes.toFixed(megabytes >= 10 ? 0 : 1)} MB`;
@@ -74,12 +82,13 @@ function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 export default function PermanentDocuments() {
-  const [documents, setDocuments] = useState<PermanentDocumentItem[]>([]);
-  const [numbers, setNumbers] = useState<PermanentDocumentNumbers>(emptyNumbers);
+  const dispatch = useAppDispatch();
+  const documents = useAppSelector((s) => s.user.permanentDocuments);
+  const numbers = useAppSelector((s) => s.user.permanentDocumentNumbers);
+  const loading = useAppSelector((s) => s.user.permanentDocumentsLoading);
   const [pendingFiles, setPendingFiles] = useState<Record<PermanentDocumentType, File | null>>(
     emptyPendingFiles
   );
-  const [loading, setLoading] = useState(true);
   const [uploadingType, setUploadingType] = useState<PermanentDocumentType | null>(null);
   const [savingDetails, setSavingDetails] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -99,8 +108,9 @@ export default function PermanentDocuments() {
     const map = new Map<PermanentDocumentType, PermanentDocumentItem>();
 
     for (const document of documents) {
-      if (!map.has(document.documentType)) {
-        map.set(document.documentType, document);
+      const dtype = document.documentType as PermanentDocumentType;
+      if (!map.has(dtype)) {
+        map.set(dtype, document as unknown as PermanentDocumentItem);
       }
     }
 
@@ -110,10 +120,19 @@ export default function PermanentDocuments() {
   const setFeedback = (tone: "neutral" | "success" | "error", text: string) => {
     setMessageTone(tone);
     setMessage(text);
+    if (text) {
+      if (tone === "success") {
+        toast?.success(text);
+      } else if (tone === "error") {
+        toast?.error(text);
+      } else {
+        toast?.info(text);
+      }
+    }
   };
 
   const loadDocuments = async () => {
-    setLoading(true);
+    dispatch(setPermanentDocumentsLoading(true));
 
     try {
       // Permanent documents API disabled
@@ -124,10 +143,10 @@ export default function PermanentDocuments() {
         throw new Error(payload.message || "Unable to load shared documents.");
       }
 
-      setDocuments(payload.documents || []);
-      setNumbers(payload.numbers || emptyNumbers);
+      dispatch(setPermanentDocuments((payload.documents || []) as any));
+      dispatch(setPermanentDocumentNumbers(payload.numbers || emptyNumbers));
     } finally {
-      setLoading(false);
+      dispatch(setPermanentDocumentsLoading(false));
     }
   };
 
@@ -161,7 +180,12 @@ export default function PermanentDocuments() {
 
         socket.on("user-update", (payload: any) => {
           console.log("PermanentDocuments received update:", payload);
-          if (payload.type === "document-status-updated" || payload.type === "document-uploaded") {
+          if (
+            payload.type === "document-status-updated" ||
+            payload.type === "document-uploaded" ||
+            payload.type === "document-deleted" ||
+            payload.type === "document-numbers-updated"
+          ) {
             loadDocuments().catch(() => {});
           }
         });
@@ -180,7 +204,7 @@ export default function PermanentDocuments() {
   }, [email]);
 
   const onNumberChange = (name: keyof PermanentDocumentNumbers, value: string) => {
-    setNumbers((previous) => ({ ...previous, [name]: value }));
+    dispatch(setPermanentDocumentNumbers({ ...numbers, [name]: value }));
   };
 
   const validateFile = (file: File | null): string | null => {

@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import PasswordInput from "../../../components/common/PasswordInput";
+import { toast } from "../../../components/common/ToastContainer";
 import styles from "../AuthPage.module.css";
 
 const initialLogin = {
@@ -52,6 +53,19 @@ export default function AuthClientPanel({ initialMode = "login" }: AuthClientPan
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<AuthMessage>({ type: "", text: "" });
+
+  useEffect(() => {
+    if (message.text) {
+      if (message.type === "success") {
+        toast?.success(message.text);
+      } else if (message.type === "error") {
+        toast?.error(message.text);
+      } else {
+        toast?.info(message.text);
+      }
+    }
+  }, [message]);
+
   const [nextRoute, setNextRoute] = useState("");
 
   const resetPasswordCriteria = getPasswordCriteria(newPassword);

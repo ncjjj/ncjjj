@@ -10,7 +10,7 @@ import {
 } from "../../../db/queries/permanentDocuments";
 import { permanentDocumentTypeSet } from "../../../lib/permanentDocumentTypes";
 import { resolveSupabaseObjectUrl } from "../../../lib/supabaseStorage";
-import { emitAdminEvent } from "../../../lib/consultationRequestSocket";
+import { emitAdminEvent, emitUserEvent } from "../../../lib/consultationRequestSocket";
 
 const updateDetailsSchema = z.object({
   documentType: z.string().trim(),
@@ -96,6 +96,12 @@ export async function PATCH(request: Request) {
       userId: session.user.id,
       email: session.user.email,
     });
+
+    if (session.user.email) {
+      emitUserEvent(session.user.email, "document-numbers-updated", {
+        userId: session.user.id,
+      });
+    }
 
     return NextResponse.json({ document: updated, message: "Details updated successfully." });
   } catch (error) {

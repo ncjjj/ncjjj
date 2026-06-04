@@ -9,6 +9,7 @@ import {
   resolveSupabaseObjectUrl,
   uploadFileToSupabase,
 } from "../../../../lib/supabaseStorage";
+import { emitAdminEvent, emitUserEvent } from "../../../../lib/consultationRequestSocket";
 
 const MAX_DOCUMENT_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10GB limit
 
@@ -77,6 +78,19 @@ export async function POST(request: NextRequest) {
     });
 
     uploadedPath = null;
+
+    emitAdminEvent("document-uploaded", {
+      userId: session.user.id,
+      email: session.user.email,
+      documentType: saved.documentType,
+      fileName: saved.fileName,
+    });
+
+    if (session.user.email) {
+      emitUserEvent(session.user.email, "document-uploaded", {
+        documentType: saved.documentType,
+      });
+    }
 
     return NextResponse.json({
       message: "Document uploaded successfully.",

@@ -4,6 +4,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useSession } from "next-auth/react";
 import { io } from "socket.io-client";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { setYearlyDocuments, setYearlyDocumentsLoading } from "../../store/slices/userSlice";
+import { toast } from "../../components/common/ToastContainer";
 import {
   formatFinancialYear,
   getFinancialYearOptions,
@@ -68,10 +71,11 @@ function groupByYear(documents: YearlyDocumentItem[]) {
 }
 
 export default function YearlyDocuments() {
-  const [documents, setDocuments] = useState<YearlyDocumentItem[]>([]);
+  const dispatch = useAppDispatch();
+  const documents = useAppSelector((s) => s.user.yearlyDocuments) as unknown as YearlyDocumentItem[];
+  const loading = useAppSelector((s) => s.user.yearlyDocumentsLoading);
   const [selectedYear, setSelectedYear] = useState(String(getFinancialYearStartYear()));
   const [pendingFiles, setPendingFiles] = useState<Record<YearlyDocumentSlot, File | null>>(emptyFiles);
-  const [loading, setLoading] = useState(true);
   const [uploadingSlot, setUploadingSlot] = useState<YearlyDocumentSlot | null>(null);
   const [replacingKey, setReplacingKey] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -107,10 +111,19 @@ export default function YearlyDocuments() {
   const setFeedback = (tone: "neutral" | "success" | "error", text: string) => {
     setMessageTone(tone);
     setMessage(text);
+    if (text) {
+      if (tone === "success") {
+        toast?.success(text);
+      } else if (tone === "error") {
+        toast?.error(text);
+      } else {
+        toast?.info(text);
+      }
+    }
   };
 
   const loadDocuments = async () => {
-    setLoading(true);
+    dispatch(setYearlyDocumentsLoading(true));
 
     try {
       const response = await fetch("/api/yearly-documents", { cache: "no-store" });
@@ -120,9 +133,9 @@ export default function YearlyDocuments() {
         throw new Error(payload.message || "Unable to load yearly documents.");
       }
 
-      setDocuments(payload.documents || []);
+      dispatch(setYearlyDocuments((payload.documents || []) as any));
     } finally {
-      setLoading(false);
+      dispatch(setYearlyDocumentsLoading(false));
     }
   };
 
@@ -157,7 +170,11 @@ export default function YearlyDocuments() {
 
         socket.on("user-update", (payload: any) => {
           console.log("YearlyDocuments received update:", payload);
-          if (payload.type === "document-status-updated" || payload.type === "document-uploaded") {
+          if (
+            payload.type === "document-status-updated" ||
+            payload.type === "document-uploaded" ||
+            payload.type === "document-deleted"
+          ) {
             loadDocuments().catch(() => {});
           }
         });
