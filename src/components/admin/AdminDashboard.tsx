@@ -999,17 +999,12 @@ export default function AdminDashboard() {
 
           {/* Legal Brand Logo */}
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md">
-              {/* Scales of justice icon SVG */}
-              <svg className="w-5 h-5 text-stone-900" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7V3m0 0L4 3m2 0h3m-1 18H5M21 6l-3 1m0 0l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9V3m0 0l-2 0m2 0h3m-7 18h7M12 5v16m0 0h-3m3 0h3" />
-              </svg>
+            <div className="flex items-center gap-1 bg-white p-1 rounded-lg shadow-sm">
+              <img src="/images/ncj.jpeg" alt="NCJ Logo" className="h-8 w-auto object-contain rounded-xs" />
+              <img src="/images/ngoo.jpeg" alt="NGO Logo" className="h-8 w-auto object-contain rounded-xs" />
             </div>
             <div>
-              <span className="font-serif text-lg font-bold tracking-wide bg-gradient-to-r from-amber-200 via-amber-400 to-amber-200 bg-clip-text text-transparent">
-                NCJ Legal LLP
-              </span>
-              <span className="hidden sm:inline-block text-[10px] text-amber-400/80 font-semibold tracking-widest block uppercase ml-1">
+              <span className="text-sm font-bold tracking-widest uppercase text-amber-400">
                 Admin Panel
               </span>
             </div>
