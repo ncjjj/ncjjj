@@ -49,6 +49,13 @@ type ProfileRow = {
   createdAt: string;
   userId?: string | null;
   serviceAccess?: string | null;
+  panCard?: string | null;
+  aadhaarCard?: string | null;
+  dob?: string | null;
+  gender?: string | null;
+  citizen?: string | null;
+  residentialStatus?: string | null;
+  passwordPlain?: string | null;
 };
 
 type DashboardPayload = {
@@ -82,6 +89,7 @@ type YearlyUploadDraft = {
 };
 
 type QueuedYearlyUpload = YearlyUploadDraft & {
+  id: string;
   key: YearlyUploadCardKey;
   file: File;
 };
@@ -335,6 +343,36 @@ export default function AdminDashboard() {
   const [userDocuments, setUserDocuments] = useState<any[]>([]);
   const [loadingUserDocs, setLoadingUserDocs] = useState(false);
   const [userDocsError, setUserDocsError] = useState("");
+
+  // Local state for editing user in modal
+  const [editFullName, setEditFullName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editFirmName, setEditFirmName] = useState("");
+  const [editPanCard, setEditPanCard] = useState("");
+  const [editAadhaarCard, setEditAadhaarCard] = useState("");
+  const [editDob, setEditDob] = useState("");
+  const [editGender, setEditGender] = useState("");
+  const [editCitizen, setEditCitizen] = useState("");
+  const [editResidentialStatus, setEditResidentialStatus] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [savingClientInfo, setSavingClientInfo] = useState(false);
+
+  useEffect(() => {
+    if (selectedUserForDocs) {
+      setEditFullName(selectedUserForDocs.fullName || "");
+      setEditEmail(selectedUserForDocs.email || "");
+      setEditPhone(selectedUserForDocs.phone || "");
+      setEditFirmName(selectedUserForDocs.firmName || "");
+      setEditPanCard(selectedUserForDocs.panCard || "");
+      setEditAadhaarCard(selectedUserForDocs.aadhaarCard || "");
+      setEditDob(selectedUserForDocs.dob || "");
+      setEditGender(selectedUserForDocs.gender || "");
+      setEditCitizen(selectedUserForDocs.citizen || "");
+      setEditResidentialStatus(selectedUserForDocs.residentialStatus || "");
+      setEditPassword("");
+    }
+  }, [selectedUserForDocs]);
   const yearlyUploadInputRefs = useRef<Record<YearlyUploadCardKey, HTMLInputElement | null>>({
     itr: null,
     computation: null,
@@ -462,6 +500,19 @@ export default function AdminDashboard() {
   }, [selectedUserForDocs]);
 
   useEffect(() => {
+    if (message.text) {
+      if (message.type === "success") {
+        toast?.success(message.text);
+      } else if (message.type === "error") {
+        toast?.error(message.text);
+      } else {
+        toast?.info(message.text);
+      }
+      setMessage({ type: "", text: "" });
+    }
+  }, [message]);
+
+  useEffect(() => {
     loadData();
     loadYearlyDocuments();
     loadStats();
@@ -559,6 +610,67 @@ export default function AdminDashboard() {
       if (!silent) {
         setLoadingUserDocs(false);
       }
+    }
+  };
+
+  const handleSaveClientInfo = async () => {
+    if (!selectedUserForDocs) return;
+    if (editPhone.length !== 10) {
+      toast?.error("Phone number must be exactly 10 digits.");
+      return;
+    }
+
+    setSavingClientInfo(true);
+    try {
+      const response = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: selectedUserForDocs.id,
+          fullName: editFullName,
+          email: editEmail,
+          phone: editPhone,
+          firmName: editFirmName || null,
+          panCard: editPanCard || null,
+          aadhaarCard: editAadhaarCard || null,
+          dob: editDob || null,
+          gender: editGender || null,
+          citizen: editCitizen || null,
+          residentialStatus: editResidentialStatus || null,
+          password: editPassword || "",
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        toast?.error(payload?.message || "Failed to update client details.");
+        return;
+      }
+
+      toast?.success("Client details updated successfully.");
+
+      const updatedProfile: ProfileRow = {
+        ...selectedUserForDocs,
+        fullName: editFullName,
+        email: editEmail,
+        phone: editPhone,
+        firmName: editFirmName || null,
+        panCard: editPanCard || null,
+        aadhaarCard: editAadhaarCard || null,
+        dob: editDob || null,
+        gender: editGender || null,
+        citizen: editCitizen || null,
+        residentialStatus: editResidentialStatus || null,
+        ...(editPassword && { passwordPlain: editPassword }),
+      };
+
+      setSelectedUserForDocs(updatedProfile);
+      await loadData(true);
+    } catch {
+      toast?.error("Unable to update client details right now.");
+    } finally {
+      setSavingClientInfo(false);
     }
   };
 
@@ -825,9 +937,10 @@ export default function AdminDashboard() {
       return;
     }
 
+    const uniqueId = Math.random().toString(36).substring(2, 9) + Date.now();
+
     setQueuedYearlyUploads((current) => {
-      const next = current.filter((item) => item.key !== key);
-      return [...next, { key, slot: draft.slot, year: draft.year.trim(), file }];
+      return [...current, { id: uniqueId, key, slot: draft.slot, year: draft.year.trim(), file }];
     });
 
     updateYearlyUploadDraft(key, (current) => createYearlyUploadDraft(current.slot, current.year));
@@ -838,6 +951,10 @@ export default function AdminDashboard() {
     }
 
     setMessage({ type: "success", text: `${getYearlyDocumentLabel(draft.slot)} added to the upload queue.` });
+  };
+
+  const removeQueuedYearlyUpload = (id: string) => {
+    setQueuedYearlyUploads((current) => current.filter((item) => item.id !== id));
   };
 
   const clearYearlyUploadQueue = () => {
@@ -883,13 +1000,7 @@ export default function AdminDashboard() {
     setMessage({ type: "", text: "" });
     setOtpError("");
 
-    if (queuedYearlyUploads.length !== YEARLY_UPLOAD_CARD_META.length) {
-      setMessage({
-        type: "error",
-        text: "Add all 4 past year upload boxes before creating the user.",
-      });
-      return;
-    }
+    // Upload queue can contain any number of files (0, 1, 2, etc.)
 
     setCreatingUser(true);
 
@@ -935,6 +1046,7 @@ export default function AdminDashboard() {
       await loadData();
       await loadStats();
       await loadYearlyDocuments();
+      dispatch(setActiveTab("registered-profiles"));
     } catch {
       setMessage({ type: "error", text: "Unable to create user credentials right now." });
     } finally {
@@ -1012,16 +1124,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Socket.io Live status indicator */}
-          <div className="flex items-center gap-2 bg-stone-900/80 border border-stone-800 rounded-full px-3 py-1 text-xs">
-            <span className="relative flex h-2 w-2">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${socketStatus === "connected" ? "bg-emerald-400" : "bg-stone-500"}`}></span>
-              <span className={`relative inline-flex rounded-full h-2 w-2 ${socketStatus === "connected" ? "bg-emerald-500" : "bg-stone-600"}`}></span>
-            </span>
-            <span className="text-[10px] text-stone-300 font-medium">
-              {socketStatus === "connected" ? "Live Sync Active" : "Reconnecting..."}
-            </span>
-          </div>
+
 
           {/* Admin profile dropdown */}
           <div className="relative" ref={dropdownRef}>
@@ -1073,35 +1176,23 @@ export default function AdminDashboard() {
       <div className="flex-1 flex relative">
         {/* Left Sidebar Menu */}
         <aside
-          className={`lg:w-64 w-64 bg-[#231b10] text-[#eae2d5] border-r border-amber-950/50 p-4 shrink-0 flex flex-col justify-between fixed lg:sticky top-[61px] bottom-0 left-0 z-30 transition-transform duration-300 transform lg:translate-x-0 ${
+          className={`lg:w-64 w-64 bg-[#231b10] text-[#eae2d5] border-r border-amber-950/50 p-4 shrink-0 flex flex-col justify-between fixed lg:sticky top-[61px] lg:h-[calc(100vh-61px)] lg:overflow-y-auto bottom-0 left-0 z-30 transition-transform duration-300 transform lg:translate-x-0 ${
             isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }`}
         >
           <div className="space-y-6">
-            <div className="px-2">
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-500/80">Navigation Control</h2>
-            </div>
-
             <nav className="space-y-1">
               {[
                 {
                   id: "overview",
-                  label: "Overview",
+                  label: "Dashboard",
                   icon: (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
                     </svg>
                   ),
                 },
-                {
-                  id: "add-user",
-                  label: "Client Onboarding",
-                  icon: (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
-                  ),
-                },
+
                 {
                   id: "service-access",
                   label: "Service Access",
@@ -1180,33 +1271,14 @@ export default function AdminDashboard() {
 
         {/* Main Content Area */}
         <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 space-y-6">
-          {/* Dashboard Page Status Messages */}
-          {message.text ? (
-            <div
-              className={`rounded-2xl p-4 text-sm font-semibold shadow-sm border animate-fade-in flex items-center justify-between gap-3 ${
-                message.type === "success"
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                  : "border-rose-200 bg-rose-50 text-rose-800"
-              }`}
-            >
-              <span>{message.text}</span>
-              <button
-                type="button"
-                onClick={() => setMessage({ type: "", text: "" })}
-                className="text-stone-400 hover:text-stone-700 font-bold"
-              >
-                ✕
-              </button>
-            </div>
-          ) : null}
+
 
           {/* TAB 1: OVERVIEW */}
           {activeTab === "overview" && (
             <section id="overview" className="space-y-6 animate-fade-in">
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-amber-200/40 pb-4">
                 <div>
-                  <h1 className="text-2xl font-bold font-serif tracking-tight text-stone-900">Dashboard Overview</h1>
-                  <p className="text-xs text-stone-500">Real-time status check, statistics, and pending administrative tasks.</p>
+                  <h1 className="text-2xl font-bold font-serif tracking-tight text-stone-900">Dashboard</h1>
                 </div>
                 <button
                   onClick={() => loadStats()}
@@ -1306,9 +1378,15 @@ export default function AdminDashboard() {
           {/* TAB 2: ADD USER ONBOARDING */}
           {activeTab === "add-user" && (
             <section id="add-user" className="rounded-3xl border border-amber-200 bg-white p-6 shadow-md space-y-6 animate-fade-in">
-              <div className="border-b border-amber-100 pb-3">
+              <div className="flex items-center justify-between border-b border-amber-100 pb-3">
                 <h2 className="text-xl font-serif font-bold text-stone-900">Onboard New Client</h2>
-                <p className="text-xs text-stone-500 mt-1">Create client login credentials, verify their email address, set service access and upload past year documents.</p>
+                <button
+                  type="button"
+                  onClick={() => dispatch(setActiveTab("registered-profiles"))}
+                  className="rounded-xl border border-amber-200 bg-white hover:bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-800 transition shadow-xs"
+                >
+                  Back to Client Profiles
+                </button>
               </div>
 
               <form className="space-y-6" onSubmit={handleCreateUser}>
@@ -1391,10 +1469,11 @@ export default function AdminDashboard() {
                       type="tel"
                       value={userForm.mobileNumber}
                       onChange={(event) => {
-                        setUserForm((current) => ({ ...current, mobileNumber: event.target.value }));
+                        const val = event.target.value.replace(/\D/g, "").slice(0, 10);
+                        setUserForm((current) => ({ ...current, mobileNumber: val }));
                       }}
                       className="w-full rounded-xl border border-amber-200 bg-[#fffdfa] px-4 py-2.5 outline-none focus:border-amber-500 focus:bg-white"
-                      placeholder="e.g. +91 9999999999"
+                      placeholder="e.g. 9999999999 (10 digits)"
                       required
                     />
                   </div>
@@ -1529,7 +1608,7 @@ export default function AdminDashboard() {
                           type="checkbox"
                           checked={userForm.serviceAccess.includes(option.value)}
                           onChange={() => toggleService(option.value, "userForm")}
-                          className="accent-amber-600"
+                          className="h-4 w-4 shrink-0 rounded border-amber-300 accent-amber-600 cursor-pointer"
                         />
                         {option.label}
                       </label>
@@ -1553,11 +1632,11 @@ export default function AdminDashboard() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-bold text-stone-850">{card.title}</p>
-                              <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${
-                                draft.file ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
-                              }`}>
-                                {draft.file ? "Queued" : "Pending"}
-                              </span>
+                              {draft.file && (
+                                <span className="rounded-full px-2 py-0.5 text-[9px] font-bold bg-emerald-100 text-emerald-800">
+                                  Queued
+                                </span>
+                              )}
                             </div>
                             <p className="text-xs text-stone-500 mt-0.5 leading-snug">{card.description}</p>
                           </div>
@@ -1620,14 +1699,24 @@ export default function AdminDashboard() {
 
                   {queuedYearlyUploads.length > 0 && (
                     <div className="grid gap-2 rounded-2xl border border-amber-200 bg-white p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-amber-800">Queued Upload Files ({queuedYearlyUploads.length}/4)</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-amber-800">Queued Upload Files ({queuedYearlyUploads.length})</p>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {queuedYearlyUploads.map((item) => (
                           <span
-                            key={item.key}
-                            className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50/50 px-3 py-1.5 text-xs font-semibold text-stone-800"
+                            key={item.id}
+                            className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50/50 pl-3 pr-2 py-1.5 text-xs font-semibold text-stone-800"
                           >
-                            {getYearlyDocumentLabel(item.slot)} · FY {formatFinancialYear(Number(item.year))}
+                            <span>
+                              {getYearlyDocumentLabel(item.slot)} · FY {formatFinancialYear(Number(item.year))}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeQueuedYearlyUpload(item.id)}
+                              className="w-4 h-4 rounded-full flex items-center justify-center bg-amber-200 hover:bg-amber-300 text-stone-700 text-[9px] transition-colors"
+                              title="Remove"
+                            >
+                              ✕
+                            </button>
                           </span>
                         ))}
                       </div>
@@ -1657,7 +1746,6 @@ export default function AdminDashboard() {
             <section id="service-access" className="rounded-3xl border border-amber-200 bg-white p-6 shadow-md space-y-6 animate-fade-in">
               <div className="border-b border-amber-100 pb-3">
                 <h2 className="text-xl font-serif font-bold text-stone-900">Service Access Control</h2>
-                <p className="text-xs text-stone-500 mt-1">Assign sidebar sections and page accessibility for existing client accounts.</p>
               </div>
 
               <form className="space-y-4" onSubmit={handleAssignServiceAccess}>
@@ -1688,7 +1776,7 @@ export default function AdminDashboard() {
                         type="checkbox"
                         checked={serviceAccess.includes(option.value)}
                         onChange={() => toggleService(option.value, "serviceAccess")}
-                        className="accent-amber-600"
+                        className="h-4 w-4 shrink-0 rounded border-amber-300 accent-amber-600 cursor-pointer"
                       />
                       {option.label}
                     </label>
@@ -1712,7 +1800,6 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between border-b border-amber-100 pb-3">
                 <div>
                   <h2 className="text-xl font-serif font-bold text-stone-900">Consultation Enquiries</h2>
-                  <p className="text-xs text-stone-500 mt-1">Review callback requests and legal consultancy consultation requests.</p>
                 </div>
                 <button type="button" onClick={() => loadData()} className="rounded-xl border border-amber-200 bg-white px-4 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50 transition">
                   Refresh List
@@ -1778,9 +1865,17 @@ export default function AdminDashboard() {
           {/* TAB 5: REGISTERED PROFILES */}
           {activeTab === "registered-profiles" && (
             <section id="registered-profiles" className="rounded-3xl border border-amber-200 bg-white p-6 shadow-md space-y-4 animate-fade-in">
-              <div className="border-b border-amber-100 pb-3">
+              <div className="flex items-center justify-between border-b border-amber-100 pb-3">
                 <h2 className="text-xl font-serif font-bold text-stone-900">Client Profiles</h2>
-                <p className="text-xs text-stone-500 mt-1">Select a client profile below to manage, view uploaded files, or alter service scopes.</p>
+                <button
+                  type="button"
+                  onClick={() => dispatch(setActiveTab("add-user"))}
+                  className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-600 text-[#f5efe4] hover:bg-amber-700 hover:scale-105 active:scale-95 transition-all duration-150 shadow-md text-xl font-bold"
+                  title="Onboard New Client"
+                  aria-label="Onboard New Client"
+                >
+                  +
+                </button>
               </div>
 
               {loading ? (
@@ -1850,7 +1945,6 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between border-b border-amber-100 pb-3">
                 <div>
                   <h2 className="text-xl font-serif font-bold text-stone-900">Uploaded Yearly Documents</h2>
-                  <p className="text-xs text-stone-500 mt-1">Review onboarding and yearly documents grouped by financial year and client.</p>
                 </div>
                 <button type="button" onClick={() => loadYearlyDocuments()} className="rounded-xl border border-amber-200 bg-white px-4 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50 transition">
                   Refresh List
@@ -2018,11 +2112,138 @@ export default function AdminDashboard() {
                       </span>
                     </div>
                   </div>
-                  <div className="text-xs text-stone-700 space-y-2 pt-2 border-t border-amber-100">
-                    <p><strong>Email:</strong> {selectedUserForDocs.email}</p>
-                    <p><strong>Phone:</strong> {selectedUserForDocs.phone}</p>
-                    {selectedUserForDocs.firmName && <p><strong>Firm Name:</strong> {selectedUserForDocs.firmName}</p>}
-                    <p><strong>Created On:</strong> {formatDisplayDate(selectedUserForDocs.createdAt)}</p>
+                  <div className="text-xs text-stone-700 space-y-3 pt-2 border-t border-amber-100 max-h-[360px] overflow-y-auto pr-1">
+                    <div className="grid gap-1">
+                      <label className="font-bold text-[10px] uppercase text-stone-500">Full Name</label>
+                      <input
+                        value={editFullName}
+                        onChange={(e) => setEditFullName(e.target.value)}
+                        className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1 text-xs outline-none focus:border-amber-500"
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <label className="font-bold text-[10px] uppercase text-stone-500">Email Address</label>
+                      <input
+                        type="email"
+                        value={editEmail}
+                        onChange={(e) => setEditEmail(e.target.value)}
+                        className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1 text-xs outline-none focus:border-amber-500"
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <label className="font-bold text-[10px] uppercase text-stone-500">Phone Number</label>
+                      <input
+                        value={editPhone}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                          setEditPhone(val);
+                        }}
+                        className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1 text-xs outline-none focus:border-amber-500"
+                        placeholder="10 digits only"
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <label className="font-bold text-[10px] uppercase text-stone-500">Firm Name</label>
+                      <input
+                        value={editFirmName}
+                        onChange={(e) => setEditFirmName(e.target.value)}
+                        className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1 text-xs outline-none focus:border-amber-500"
+                        placeholder="Optional"
+                      />
+                    </div>
+                    {selectedUserForDocs.userId && (
+                      <>
+                        <div className="grid gap-1">
+                          <label className="font-bold text-[10px] uppercase text-stone-500">PAN Card</label>
+                          <input
+                            value={editPanCard}
+                            onChange={(e) => setEditPanCard(e.target.value.toUpperCase())}
+                            className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1 text-xs outline-none focus:border-amber-500"
+                            placeholder="e.g. ABCDE1234F"
+                          />
+                        </div>
+                        <div className="grid gap-1">
+                          <label className="font-bold text-[10px] uppercase text-stone-500">Aadhaar Card</label>
+                          <input
+                            value={editAadhaarCard}
+                            onChange={(e) => setEditAadhaarCard(e.target.value)}
+                            className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1 text-xs outline-none focus:border-amber-500"
+                            placeholder="e.g. 1234 5678 9012"
+                          />
+                        </div>
+                        <div className="grid gap-1">
+                          <label className="font-bold text-[10px] uppercase text-stone-500">Date of Birth</label>
+                          <input
+                            value={editDob}
+                            onChange={(e) => setEditDob(formatDobInput(e.target.value))}
+                            className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1 text-xs outline-none focus:border-amber-500"
+                            placeholder="DD/MM/YYYY"
+                          />
+                        </div>
+                        <div className="grid gap-1">
+                          <label className="font-bold text-[10px] uppercase text-stone-500">Gender</label>
+                          <select
+                            value={editGender}
+                            onChange={(e) => setEditGender(e.target.value)}
+                            className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1 text-xs outline-none focus:border-amber-500"
+                          >
+                            <option value="">Select Gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                        <div className="grid gap-1">
+                          <label className="font-bold text-[10px] uppercase text-stone-500">Citizenship</label>
+                          <input
+                            value={editCitizen}
+                            onChange={(e) => setEditCitizen(e.target.value)}
+                            className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1 text-xs outline-none focus:border-amber-500"
+                            placeholder="e.g. Indian"
+                          />
+                        </div>
+                        <div className="grid gap-1">
+                          <label className="font-bold text-[10px] uppercase text-stone-500">Residential Status</label>
+                          <input
+                            value={editResidentialStatus}
+                            onChange={(e) => setEditResidentialStatus(e.target.value)}
+                            className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1 text-xs outline-none focus:border-amber-500"
+                            placeholder="e.g. Resident"
+                          />
+                        </div>
+                        {selectedUserForDocs.passwordPlain && (
+                          <div className="grid gap-1">
+                            <label className="font-bold text-[10px] uppercase text-stone-500">
+                              Current Password: <span className="font-mono select-all bg-stone-100 px-1 py-0.5 rounded border border-stone-200">{selectedUserForDocs.passwordPlain}</span>
+                            </label>
+                          </div>
+                        )}
+                        <div className="grid gap-1">
+                          <label className="font-bold text-[10px] uppercase text-stone-500">Change Password</label>
+                          <input
+                            type="text"
+                            value={editPassword}
+                            onChange={(e) => setEditPassword(e.target.value)}
+                            className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1 text-xs outline-none focus:border-amber-500"
+                            placeholder="Type new password"
+                          />
+                        </div>
+                      </>
+                    )}
+                    <p className="pt-1 text-[10px] text-stone-400"><strong>Created On:</strong> {formatDisplayDate(selectedUserForDocs.createdAt)}</p>
+                  </div>
+                  <div className="pt-3">
+                    <button
+                      type="button"
+                      onClick={handleSaveClientInfo}
+                      disabled={savingClientInfo || !editFullName || !editEmail || editPhone.length !== 10}
+                      className="w-full rounded-xl bg-amber-600 hover:bg-amber-700 py-2.5 text-xs font-bold text-white transition disabled:opacity-50 shadow-xs"
+                    >
+                      {savingClientInfo ? "Saving Info..." : "Save Client Info"}
+                    </button>
                   </div>
                 </div>
 
@@ -2048,7 +2269,7 @@ export default function AdminDashboard() {
                                     : [...current, option.value]
                                 )
                               }
-                              className="accent-amber-600"
+                              className="h-4 w-4 shrink-0 rounded border-amber-300 accent-amber-600 cursor-pointer"
                             />
                             {option.label}
                           </label>
@@ -2058,7 +2279,7 @@ export default function AdminDashboard() {
                         type="button"
                         onClick={handleSaveModalServiceAccess}
                         disabled={savingModalServiceAccess}
-                        className="w-full rounded-xl bg-amber-600 hover:bg-amber-700 py-3 text-xs font-bold text-white transition disabled:opacity-50 shadow-xs"
+                        className="w-full rounded-xl bg-amber-600 hover:bg-amber-700 py-2.5 text-xs font-bold text-white transition disabled:opacity-50 shadow-xs"
                       >
                         {savingModalServiceAccess ? "Saving Scope..." : "Save Service Scope"}
                       </button>

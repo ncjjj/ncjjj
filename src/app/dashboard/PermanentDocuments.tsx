@@ -320,13 +320,11 @@ export default function PermanentDocuments() {
             <p className="font-semibold text-[#3b2f1c]">{getPermanentDocumentLabel(documentType)}</p>
             <p className="text-xs text-[#7a6a4f]">{getPermanentDocumentDescription(documentType)}</p>
           </div>
-          <span
-            className={`shrink-0 rounded-full px-2 py-1 text-xs ${
-              document ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
-            }`}
-          >
-            {document ? "Uploaded" : "Pending"}
-          </span>
+          {document ? (
+            <span className="shrink-0 rounded-full px-2 py-1 text-xs bg-green-100 text-green-700">
+              Uploaded
+            </span>
+          ) : null}
         </div>
 
         <div className="mt-4 space-y-2">

@@ -95,6 +95,7 @@ export async function createUser({
         aadhaarOtpVerified,
         serviceAccess: serviceAccess.trim(),
         password: hashedPassword,
+        passwordPlain: password,
       })
       .returning({
         id: users.id,

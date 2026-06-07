@@ -18,6 +18,13 @@ export async function GET() {
         createdAt: profiles.createdAt,
         userId: users.id,
         serviceAccess: users.serviceAccess,
+        panCard: users.panCard,
+        aadhaarCard: users.aadhaarCard,
+        dob: users.dob,
+        gender: users.gender,
+        citizen: users.citizen,
+        residentialStatus: users.residentialStatus,
+        passwordPlain: users.passwordPlain,
       })
       .from(profiles)
       .leftJoin(users, eq(users.email, profiles.email))

@@ -35,9 +35,6 @@ export default function AdminLoginPage({ searchParams }: AdminLoginPageProps) {
             Admin Access
           </span>
           <h1 className="text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">Consultation Requests and Profile Oversight</h1>
-          <p className="max-w-2xl text-base text-[#6b5b3e] sm:text-lg">
-            Sign in to manage consultation requests, review registered profiles, and update request status in one place.
-          </p>
         </section>
 
         <AdminLoginForm callbackUrl={callbackUrl} />

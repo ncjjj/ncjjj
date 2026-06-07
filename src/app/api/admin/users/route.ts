@@ -148,3 +148,125 @@ export async function POST(request: Request) {
     );
   }
 }
+
+const updateUserSchema = z.object({
+  id: z.string().uuid(),
+  fullName: z.string().trim().min(2, "Name is required."),
+  email: z.string().trim().email("A valid email is required."),
+  phone: z.string().trim().regex(/^\d{10}$/, "Phone number must be exactly 10 digits."),
+  firmName: z.string().trim().nullable().optional(),
+  panCard: z.string().trim().nullable().optional(),
+  aadhaarCard: z.string().trim().nullable().optional(),
+  dob: z.string().trim().nullable().optional(),
+  gender: z.string().trim().nullable().optional(),
+  citizen: z.string().trim().nullable().optional(),
+  residentialStatus: z.string().trim().nullable().optional(),
+  password: z.string().trim().optional().or(z.literal("")),
+  serviceAccess: z.array(z.string().trim()).optional(),
+});
+
+import { eq } from "drizzle-orm";
+import { users, profiles } from "../../../../db/schema";
+
+export async function PATCH(request: Request) {
+  try {
+    const payload = await request.json();
+    const parsed = updateUserSchema.safeParse(payload);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { message: parsed.error.issues[0]?.message || "Invalid user data." },
+        { status: 400 }
+      );
+    }
+
+    const {
+      id,
+      fullName,
+      email,
+      phone,
+      firmName,
+      panCard,
+      aadhaarCard,
+      dob,
+      gender,
+      citizen,
+      residentialStatus,
+      password,
+      serviceAccess,
+    } = parsed.data;
+
+    const db = getDb();
+
+    // 1. Check if the profile exists
+    const [profile] = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.id, id))
+      .limit(1);
+
+    if (!profile) {
+      return NextResponse.json({ message: "Client profile not found." }, { status: 404 });
+    }
+
+    // 2. Start transaction
+    await db.transaction(async (tx) => {
+      let hashedPassword = "";
+      if (password) {
+        hashedPassword = await bcrypt.hash(password, 10);
+      }
+
+      // Update profiles table
+      await tx
+        .update(profiles)
+        .set({
+          fullName,
+          email,
+          phone,
+          firmName: firmName || null,
+          ...(hashedPassword && { passwordHash: hashedPassword }),
+        })
+        .where(eq(profiles.id, id));
+
+      // Check if user has registered account
+      const [existingUser] = await tx
+        .select()
+        .from(users)
+        .where(eq(users.email, profile.email))
+        .limit(1);
+
+      if (existingUser) {
+        const encoded = serviceAccess ? encodeServiceAccess(serviceAccess) : existingUser.serviceAccess;
+
+        await tx
+          .update(users)
+          .set({
+            name: fullName,
+            email,
+            mobileNumber: phone,
+            firmName: firmName || null,
+            panCard: panCard || null,
+            aadhaarCard: aadhaarCard || null,
+            dob: dob || null,
+            gender: gender || null,
+            citizen: citizen || null,
+            residentialStatus: residentialStatus || null,
+            serviceAccess: encoded,
+            ...(hashedPassword && {
+              password: hashedPassword,
+              passwordPlain: password,
+            }),
+          })
+          .where(eq(users.id, existingUser.id));
+      }
+    });
+
+    return NextResponse.json({ message: "Client profile updated successfully." });
+  } catch (error) {
+    console.error("[api/admin/users] PATCH failed", error);
+    return NextResponse.json(
+      { message: "Unable to update client profile right now." },
+      { status: 500 }
+    );
+  }
+}

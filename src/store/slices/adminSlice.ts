@@ -24,6 +24,13 @@ export interface AdminProfileRow {
   createdAt: string;
   userId?: string | null;
   serviceAccess?: string | null;
+  panCard?: string | null;
+  aadhaarCard?: string | null;
+  dob?: string | null;
+  gender?: string | null;
+  citizen?: string | null;
+  residentialStatus?: string | null;
+  passwordPlain?: string | null;
 }
 
 export interface DueTaskItem {

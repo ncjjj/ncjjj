@@ -231,7 +231,6 @@ export default function Documents() {
         <div className="dashboard-page-body space-y-8 p-8">
           <div>
             <h2 className="text-2xl font-semibold text-[#3b2f1c]">Documents</h2>
-            <p className="text-sm text-[#7a6a4f]">Upload and manage your documents</p>
           </div>
 
           <div className="dashboard-subcard rounded-2xl border border-[#e8dcc0] bg-white p-5 shadow-sm">
@@ -297,7 +296,6 @@ export default function Documents() {
               {!loading && documents.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-[#d9c9a4] bg-white p-6 text-center">
                   <p className="text-sm font-medium text-[#3b2f1c]">No uploaded documents yet</p>
-                  <p className="mt-2 text-xs text-[#7a6a4f]">Upload a file to see it listed here.</p>
                 </div>
               ) : null}
 
