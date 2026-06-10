@@ -8,7 +8,6 @@ const PUBLIC_ADMIN_ROUTES = ["/admin/login", "/api/admin/login", "/api/admin/ses
 const PUBLIC_API_ROUTES = ["/api/health", "/api/auth", "/api/register", "/api/ngo-enquiry"];
 const PROTECTED_USER_API_PREFIXES = [
   "/api/profile",
-  "/api/documents",
   "/api/permanent-documents",
   "/api/yearly-documents",
   "/api/service-documents",

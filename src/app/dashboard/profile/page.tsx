@@ -365,7 +365,7 @@ export default function ProfileSettings() {
           </div>
 
           {/* Grid */}
-          <div className="dashboard-profile-grid grid grid-cols-2 gap-4">
+          <div className="dashboard-profile-grid grid grid-cols-1 md:grid-cols-2 gap-4">
 
             <input
               name="name"
@@ -522,7 +522,7 @@ export default function ProfileSettings() {
             )}
 
             {/* Grid for document numbers */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* PAN Card */}
               {fullProfile.panCard && (
                 <div className="space-y-2">
@@ -563,7 +563,7 @@ export default function ProfileSettings() {
             </div>
 
             {/* Personal Information Grid */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Date of Birth */}
               {fullProfile.dob && (
                 <div className="space-y-2">

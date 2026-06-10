@@ -326,6 +326,14 @@
     width: 100%;
     flex-wrap: wrap;
   }
+
+  .dashboard-page {
+    padding: 0 !important;
+  }
+
+  .dashboard-card-shell {
+    border-radius: 16px !important;
+  }
 }
 
 @media (max-width: 480px) {

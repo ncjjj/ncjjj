@@ -243,6 +243,19 @@ export default function Header() {
             );
           })}
 
+          {user && (
+            <Link
+              href="/dashboard/profile"
+              onMouseEnter={() => setHoveredNavItem("/dashboard/profile")}
+              onMouseLeave={() => setHoveredNavItem((current) => (current === "/dashboard/profile" ? null : current))}
+              onFocus={() => setHoveredNavItem("/dashboard/profile")}
+              onBlur={() => setHoveredNavItem((current) => (current === "/dashboard/profile" ? null : current))}
+              className={`nav-pill ${currentPath.startsWith("/dashboard") || hoveredNavItem === "/dashboard/profile" ? "nav-pill--active" : ""}`}
+            >
+              Dashboard
+            </Link>
+          )}
+
           <div
             className="site-services-dropdown"
             style={{ position: "relative", insetBlockStart: 0, display: "flex", alignItems: "center" }}
@@ -643,6 +656,12 @@ export default function Header() {
               {item.label}
             </Link>
           ))}
+
+          {user && (
+            <Link href="/dashboard/profile" onClick={() => setMobileNavOpen(false)} className="mobile-nav-link">
+              Dashboard
+            </Link>
+          )}
 
           <div className="mobile-section">
             <button className="mobile-section-toggle" onClick={() => setMobileServicesOpen((s) => !s)} aria-expanded={mobileServicesOpen}>

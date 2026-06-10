@@ -340,7 +340,7 @@ export default function YearlyDocuments() {
             </div>
 
             <div className="space-y-5">
-              <div className="grid gap-4 grid-cols-[180px_repeat(3,minmax(0,1fr))] items-start">
+              <div className="grid gap-4 grid-cols-1 lg:grid-cols-[180px_repeat(3,minmax(0,1fr))] items-start">
                 <label className="space-y-2">
                   <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-[#7a6a4f]">
                     Year
@@ -468,7 +468,7 @@ export default function YearlyDocuments() {
                     </div>
                   </div>
 
-                  <div className="grid gap-4 grid-cols-3">
+                  <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {yearlyDocumentTypes.map((item) => {
                       const document = slots.get(item.slot);
 
