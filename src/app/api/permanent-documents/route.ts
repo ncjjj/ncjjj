@@ -9,7 +9,7 @@ import {
   updatePermanentDocument,
 } from "../../../db/queries/permanentDocuments";
 import { permanentDocumentTypeSet } from "../../../lib/permanentDocumentTypes";
-import { resolveSupabaseObjectUrl } from "../../../lib/supabaseStorage";
+import { resolveAppwriteObjectUrl } from "../../../lib/appwriteStorage";
 import { emitAdminEvent, emitUserEvent } from "../../../lib/consultationRequestSocket";
 
 const updateDetailsSchema = z.object({
@@ -32,7 +32,7 @@ export async function GET() {
 
     const documents = await Promise.all(
       records.map(async (item) => {
-        const resolved = await resolveSupabaseObjectUrl({
+        const resolved = await resolveAppwriteObjectUrl({
           path: item.storagePath,
           expiresIn: 3600,
         });

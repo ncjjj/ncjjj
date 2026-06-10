@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "../../../lib/auth";
 import { listYearlyDocumentsForUser } from "../../../db/queries/yearlyDocuments";
-import { resolveSupabaseObjectUrl } from "../../../lib/supabaseStorage";
+import { resolveAppwriteObjectUrl } from "../../../lib/appwriteStorage";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -16,7 +16,7 @@ export async function GET() {
 
     const documents = await Promise.all(
       yearlyDocuments.map(async (item) => {
-        const resolved = await resolveSupabaseObjectUrl({
+        const resolved = await resolveAppwriteObjectUrl({
           path: item.storagePath,
           expiresIn: 3600,
         });

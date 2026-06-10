@@ -796,10 +796,10 @@ export default function AdminDashboard() {
                   : "bg-rose-100 text-rose-800"
               }`}>
                 {doc.uploadStatus === "completed"
-                  ? "Completed (ITR Filed)"
+                  ? "Completed "
                   : doc.uploadStatus === "verified"
-                  ? "Verified (WIP)"
-                  : "Uploaded (Due)"}
+                  ? "Verified"
+                  : "Uploaded"}
               </span>
             )}
           </div>
@@ -1513,7 +1513,7 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="grid gap-1">
-                    <label className="text-xs font-semibold text-stone-700" htmlFor="admin-user-aadhaar">Aadhaar Card (Mandatory)</label>
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="admin-user-aadhaar">Aadhaar Card </label>
                     <input
                       id="admin-user-aadhaar"
                       value={userForm.aadhaarCard}
@@ -1973,7 +1973,6 @@ export default function AdminDashboard() {
             </section>
           )}
 
-          {/* TAB 6: PAST YEAR UPLOADS ACCORDION */}
           {activeTab === "past-year-uploads" && (
             <section id="past-year-uploads" className="rounded-3xl border border-amber-200 bg-white p-6 shadow-md space-y-6 animate-fade-in">
               <div className="flex items-center justify-between border-b border-amber-100 pb-3">
@@ -2037,8 +2036,6 @@ export default function AdminDashboard() {
                                       </div>
                                     </div>
                                   </div>
-
-                                  {/* Documents Row */}
                                   <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                                     {(["itr", "computation", "pl", "bs"] as YearlyUploadCardKey[]).map((slotKey) => {
                                       const doc = clientData.docs[slotKey];
@@ -2095,9 +2092,6 @@ export default function AdminDashboard() {
               )}
             </section>
           )}
-
-          {/* TAB 7: ADMIN PROFILE SETTINGS */}
-          {/* Profile Settings tab removed */}
         </main>
       </div>
 
@@ -2325,8 +2319,6 @@ export default function AdminDashboard() {
                   )}
                 </div>
               </div>
-
-              {/* Right Column: User Documents Viewer */}
               <div className="space-y-6">
                 {loadingUserDocs ? (
                   <p className="text-center text-xs text-stone-500 py-12">Loading client documents...</p>
@@ -2349,8 +2341,6 @@ export default function AdminDashboard() {
                         </div>
                       );
                     })()}
-
-                    {/* Yearly Documents List */}
                     {(() => {
                       const yearly = userDocuments.filter(d => d.documentYear && d.documentSlot);
                       if (yearly.length === 0) return null;
@@ -2433,9 +2423,9 @@ export default function AdminDashboard() {
                                 )}
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
-                                {doc.fileUrl && (
+                                {doc.signedUrl && (
                                   <a
-                                    href={doc.fileUrl}
+                                    href={doc.signedUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1.5 text-xs font-semibold transition"

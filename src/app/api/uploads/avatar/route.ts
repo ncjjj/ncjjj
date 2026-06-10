@@ -8,13 +8,13 @@ import {
   updateProfileAvatarByEmail,
 } from "../../../../db/queries/profiles";
 import {
-  deleteSupabaseObjects,
-  getSupabaseBucketVisibility,
-  getSupabasePublicObjectUrl,
+  deleteAppwriteObjects,
+  getAppwriteBucketVisibility,
+  getAppwritePublicObjectUrl,
   inferImageMimeType,
-  resolveSupabaseObjectUrl,
-  uploadFileToSupabase,
-} from "../../../../lib/supabaseStorage";
+  resolveAppwriteObjectUrl,
+  uploadFileToAppwrite,
+} from "../../../../lib/appwriteStorage";
 import { extractAvatarVersionFromPath } from "../../../../lib/profileImage";
 
 const SIGNED_URL_TTL_SECONDS = 3600;
@@ -40,15 +40,15 @@ export async function GET() {
         avatarPath: null,
         avatarUrl: null,
         avatarVersion: null,
-        bucketVisibility: getSupabaseBucketVisibility(),
+        bucketVisibility: getAppwriteBucketVisibility(),
       });
     }
 
     let avatarUrl = persistedAvatarUrl;
-    const bucketVisibility = getSupabaseBucketVisibility();
+    const bucketVisibility = getAppwriteBucketVisibility();
 
     if (avatarPath) {
-      const resolved = await resolveSupabaseObjectUrl({
+      const resolved = await resolveAppwriteObjectUrl({
         path: avatarPath,
         expiresIn: SIGNED_URL_TTL_SECONDS,
         version: avatarVersion,
@@ -133,14 +133,14 @@ export async function POST(request: NextRequest) {
     const existingProfile = existingUser ? await findProfileByEmail(existingUser.email) : null;
     const previousProfileAvatarPath = existingProfile?.avatarPath || null;
 
-    const uploaded = await uploadFileToSupabase({
+    const uploaded = await uploadFileToAppwrite({
       file,
       folder: `avatars/${session.user.id}`,
     });
     uploadedPath = uploaded.path;
 
     const avatarVersion = extractAvatarVersionFromPath(uploaded.path) ?? Date.now();
-    const bucketVisibility = getSupabaseBucketVisibility();
+    const bucketVisibility = getAppwriteBucketVisibility();
     const persistedAvatarUrl =
       bucketVisibility === "public" && uploaded.publicUrl
         ? uploaded.publicUrl
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
 
     if (previousAvatarPath && previousAvatarPath !== uploaded.path) {
       try {
-        await deleteSupabaseObjects([previousAvatarPath]);
+        await deleteAppwriteObjects([previousAvatarPath]);
       } catch (cleanupError) {
         console.warn("[uploads/avatar] failed to remove previous avatar object", cleanupError);
       }
@@ -161,13 +161,13 @@ export async function POST(request: NextRequest) {
 
     if (previousProfileAvatarPath && previousProfileAvatarPath !== uploaded.path) {
       try {
-        await deleteSupabaseObjects([previousProfileAvatarPath]);
+        await deleteAppwriteObjects([previousProfileAvatarPath]);
       } catch (cleanupError) {
         console.warn("[uploads/avatar] failed to remove previous profile avatar object", cleanupError);
       }
     }
 
-    const resolved = await resolveSupabaseObjectUrl({
+    const resolved = await resolveAppwriteObjectUrl({
       path: uploaded.path,
       expiresIn: SIGNED_URL_TTL_SECONDS,
       version: avatarVersion,
@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     if (uploadedPath) {
       try {
-        await deleteSupabaseObjects([uploadedPath]);
+        await deleteAppwriteObjects([uploadedPath]);
       } catch (rollbackError) {
         console.warn("[uploads/avatar] failed to roll back uploaded object", rollbackError);
       }
@@ -219,11 +219,11 @@ export async function DELETE() {
     const previousProfileAvatarPath = existingProfile?.avatarPath || null;
 
     if (previousAvatarPath) {
-      await deleteSupabaseObjects([previousAvatarPath]);
+      await deleteAppwriteObjects([previousAvatarPath]);
     }
 
     if (previousProfileAvatarPath) {
-      await deleteSupabaseObjects([previousProfileAvatarPath]);
+      await deleteAppwriteObjects([previousProfileAvatarPath]);
     }
 
     await updateUserAvatarPath(session.user.id, null, null);

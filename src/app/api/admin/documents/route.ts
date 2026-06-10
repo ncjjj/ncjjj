@@ -2,7 +2,7 @@ import { and, desc, eq, isNotNull, isNull, like } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "../../../../db/index";
 import { documents, users } from "../../../../db/schema";
-import { resolveSupabaseObjectUrl } from "../../../../lib/supabaseStorage";
+import { resolveAppwriteObjectUrl } from "../../../../lib/appwriteStorage";
 import { getAdminSessionFromRequest } from "../../../../lib/adminRequestSession";
 import { emitAdminEvent, emitUserEvent } from "../../../../lib/consultationRequestSocket";
 
@@ -68,7 +68,7 @@ export async function GET(request: Request) {
 
         if (row.storagePath) {
           try {
-            const resolved = await resolveSupabaseObjectUrl({
+            const resolved = await resolveAppwriteObjectUrl({
               path: row.storagePath,
               expiresIn: 1800,
             });

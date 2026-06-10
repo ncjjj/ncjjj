@@ -19,8 +19,9 @@ export function validateRuntimeEnv(): RuntimeEnvCheck {
     "DATABASE_URL",
     "NEXTAUTH_URL",
     "NEXTAUTH_SECRET",
-    "SUPABASE_URL",
-    "SUPABASE_SERVICE_ROLE_KEY",
+    "APPWRITE_PROJECT_ID",
+    "APPWRITE_API_KEY",
+    "APPWRITE_BUCKET_ID",
   ] as const;
 
   const missing: string[] = [];

@@ -4,7 +4,7 @@ import { users, documents, consultationRequests } from "../../../../db/schema";
 import { getAdminSessionFromRequest } from "../../../../lib/adminRequestSession";
 import { decodeServiceAccess } from "../../../../lib/serviceAccess";
 import { getFinancialYearLabel } from "../../../../lib/yearlyDocumentTypes";
-import { resolveSupabaseObjectUrl } from "../../../../lib/supabaseStorage";
+import { resolveAppwriteObjectUrl } from "../../../../lib/appwriteStorage";
 import { getDatabaseErrorMessage, getDatabaseErrorStatus } from "../../../../lib/dbErrors";
 import { and, eq, like } from "drizzle-orm";
 
@@ -72,7 +72,7 @@ export async function GET(request: Request) {
         let signedUrl: string | null = null;
         if (doc.storagePath) {
           try {
-            const resolved = await resolveSupabaseObjectUrl({
+            const resolved = await resolveAppwriteObjectUrl({
               path: doc.storagePath,
               expiresIn: 1800,
             });

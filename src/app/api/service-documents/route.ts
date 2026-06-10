@@ -5,7 +5,7 @@ import { authOptions } from "../../../lib/auth";
 import { getDb } from "../../../db/index";
 import { documents } from "../../../db/schema";
 import { findUserById } from "../../../db/queries/users";
-import { deleteSupabaseObjects, resolveSupabaseObjectUrl } from "../../../lib/supabaseStorage";
+import { deleteAppwriteObjects, resolveAppwriteObjectUrl } from "../../../lib/appwriteStorage";
 import { emitAdminEvent, emitUserEvent } from "../../../lib/consultationRequestSocket";
 import { decodeServiceAccess, getDashboardServiceSectionByTypeKey } from "../../../lib/serviceAccess";
 import {
@@ -85,7 +85,7 @@ export async function GET(request: Request) {
         let viewUrl: string | null = null;
 
         try {
-          const resolved = await resolveSupabaseObjectUrl({ path: row.storagePath, expiresIn: 3600 });
+          const resolved = await resolveAppwriteObjectUrl({ path: row.storagePath, expiresIn: 3600 });
           viewUrl = resolved.avatarUrl;
         } catch (error) {
           console.warn("[api/service-documents] failed to resolve document URL", {
@@ -150,7 +150,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    await deleteSupabaseObjects([documentRow.storagePath]);
+    await deleteAppwriteObjects([documentRow.storagePath]);
 
     await db
       .delete(documents)

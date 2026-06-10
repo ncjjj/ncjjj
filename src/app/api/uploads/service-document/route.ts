@@ -6,10 +6,10 @@ import { getDb } from "../../../../db/index";
 import { documents } from "../../../../db/schema";
 import { findUserById } from "../../../../db/queries/users";
 import {
-  deleteSupabaseObjects,
-  resolveSupabaseObjectUrl,
-  uploadFileToSupabase,
-} from "../../../../lib/supabaseStorage";
+  deleteAppwriteObjects,
+  resolveAppwriteObjectUrl,
+  uploadFileToAppwrite,
+} from "../../../../lib/appwriteStorage";
 import { emitAdminEvent, emitUserEvent } from "../../../../lib/consultationRequestSocket";
 import { decodeServiceAccess, getDashboardServiceSectionByTypeKey } from "../../../../lib/serviceAccess";
 import {
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       type: fileType,
     });
 
-    const uploaded = await uploadFileToSupabase({
+    const uploaded = await uploadFileToAppwrite({
       file,
       folder: `service-documents/${session.user.id}/${typeKey}`,
     });
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
       throw new Error("Unable to save document details.");
     }
 
-    const resolved = await resolveSupabaseObjectUrl({
+    const resolved = await resolveAppwriteObjectUrl({
       path: created.storagePath,
       expiresIn: 3600,
     });
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (uploadedPath) {
       try {
-        await deleteSupabaseObjects([uploadedPath]);
+        await deleteAppwriteObjects([uploadedPath]);
       } catch (rollbackError) {
         console.warn("[api/uploads/service-document] rollback failed", rollbackError);
       }

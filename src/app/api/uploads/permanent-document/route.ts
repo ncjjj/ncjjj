@@ -14,10 +14,10 @@ import {
   type PermanentDocumentType,
 } from "../../../../lib/permanentDocumentTypes";
 import {
-  deleteSupabaseObjects,
-  resolveSupabaseObjectUrl,
-  uploadFileToSupabase,
-} from "../../../../lib/supabaseStorage";
+  deleteAppwriteObjects,
+  resolveAppwriteObjectUrl,
+  uploadFileToAppwrite,
+} from "../../../../lib/appwriteStorage";
 import { emitAdminEvent, emitUserEvent } from "../../../../lib/consultationRequestSocket";
 
 function sanitizeText(value: unknown): string | null {
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     const file = new File([fileEntry], fileName, { type: fileType });
 
-    const uploaded = await uploadFileToSupabase({
+    const uploaded = await uploadFileToAppwrite({
       file,
       folder: `permanent-documents/${session.user.id}/${documentType}`,
     });
@@ -98,10 +98,10 @@ export async function POST(request: NextRequest) {
         });
 
     if (existing?.storagePath && existing.storagePath !== uploaded.path) {
-      await deleteSupabaseObjects([existing.storagePath]);
+      await deleteAppwriteObjects([existing.storagePath]);
     }
 
-    const resolved = await resolveSupabaseObjectUrl({
+    const resolved = await resolveAppwriteObjectUrl({
       path: saved.storagePath,
       expiresIn: 3600,
     });
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (uploadedPath) {
       try {
-        await deleteSupabaseObjects([uploadedPath]);
+        await deleteAppwriteObjects([uploadedPath]);
       } catch (rollbackError) {
         console.warn("[api/uploads/permanent-document] rollback failed", rollbackError);
       }

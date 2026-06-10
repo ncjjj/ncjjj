@@ -5,10 +5,10 @@ import { authOptions } from "../../../../lib/auth";
 import { createDocument } from "../../../../db/queries/documents";
 import { isAllowedDocumentMimeType } from "../../../../lib/documentFiles";
 import {
-  deleteSupabaseObjects,
-  resolveSupabaseObjectUrl,
-  uploadFileToSupabase,
-} from "../../../../lib/supabaseStorage";
+  deleteAppwriteObjects,
+  resolveAppwriteObjectUrl,
+  uploadFileToAppwrite,
+} from "../../../../lib/appwriteStorage";
 import { emitAdminEvent, emitUserEvent } from "../../../../lib/consultationRequestSocket";
 
 const MAX_DOCUMENT_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10GB limit
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const file = new File([fileEntry], fileName, { type: fileType });
     const safeTypeFolder = documentType.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
 
-    const uploaded = await uploadFileToSupabase({
+    const uploaded = await uploadFileToAppwrite({
       file,
       folder: `documents/${session.user.id}/${safeTypeFolder}`,
     });
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       throw new Error("Unable to save document metadata.");
     }
 
-    const resolved = await resolveSupabaseObjectUrl({
+    const resolved = await resolveAppwriteObjectUrl({
       path: saved.storagePath,
       expiresIn: 3600,
     });
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (uploadedPath) {
       try {
-        await deleteSupabaseObjects([uploadedPath]);
+        await deleteAppwriteObjects([uploadedPath]);
       } catch (rollbackError) {
         console.warn("[api/uploads/document] rollback failed", rollbackError);
       }

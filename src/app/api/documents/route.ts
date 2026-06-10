@@ -6,7 +6,7 @@ import {
   findDocumentById,
   listDocumentsForUser,
 } from "../../../db/queries/documents";
-import { deleteSupabaseObjects, resolveSupabaseObjectUrl } from "../../../lib/supabaseStorage";
+import { deleteAppwriteObjects, resolveAppwriteObjectUrl } from "../../../lib/appwriteStorage";
 import { emitAdminEvent, emitUserEvent } from "../../../lib/consultationRequestSocket";
 
 export async function GET() {
@@ -24,7 +24,7 @@ export async function GET() {
         let signedUrl: string | null = null;
         if (doc.storagePath) {
           try {
-            const resolved = await resolveSupabaseObjectUrl({
+            const resolved = await resolveAppwriteObjectUrl({
               path: doc.storagePath,
               expiresIn: 3600,
             });
@@ -79,7 +79,7 @@ export async function DELETE(request: Request) {
     }
 
     if (doc.storagePath) {
-      await deleteSupabaseObjects([doc.storagePath]);
+      await deleteAppwriteObjects([doc.storagePath]);
     }
 
     const deleted = await deleteDocumentByIdForUser(body.documentId, session.user.id);
