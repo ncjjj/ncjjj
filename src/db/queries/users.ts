@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { InferSelectModel } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { encryptSensitiveField, decryptSensitiveField } from "../../lib/fieldEncryption";
 import { getDb } from "../index";
 import { profiles, users } from "../schema";
 import { findProfileByEmail } from "./profiles";
@@ -21,6 +22,7 @@ interface CreateUserInput {
   panCard?: string;
   aadhaarCard?: string;
   dob?: string;
+  fatherName?: string;
   gender?: string;
   citizen?: string;
   residentialStatus?: string;
@@ -38,19 +40,26 @@ interface UpdateUserProfileInput {
 export async function findUserByEmail(email: string): Promise<DbUser | null> {
   const db = getDb();
   const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-  return user ?? null;
+  return user ? withDecryptedPasswordPlain(user) : null;
 }
 
 export async function findUserByMobileNumber(mobileNumber: string): Promise<DbUser | null> {
   const db = getDb();
   const [user] = await db.select().from(users).where(eq(users.mobileNumber, mobileNumber)).limit(1);
-  return user ?? null;
+  return user ? withDecryptedPasswordPlain(user) : null;
+}
+
+function withDecryptedPasswordPlain<T extends { passwordPlain?: string | null }>(user: T): T {
+  return {
+    ...user,
+    passwordPlain: decryptSensitiveField(user.passwordPlain),
+  };
 }
 
 export async function findUserById(userId: string): Promise<DbUser | null> {
   const db = getDb();
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  return user ?? null;
+  return user ? withDecryptedPasswordPlain(user) : null;
 }
 
 export async function createUser({
@@ -63,6 +72,7 @@ export async function createUser({
   panCard = "",
   aadhaarCard = "",
   dob = "",
+  fatherName = "",
   gender = "",
   citizen = "",
   residentialStatus = "",
@@ -89,13 +99,14 @@ export async function createUser({
         panCard: panCard.trim() || null,
         aadhaarCard: aadhaarCard.trim() || null,
         dob: dob.trim() || null,
+        fatherName: fatherName.trim() || null,
         gender: gender.trim() || null,
         citizen: citizen.trim() || null,
         residentialStatus: residentialStatus.trim() || null,
         aadhaarOtpVerified,
         serviceAccess: serviceAccess.trim(),
         password: hashedPassword,
-        passwordPlain: password,
+        passwordPlain: encryptSensitiveField(password),
       })
       .returning({
         id: users.id,
@@ -124,6 +135,7 @@ export async function createUser({
           phone: profilePhone,
           address: profileAddress,
           firmName: profileFirmName,
+          fatherName: fatherName.trim() || null,
         })
         .where(eq(profiles.email, normalizedEmail));
     } else {
@@ -134,6 +146,7 @@ export async function createUser({
         phone: profilePhone,
         address: profileAddress,
         firmName: firmName.trim() || null,
+        fatherName: fatherName.trim() || null,
         avatarPath: null,
         avatarUrl: null,
       });

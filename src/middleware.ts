@@ -5,6 +5,16 @@ import { ADMIN_SESSION_COOKIE } from "./lib/adminSession";
 
 const PUBLIC_ROUTES = ["/", "/home", "/services", "/about", "/contact", "/login", "/auth"];
 const PUBLIC_ADMIN_ROUTES = ["/admin/login", "/api/admin/login", "/api/admin/session/verify"];
+const PUBLIC_API_ROUTES = ["/api/health", "/api/auth", "/api/register", "/api/ngo-enquiry"];
+const PROTECTED_USER_API_PREFIXES = [
+  "/api/profile",
+  "/api/documents",
+  "/api/permanent-documents",
+  "/api/yearly-documents",
+  "/api/service-documents",
+  "/api/uploads",
+  "/api/consultation-requests",
+];
 
 type RateLimitBucket = {
   count: number;
@@ -122,6 +132,16 @@ function isPublicAdminRoute(pathname: string): boolean {
   return PUBLIC_ADMIN_ROUTES.some((route) => pathname.startsWith(`${route}/`));
 }
 
+function isPublicApiRoute(pathname: string): boolean {
+  return PUBLIC_API_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+}
+
+function isProtectedUserApiRoute(pathname: string): boolean {
+  return PROTECTED_USER_API_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
 async function verifyAdminSession(request: NextRequest): Promise<boolean> {
   const verifyUrl = new URL("/api/admin/session/verify", request.url);
   const response = await fetch(verifyUrl, {
@@ -199,7 +219,7 @@ export async function middleware(request: NextRequest) {
     return applyRateLimitHeaders(NextResponse.next(), rateLimitResult);
   }
 
-  if (isPublicRoute(pathname) || pathname.startsWith("/api/auth")) {
+  if (isPublicRoute(pathname) || isPublicApiRoute(pathname)) {
     return applyRateLimitHeaders(NextResponse.next(), rateLimitResult);
   }
 
@@ -208,7 +228,8 @@ export async function middleware(request: NextRequest) {
 
   const needsAuth =
     pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/api/actions");
+    pathname.startsWith("/api/actions") ||
+    isProtectedUserApiRoute(pathname);
 
   if (needsAuth && !token) {
     if (pathname.startsWith("/api/")) {

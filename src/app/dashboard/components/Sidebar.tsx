@@ -13,7 +13,6 @@ type ServiceAccessResponse = {
 };
 
 const baseNavItems = [
-  { name: 'Required Documents', path: '/dashboard/required-documents' },
   { name: 'Profile Settings', path: '/dashboard/profile' },
 ];
 
@@ -70,8 +69,7 @@ export default function Sidebar() {
 
   return (
     <div
-      className="dashboard-sidebar h-screen w-64 flex-col justify-between border-r border-gray-200 bg-gradient-to-b from-[#f5e6c8] via-[#faf6ed] to-[#fffaf0] shadow-lg"
-      style={{ display: 'flex' }}
+      className="hidden md:flex dashboard-sidebar w-64 h-screen flex-col justify-between border-r border-gray-200 bg-gradient-to-b from-[#f5e6c8] via-[#faf6ed] to-[#fffaf0] shadow-lg overflow-y-auto"
     >
       <div>
         <div className="p-6 text-xl font-bold tracking-tight text-gray-800">Consultancy</div>

@@ -16,11 +16,12 @@ export default function DashboardShell({ children }: DashboardShellProps) {
 
   return (
     <div
-      className={`dashboard-shell flex h-screen bg-[#f5e6c8]/40${isProfileRoute ? " dashboard-shell--profile" : ""}`}
+      data-focus-context="dashboard"
+      className={`dashboard-shell flex flex-row h-screen${isProfileRoute ? " dashboard-shell--profile" : ""}`}
     >
       <Sidebar />
 
-      <div className="dashboard-main flex flex-1 flex-col">
+      <div className="dashboard-main flex flex-1 flex-col overflow-hidden">
         <TopNavbar />
 
         <main className="dashboard-content flex-1 overflow-y-auto p-6">{children}</main>

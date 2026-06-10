@@ -31,7 +31,14 @@ export const authOptions: NextAuthOptions = {
         }
 
         const normalizedEmail = parsed.data.email.trim().toLowerCase();
-        const dbUser = await findUserByEmail(normalizedEmail);
+        let dbUser;
+
+        try {
+          dbUser = await findUserByEmail(normalizedEmail);
+        } catch (error) {
+          console.error("[auth] authorize failed to load user", error);
+          return null;
+        }
 
         if (!dbUser) {
           return null;

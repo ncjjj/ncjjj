@@ -11,6 +11,12 @@ import {
   uploadFileToSupabase,
 } from "../../../../lib/supabaseStorage";
 import { emitAdminEvent, emitUserEvent } from "../../../../lib/consultationRequestSocket";
+import { decodeServiceAccess, getDashboardServiceSectionByTypeKey } from "../../../../lib/serviceAccess";
+import {
+  formatFinancialYear,
+  isFinancialYearAtLeast,
+  minServiceFinancialYearStartYear,
+} from "../../../../lib/yearlyDocumentTypes";
 
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 
@@ -59,6 +65,29 @@ export async function POST(request: NextRequest) {
     }
 
     const typeKey = safeServiceTypeKey(rawTypeKey);
+    const section = getDashboardServiceSectionByTypeKey(typeKey);
+    const serviceKey = typeKey.split(":")[0] || "";
+
+    if (!section || !serviceKey) {
+      return NextResponse.json({ message: "Service document section is invalid." }, { status: 400 });
+    }
+
+    if (!decodeServiceAccess(user.serviceAccess).includes(serviceKey)) {
+      return NextResponse.json(
+        { message: "You do not have access to upload documents for this service." },
+        { status: 403 }
+      );
+    }
+
+    if (
+      section?.requiresFinancialYear &&
+      !isFinancialYearAtLeast(financialYear, minServiceFinancialYearStartYear)
+    ) {
+      return NextResponse.json(
+        { message: `Financial Year ${formatFinancialYear(minServiceFinancialYearStartYear)} or later is required.` },
+        { status: 400 }
+      );
+    }
 
     const file = new File([fileEntry], fileName, {
       type: fileType,

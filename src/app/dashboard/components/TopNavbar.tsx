@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useProfileImage } from "../../../hooks/useProfileImage";
+import HamburgerMenu from "./HamburgerMenu";
 
 export default function TopNavbar() {
   const { data: session } = useSession();
@@ -11,10 +12,13 @@ export default function TopNavbar() {
 
   return (
     <div className="dashboard-topbar-wrap sticky top-0 z-50">
-      <div className="dashboard-topbar flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[#f5e6c8]/90 via-[#faf6ed]/90 to-[#fffaf0]/90 backdrop-blur-xl border-b border-[#e8dcc0] shadow-md">
-        <div className="dashboard-topbar-title text-xl font-semibold text-[#3b2f1c]">Welcome, {displayName}</div>
+      <div className="dashboard-topbar flex min-w-0 items-center justify-between gap-3 bg-gradient-to-r from-[#f5e6c8]/90 via-[#faf6ed]/90 to-[#fffaf0]/90 px-4 py-3 backdrop-blur-xl border-b border-[#e8dcc0] shadow-md sm:px-6 sm:py-4">
+        <div className="dashboard-topbar-title min-w-0 truncate text-base font-semibold text-[#3b2f1c] sm:text-xl">
+          Welcome, {displayName}
+        </div>
 
-        <div className="dashboard-topbar-actions flex items-center gap-5">
+        <div className="dashboard-topbar-actions flex shrink-0 items-center gap-3 sm:gap-5">
+          <HamburgerMenu />
           <Link
             href="/dashboard/profile"
             aria-label="Open profile settings"

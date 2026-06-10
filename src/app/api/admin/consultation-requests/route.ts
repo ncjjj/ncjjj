@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 import { listConsultationRequests } from "../../../../db/queries/consultationRequests";
+import { getDatabaseErrorMessage, getDatabaseErrorStatus } from "../../../../lib/dbErrors";
+import { requireAdminSession } from "../../../../lib/requireAdmin";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const adminGuard = await requireAdminSession(request);
+  if (adminGuard.response) {
+    return adminGuard.response;
+  }
+
   try {
     const consultationRequests = await listConsultationRequests();
 
@@ -11,8 +18,8 @@ export async function GET() {
   } catch (error) {
     console.error("[api/admin/consultation-requests] GET failed", error);
     return NextResponse.json(
-      { message: "Unable to load consultation requests." },
-      { status: 500 }
+      { message: getDatabaseErrorMessage(error) || "Unable to load consultation requests." },
+      { status: getDatabaseErrorStatus(error) }
     );
   }
 }

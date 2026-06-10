@@ -28,6 +28,7 @@ export const profiles = pgTable("profiles", {
   phone: text("phone").notNull(),
   address: text("address").notNull(),
   firmName: text("firm_name"),
+  fatherName: text("father_name"),
   avatarPath: text("avatar_path"),
   avatarUrl: text("avatar_url"),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -102,6 +103,7 @@ export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
   firmName: text("firm_name"),
+  fatherName: text("father_name"),
   mobileNumber: text("mobile_number").notNull(),
   email: text("email").notNull().unique(),
   address: text("address").notNull(),

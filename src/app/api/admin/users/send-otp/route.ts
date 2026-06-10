@@ -5,6 +5,8 @@ import { createPasswordResetToken } from "../../../../../db/queries/passwordRese
 import { findUserByEmail, findUserByMobileNumber } from "../../../../../db/queries/users";
 import { findProfileByEmail, findProfileByPhone } from "../../../../../db/queries/profiles";
 import { sendEmailVerificationOtp } from "../../../../../lib/email";
+import { getDatabaseErrorMessage, getDatabaseErrorStatus } from "../../../../../lib/dbErrors";
+import { requireAdminSession } from "../../../../../lib/requireAdmin";
 
 const sendOtpSchema = z.object({
   email: z.string().trim().email("A valid email is required."),
@@ -14,6 +16,11 @@ const sendOtpSchema = z.object({
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const adminGuard = await requireAdminSession(request);
+  if (adminGuard.response) {
+    return adminGuard.response;
+  }
+
   try {
     const payload = await request.json();
     const parsed = sendOtpSchema.safeParse(payload);
@@ -93,8 +100,8 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[api/admin/users/send-otp] POST failed", error);
     return NextResponse.json(
-      { message: "Unable to send verification OTP right now." },
-      { status: 500 }
+      { message: getDatabaseErrorMessage(error) || "Unable to send verification OTP right now." },
+      { status: getDatabaseErrorStatus(error) }
     );
   }
 }

@@ -76,6 +76,68 @@ async function tableExists(sql, tableName) {
   return Boolean(rows[0]?.exists);
 }
 
+const REQUIRED_COLUMNS = {
+  users: [
+    "id",
+    "name",
+    "firm_name",
+    "father_name",
+    "mobile_number",
+    "email",
+    "address",
+    "pan_card",
+    "aadhaar_card",
+    "dob",
+    "gender",
+    "citizen",
+    "residential_status",
+    "aadhaar_otp_verified",
+    "service_access",
+    "avatar_path",
+    "avatar_url",
+    "password",
+    "password_plain",
+    "created_at",
+  ],
+  profiles: [
+    "id",
+    "full_name",
+    "email",
+    "password_hash",
+    "phone",
+    "address",
+    "firm_name",
+    "father_name",
+    "avatar_path",
+    "avatar_url",
+    "created_at",
+  ],
+};
+
+async function getTableColumns(sql, tableName) {
+  const rows = await sql`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = ${tableName}
+  `;
+
+  return new Set(rows.map((row) => row.column_name));
+}
+
+function reportMissingColumns(tableName, requiredColumns, existingColumns) {
+  const missing = requiredColumns.filter((column) => !existingColumns.has(column));
+
+  if (missing.length === 0) {
+    console.log(`${tableName} columns: ok (${requiredColumns.length})`);
+    return false;
+  }
+
+  console.log(`${tableName} columns: missing ${missing.length}`);
+  console.log(`  ${missing.join(", ")}`);
+  return true;
+}
+
 async function run() {
   loadEnvFile(".env");
   loadEnvFile(".env.local");
@@ -106,7 +168,7 @@ async function run() {
   const sql = postgres(databaseUrl, {
     ssl: "require",
     prepare: false,
-    connect_timeout: 15,
+    connect_timeout: 30,
     max: 1,
   });
 
@@ -137,6 +199,27 @@ async function run() {
 
     if (pending.length > 0) {
       console.log(`Next pending migration: ${pending[0]}`);
+      console.log("Run: npm run db:migrate");
+    }
+
+    let schemaMismatch = false;
+
+    for (const [tableName, columns] of Object.entries(REQUIRED_COLUMNS)) {
+      if (!(await tableExists(sql, tableName))) {
+        console.log(`${tableName} table: missing`);
+        schemaMismatch = true;
+        continue;
+      }
+
+      const existingColumns = await getTableColumns(sql, tableName);
+      if (reportMissingColumns(tableName, columns, existingColumns)) {
+        schemaMismatch = true;
+      }
+    }
+
+    if (schemaMismatch) {
+      console.log("Schema mismatch detected. Run: npm run db:migrate");
+      process.exitCode = 2;
     }
   } finally {
     await sql.end({ timeout: 5 });

@@ -53,6 +53,7 @@ export const yearlyDocumentSlotSet = new Set<YearlyDocumentSlot>(
 );
 
 export const minYearlyDocumentYear = 2020;
+export const minServiceFinancialYearStartYear = 2026;
 export const maxYearlyDocumentSizeBytes = 10 * 1024 * 1024;
 
 export function getFinancialYearStartYear(date = new Date()): number {
@@ -74,6 +75,10 @@ export function getFinancialYearOptions(count = 7, minStartYear = minYearlyDocum
   const currentStartYear = getFinancialYearStartYear();
   const lowerBound = Math.max(minStartYear, currentStartYear - (count - 1));
 
+  if (lowerBound > currentStartYear) {
+    return [];
+  }
+
   return Array.from({ length: currentStartYear - lowerBound + 1 }, (_, index) => {
     const startYear = currentStartYear - index;
 
@@ -83,6 +88,39 @@ export function getFinancialYearOptions(count = 7, minStartYear = minYearlyDocum
       label: formatFinancialYear(startYear),
     };
   });
+}
+
+export function parseFinancialYearStartYear(value: unknown): number | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  const match = /^(\d{4})-\d{2}$/.exec(trimmed);
+
+  if (!match) {
+    return null;
+  }
+
+  const rawStartYear = match[1];
+
+  if (!rawStartYear) {
+    return null;
+  }
+
+  const startYear = Number.parseInt(rawStartYear, 10);
+
+  if (!Number.isInteger(startYear) || formatFinancialYear(startYear) !== trimmed) {
+    return null;
+  }
+
+  return startYear;
+}
+
+export function isFinancialYearAtLeast(value: unknown, minStartYear: number): boolean {
+  const startYear = parseFinancialYearStartYear(value);
+
+  return startYear !== null && startYear >= minStartYear;
 }
 
 export function getYearlyDocumentYears(minYear = minYearlyDocumentYear): number[] {

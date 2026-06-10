@@ -8,6 +8,8 @@ import {
 } from "../../../../../db/queries/users";
 import { encodeServiceAccess } from "../../../../../lib/serviceAccess";
 import { emitAdminEvent, emitUserEvent } from "../../../../../lib/consultationRequestSocket";
+import { getDatabaseErrorMessage, getDatabaseErrorStatus } from "../../../../../lib/dbErrors";
+import { requireAdminSession } from "../../../../../lib/requireAdmin";
 
 const assignServiceAccessSchema = z.object({
   email: z.string().trim().email("A valid email is required."),
@@ -15,8 +17,12 @@ const assignServiceAccessSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  try {
+  const adminGuard = await requireAdminSession(request);
+  if (adminGuard.response) {
+    return adminGuard.response;
+  }
 
+  try {
     const payload = await request.json();
     const parsed = assignServiceAccessSchema.safeParse(payload);
 
@@ -61,6 +67,9 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("[api/admin/users/service-access] POST failed", error);
-    return NextResponse.json({ message: "Unable to update service access right now." }, { status: 500 });
+    return NextResponse.json(
+      { message: getDatabaseErrorMessage(error) || "Unable to update service access right now." },
+      { status: getDatabaseErrorStatus(error) }
+    );
   }
 }

@@ -9,6 +9,7 @@ import {
   updateProfileByEmail,
 } from "../../../db/queries/profiles";
 import { emitAdminEvent, emitUserEvent } from "../../../lib/consultationRequestSocket";
+import { getDatabaseErrorMessage, getDatabaseErrorStatus } from "../../../lib/dbErrors";
 
 const profileUpdateSchema = z.object({
   name: z.string().trim().min(1, "Name is required."),
@@ -44,17 +45,29 @@ export async function GET() {
 
     return NextResponse.json({
       user: {
+        id: user.id,
         name: profile?.fullName || user.name,
         email: profile?.email || user.email,
         firmName: profile?.firmName ?? user.firmName,
+        fatherName: profile?.fatherName ?? user.fatherName ?? "",
         mobileNumber: profile?.phone || user.mobileNumber,
+        address: user.address || "",
+        panCard: user.panCard || "",
+        aadhaarCard: user.aadhaarCard || "",
+        dob: user.dob || "",
+        gender: user.gender || "",
+        citizen: user.citizen || "",
+        residentialStatus: user.residentialStatus || "",
+        aadhaarOtpVerified: user.aadhaarOtpVerified || false,
+        serviceAccess: user.serviceAccess || "",
+        createdAt: user.createdAt?.toISOString() || "",
       },
     });
   } catch (error: unknown) {
     console.error("[api/profile] GET failed", error);
     return NextResponse.json(
-      { message: getErrorMessage(error) || "Unable to load profile." },
-      { status: 500 }
+      { message: getDatabaseErrorMessage(error) || getErrorMessage(error) || "Unable to load profile." },
+      { status: getDatabaseErrorStatus(error) }
     );
   }
 }
@@ -116,8 +129,8 @@ export async function PATCH(request: NextRequest) {
   } catch (error: unknown) {
     console.error("[api/profile] PATCH failed", error);
     return NextResponse.json(
-      { message: getErrorMessage(error) || "Unable to update profile." },
-      { status: 500 }
+      { message: getDatabaseErrorMessage(error) || getErrorMessage(error) || "Unable to update profile." },
+      { status: getDatabaseErrorStatus(error) }
     );
   }
 }

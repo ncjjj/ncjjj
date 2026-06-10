@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { io } from "socket.io-client";
-import { getFinancialYearLabel, getFinancialYearOptions } from "../../lib/yearlyDocumentTypes";
+import {
+  formatFinancialYear,
+  getFinancialYearOptions,
+  getFinancialYearStartYear,
+  isFinancialYearAtLeast,
+  minServiceFinancialYearStartYear,
+} from "../../lib/yearlyDocumentTypes";
 import { toast } from "../common/ToastContainer";
 
 type ServiceDocument = {
@@ -36,6 +42,8 @@ type MessageState = {
   text: string;
 };
 
+const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
+
 function createUploadRow(defaultFinancialYear: string): UploadRow {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -43,6 +51,21 @@ function createUploadRow(defaultFinancialYear: string): UploadRow {
     financialYear: defaultFinancialYear,
     file: null,
   };
+}
+
+function getServiceFinancialYearOptions(): string[] {
+  const currentStartYear = getFinancialYearStartYear();
+  const optionCount = Math.max(1, currentStartYear - minServiceFinancialYearStartYear + 1);
+
+  return getFinancialYearOptions(optionCount, minServiceFinancialYearStartYear).map((item) => item.label);
+}
+
+function getDefaultServiceFinancialYear(): string {
+  return formatFinancialYear(Math.max(getFinancialYearStartYear(), minServiceFinancialYearStartYear));
+}
+
+function isAllowedServiceFinancialYear(value: string | null): boolean {
+  return isFinancialYearAtLeast(value, minServiceFinancialYearStartYear);
 }
 
 export default function ServiceDocumentManager({
@@ -55,7 +78,7 @@ export default function ServiceDocumentManager({
   const { data: session } = useSession();
   const email = session?.user?.email?.trim().toLowerCase() || "";
 
-  const defaultFinancialYear = requiresFinancialYear ? getFinancialYearLabel() : "";
+  const defaultFinancialYear = requiresFinancialYear ? getDefaultServiceFinancialYear() : "";
   const [financialYearOptions, setFinancialYearOptions] = useState<string[]>([]);
   const [uploadRows, setUploadRows] = useState<UploadRow[]>([createUploadRow(defaultFinancialYear)]);
   const [documents, setDocuments] = useState<ServiceDocument[]>([]);
@@ -79,7 +102,7 @@ export default function ServiceDocumentManager({
   }, [message]);
 
   useEffect(() => {
-    setFinancialYearOptions(getFinancialYearOptions().map((item) => item.label));
+    setFinancialYearOptions(getServiceFinancialYearOptions());
   }, []);
 
   useEffect(() => {
@@ -111,8 +134,13 @@ export default function ServiceDocumentManager({
         }
 
         if (active) {
-          setDocuments(payload?.documents || []);
-          setLocked(!!payload?.locked);
+          const loadedDocuments = payload?.documents || [];
+          const visibleDocuments = requiresFinancialYear
+            ? loadedDocuments.filter((item) => isAllowedServiceFinancialYear(item.financialYear))
+            : loadedDocuments;
+
+          setDocuments(visibleDocuments);
+          setLocked(visibleDocuments.some((item) => item.uploadStatus === "completed"));
         }
       } catch {
         if (active) {
@@ -132,7 +160,7 @@ export default function ServiceDocumentManager({
     return () => {
       active = false;
     };
-  }, [serviceKey, sectionKey, reloadKey]);
+  }, [requiresFinancialYear, serviceKey, sectionKey, reloadKey]);
 
   useEffect(() => {
     if (!email) {
@@ -206,6 +234,21 @@ export default function ServiceDocumentManager({
       return;
     }
 
+    const oversizedFile = rowsToUpload.find((row) => row.file && row.file.size > MAX_FILE_SIZE_BYTES);
+
+    if (oversizedFile) {
+      setMessage({ type: "error", text: "Each document must be 20MB or less." });
+      return;
+    }
+
+    if (requiresFinancialYear && rowsToUpload.some((row) => !isAllowedServiceFinancialYear(row.financialYear))) {
+      setMessage({
+        type: "error",
+        text: `Select Financial Year ${formatFinancialYear(minServiceFinancialYearStartYear)} or later.`,
+      });
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -234,8 +277,11 @@ export default function ServiceDocumentManager({
       setMessage({ type: "success", text: "Document uploaded successfully." });
       setUploadRows([createUploadRow(defaultFinancialYear)]);
       setReloadKey((value) => value + 1);
-    } catch {
-      setMessage({ type: "error", text: "Unable to upload document right now." });
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "Unable to upload document right now.",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -275,8 +321,8 @@ export default function ServiceDocumentManager({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-[#e9dbc0] bg-white p-5 shadow-sm">
-        <h1 className="text-2xl font-semibold text-[#2f2310]">{serviceLabel}</h1>
+      <div className="rounded-2xl border border-[#e9dbc0] bg-white p-4 shadow-sm sm:p-5">
+        <h1 className="break-words text-xl font-semibold text-[#2f2310] sm:text-2xl">{serviceLabel}</h1>
         <p className="mt-1 text-sm text-[#7a6a4f]">{sectionLabel}</p>
       </div>
 
@@ -293,24 +339,24 @@ export default function ServiceDocumentManager({
       ) : null}
 
       {locked ? (
-        <div className="rounded-2xl border border-emerald-250 bg-emerald-50/40 p-5 shadow-sm flex items-center gap-3 animate-fade-in">
-          <span className="text-2xl shrink-0">✓</span>
+        <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4 shadow-sm animate-fade-in sm:p-5">
+          <span className="shrink-0 rounded-full border border-emerald-200 bg-white px-2 py-1 text-xs font-bold text-emerald-700">Done</span>
           <div>
-            <h3 className="text-sm font-bold text-emerald-800">ITR Filing Completed</h3>
-            <p className="text-xs text-emerald-700 mt-0.5">This service has been successfully processed and completed by our administrator. No further document uploads are required.</p>
+            <h3 className="text-sm font-bold text-emerald-800">Service Completed</h3>
+            <p className="mt-0.5 text-xs text-emerald-700">This service has been processed by our administrator. No further document uploads are required.</p>
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="grid gap-4 rounded-2xl border border-[#e9dbc0] bg-white p-5 shadow-sm animate-fade-in">
-          <div className="flex items-center justify-between gap-3">
-            <div>
+        <form onSubmit={handleSubmit} className="grid gap-4 rounded-2xl border border-[#e9dbc0] bg-white p-4 shadow-sm animate-fade-in sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
               <h2 className="text-lg font-semibold text-[#2f2310]">Upload Documents</h2>
               <p className="text-sm text-[#7a6a4f]">Click the plus icon to add another file upload row.</p>
             </div>
             <button
               type="button"
               onClick={addUploadRow}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#d7c8a7] bg-white text-xl font-semibold text-[#5f4c2b] shadow-sm transition hover:bg-[#fbf4e7]"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d7c8a7] bg-white text-xl font-semibold text-[#5f4c2b] shadow-sm transition hover:bg-[#fbf4e7]"
               aria-label="Add another document upload row"
               title="Add another document"
             >
@@ -320,7 +366,7 @@ export default function ServiceDocumentManager({
 
           <div className="grid gap-4">
             {uploadRows.map((row, index) => (
-              <section key={row.id} className="rounded-2xl border border-[#e9dbc0] bg-[#fffdf9] p-4 shadow-sm">
+              <section key={row.id} className="rounded-2xl border border-[#e9dbc0] bg-[#fffdf9] p-3 shadow-sm sm:p-4">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <h3 className="text-sm font-semibold text-[#4a3a22]">Document {index + 1}</h3>
                   <button
@@ -341,7 +387,7 @@ export default function ServiceDocumentManager({
                       id={`service-document-name-${row.id}`}
                       value={row.documentName}
                       onChange={(event) => updateUploadRow(row.id, { documentName: event.target.value })}
-                      className="rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
+                      className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
                       placeholder="Enter your document name"
                       required
                     />
@@ -356,7 +402,7 @@ export default function ServiceDocumentManager({
                         id={`service-financial-year-${row.id}`}
                         value={row.financialYear}
                         onChange={(event) => updateUploadRow(row.id, { financialYear: event.target.value })}
-                        className="rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
+                        className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
                         required
                       >
                         <option value="">Select Financial Year</option>
@@ -378,7 +424,7 @@ export default function ServiceDocumentManager({
                     id={`service-upload-file-${row.id}`}
                     type="file"
                     onChange={(event) => updateUploadRow(row.id, { file: event.target.files?.[0] || null })}
-                    className="rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 outline-none focus:border-[#b89b5e]"
+                    className="w-full rounded-xl border border-[#e5d7b6] bg-white px-4 py-3 text-sm outline-none focus:border-[#b89b5e]"
                     required
                   />
                 </div>
@@ -390,14 +436,14 @@ export default function ServiceDocumentManager({
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-xl bg-[#5f4c2b] px-5 py-3 text-sm font-semibold text-white disabled:opacity-70"
+              className="inline-flex w-full justify-center rounded-xl bg-[#5f4c2b] px-5 py-3 text-sm font-semibold text-white disabled:opacity-70 sm:w-auto"
             >
               {submitting ? "Submitting..." : "Submit All"}
             </button>
             <button
               type="button"
               onClick={handleCancel}
-              className="rounded-xl border border-[#d7c8a7] bg-white px-5 py-3 text-sm font-semibold text-[#5f4c2b] hover:bg-[#fbf4e7]"
+              className="inline-flex w-full justify-center rounded-xl border border-[#d7c8a7] bg-white px-5 py-3 text-sm font-semibold text-[#5f4c2b] hover:bg-[#fbf4e7] sm:w-auto"
             >
               Cancel
             </button>
@@ -405,7 +451,7 @@ export default function ServiceDocumentManager({
         </form>
       )}
 
-      <div className="rounded-2xl border border-[#e9dbc0] bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-[#e9dbc0] bg-white p-4 shadow-sm sm:p-5">
         <h2 className="text-lg font-semibold text-[#2f2310]">Uploaded Documents</h2>
 
         {loading ? (
@@ -436,17 +482,17 @@ export default function ServiceDocumentManager({
                       <span
                         className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
                           item.uploadStatus === "completed"
-                            ? "bg-emerald-100 text-emerald-800 border border-emerald-250"
+                            ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
                             : item.uploadStatus === "verified"
                             ? "bg-sky-100 text-sky-800 border border-sky-200"
                             : "bg-amber-100 text-amber-800 border border-amber-200"
                         }`}
                       >
                         {item.uploadStatus === "completed"
-                          ? "Completed (ITR Filed)"
+                          ? "Completed"
                           : item.uploadStatus === "verified"
-                          ? "Verified (WIP)"
-                          : "Uploaded (Due)"}
+                          ? "Verified"
+                          : "Uploaded"}
                       </span>
                     </td>
                     <td className="py-3 pr-4">

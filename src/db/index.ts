@@ -27,9 +27,15 @@ export function getDb() {
     );
   }
 
+  const poolSize = Number(process.env.DATABASE_POOL_SIZE || 5);
+
   const client = postgres(databaseUrl, {
     ssl: "require",
     prepare: false,
+    connect_timeout: 30,
+    idle_timeout: 20,
+    max_lifetime: 60 * 10,
+    max: Number.isFinite(poolSize) && poolSize > 0 ? poolSize : 5,
   });
 
   dbInstance = drizzle(client, { schema });

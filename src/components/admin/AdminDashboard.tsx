@@ -76,6 +76,7 @@ type CreateUserFormState = {
   gender: string;
   citizen: string;
   residentialStatus: string;
+  fatherName: string;
   firmName: string;
   serviceAccess: string[];
 };
@@ -179,6 +180,7 @@ function emptyUserForm(): CreateUserFormState {
     gender: "",
     citizen: "Indian",
     residentialStatus: "Resident",
+    fatherName: "",
     firmName: "",
     serviceAccess: ["income-tax", "gst", "tds"],
   };
@@ -258,6 +260,10 @@ export default function AdminDashboard() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [viewingTasksType, setViewingTasksType] = useState<"due" | "wip" | "complete" | null>(null);
+  const [viewingServiceDocumentsUserId, setViewingServiceDocumentsUserId] = useState<string | null>(null);
+  const [viewingServiceDocumentsUserName, setViewingServiceDocumentsUserName] = useState<string | null>(null);
+  const [serviceDocumentsData, setServiceDocumentsData] = useState<any[]>([]);
+  const [loadingServiceDocuments, setLoadingServiceDocuments] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -292,6 +298,47 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       console.error("Failed to fetch admin profile", err);
+    }
+  };
+
+  const loadServiceDocumentsForUser = async (userId: string, userName: string) => {
+    setLoadingServiceDocuments(true);
+    try {
+      const response = await fetch(`/api/admin/documents?userId=${userId}&category=service`, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Failed to load documents: ${response.status}`);
+      }
+      const payload = await response.json();
+      const docs = payload.documents || [];
+      
+      // Group documents by documentType (service:income-tax, service:gst, etc.)
+      const grouped: Record<string, any[]> = {};
+      docs.forEach((doc: any) => {
+        const key = doc.documentType || "other";
+        if (!grouped[key]) {
+          grouped[key] = [];
+        }
+        grouped[key].push(doc);
+      });
+      
+      // Sort within each group by createdAt (newest first)
+      Object.keys(grouped).forEach(key => {
+        if (grouped[key]) {
+          grouped[key].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        }
+      });
+      
+      setServiceDocumentsData(Object.entries(grouped).map(([key, items]) => ({
+        documentType: key,
+        documents: items
+      })));
+      setViewingServiceDocumentsUserId(userId);
+      setViewingServiceDocumentsUserName(userName);
+    } catch (err) {
+      console.error("Failed to load service documents", err);
+      toast?.error("Failed to load service documents.");
+    } finally {
+      setLoadingServiceDocuments(false);
     }
   };
 
@@ -671,30 +718,6 @@ export default function AdminDashboard() {
       toast?.error("Unable to update client details right now.");
     } finally {
       setSavingClientInfo(false);
-    }
-  };
-
-  const handleViewUserFromTask = (userId: string, userName: string, userEmail: string, userPhone: string) => {
-    const existingProfile = profiles.find(
-      (p) =>
-        (p.email && p.email.toLowerCase() === userEmail.toLowerCase()) ||
-        (p.userId && p.userId === userId)
-    );
-    if (existingProfile) {
-      handleViewUserDocuments(existingProfile);
-      setModalServiceAccess(decodeServiceAccess(existingProfile.serviceAccess));
-    } else {
-      handleViewUserDocuments({
-        id: userId,
-        fullName: userName,
-        email: userEmail,
-        phone: userPhone,
-        firmName: null,
-        createdAt: "",
-        userId: userId,
-        serviceAccess: null,
-      });
-      setModalServiceAccess([]);
     }
   };
 
@@ -1147,7 +1170,7 @@ export default function AdminDashboard() {
             </button>
 
             {isDropdownOpen && (
-              <div className="absolute right-0 mt-2.5 w-60 rounded-2xl border border-amber-900/30 bg-stone-950 text-[#f5efe4] p-2 shadow-2xl z-50 animate-fade-in">
+              <div className="absolute right-0 mt-2.5 w-60 rounded-2xl border border-amber-900/30 bg-stone-950 text-[#f5efe4] p-2 shadow-2xl z-[9999] animate-fade-in">
                 <div className="px-3 py-2 border-b border-stone-800/80 mb-1">
                   <p className="text-xs text-stone-400">Signed in as</p>
                   <p className="text-sm font-semibold truncate text-stone-200">{adminProfile?.username || "Admin"}</p>
@@ -1556,6 +1579,17 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="grid gap-1">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="admin-user-father-name">Father's Name</label>
+                    <input
+                      id="admin-user-father-name"
+                      value={userForm.fatherName}
+                      onChange={(event) => setUserForm((current) => ({ ...current, fatherName: event.target.value }))}
+                      className="w-full rounded-xl border border-amber-200 bg-[#fffdfa] px-4 py-2.5 outline-none focus:border-amber-500 focus:bg-white"
+                      placeholder="e.g. Rajesh Kumar"
+                    />
+                  </div>
+
+                  <div className="grid gap-1">
                     <label className="text-xs font-semibold text-stone-700" htmlFor="admin-user-firm">Firm Name (Optional)</label>
                     <input
                       id="admin-user-firm"
@@ -1893,18 +1927,14 @@ export default function AdminDashboard() {
                         <th className="py-3 px-4 font-bold">Firm Name</th>
                         <th className="py-3 px-4 font-bold">Created On</th>
                         <th className="py-3 px-4 font-bold">Access Status</th>
-                        <th className="py-3 px-4 text-right font-bold">Action</th>
+                        <th className="py-3 px-4 font-bold text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-amber-50 bg-white text-stone-700">
                       {profiles.map((item) => (
                         <tr
                           key={item.id}
-                          onClick={() => {
-                            handleViewUserDocuments(item);
-                            setModalServiceAccess(decodeServiceAccess(item.serviceAccess));
-                          }}
-                          className="hover:bg-amber-50/20 cursor-pointer transition duration-150"
+                          className="hover:bg-amber-50/20 transition duration-150"
                         >
                           <td className="py-4 px-4 font-semibold text-stone-900">{item.fullName}</td>
                           <td className="py-4 px-4">{item.email}</td>
@@ -1925,7 +1955,11 @@ export default function AdminDashboard() {
                           <td className="py-4 px-4 text-right">
                             <button
                               type="button"
-                              className="rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-600 hover:text-white transition duration-150 shadow-xs"
+                              onClick={() => {
+                                handleViewUserDocuments(item);
+                                setModalServiceAccess(decodeServiceAccess(item.serviceAccess));
+                              }}
+                              className="rounded-lg bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 text-xs font-semibold transition whitespace-nowrap"
                             >
                               Manage Client
                             </button>
@@ -2069,13 +2103,13 @@ export default function AdminDashboard() {
 
       {/* Unified Client Details Modal */}
       {selectedUserForDocs && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1c160c]/60 p-4 backdrop-blur-xs animate-fade-in">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#1c160c]/60 p-4 backdrop-blur-xs animate-fade-in">
           <div className="w-full max-w-6xl rounded-3xl border border-amber-200 bg-white p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-amber-100 pb-4">
               <div>
                 <h3 className="text-xl font-bold font-serif text-stone-900 flex items-center gap-2">
-                  <span>Manage Client:</span>
+                  <span>Client Details:</span>
                   <span className="text-amber-800">{selectedUserForDocs.fullName}</span>
                 </h3>
                 <p className="text-xs text-stone-500 mt-1">
@@ -2351,9 +2385,94 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* Grouped Service Documents Modal — above other dashboard overlays */}
+      {viewingServiceDocumentsUserId && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-[#1c160c]/60 p-4 backdrop-blur-xs animate-fade-in">
+          <div className="w-full max-w-4xl rounded-3xl border border-amber-200 bg-white p-6 shadow-2xl space-y-6 max-h-[85vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-amber-100 pb-4">
+              <div>
+                <h3 className="text-xl font-bold font-serif text-stone-900">All Service Documents</h3>
+                <p className="text-xs text-stone-500 mt-1">{viewingServiceDocumentsUserName}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingServiceDocumentsUserId(null)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-amber-100 hover:bg-amber-200 text-stone-850 font-bold text-sm transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            {loadingServiceDocuments ? (
+              <p className="text-center text-xs text-stone-500 py-12">Loading documents...</p>
+            ) : serviceDocumentsData.length === 0 ? (
+              <p className="text-center text-xs text-stone-500 py-12">No service documents found for this user.</p>
+            ) : (
+              <div className="space-y-4">
+                {serviceDocumentsData.map((group) => {
+                  const serviceLabel = group.documentType.replace("service:", "").replace(/-/g, " ").toUpperCase();
+                  return (
+                    <div key={group.documentType} className="rounded-2xl border border-amber-100 overflow-hidden">
+                      {/* Group Header */}
+                      <div className="bg-[#fbfaf6] px-4 py-3 border-b border-amber-100">
+                        <p className="text-sm font-bold text-amber-900">📁 {serviceLabel}</p>
+                        <p className="text-xs text-amber-700 mt-1">{group.documents.length} document{group.documents.length !== 1 ? "s" : ""}</p>
+                      </div>
+                      {/* Documents in Group */}
+                      <div className="divide-y divide-amber-50">
+                        {group.documents.map((doc: any) => (
+                          <div key={doc.id} className="p-4 hover:bg-amber-50/30 transition">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-stone-900 truncate">{doc.fileName}</p>
+                                <p className="text-xs text-stone-500 mt-1">Uploaded: {formatDisplayDate(doc.createdAt)}</p>
+                                {doc.uploadDescription && doc.uploadDescription !== doc.fileName && (
+                                  <p className="text-xs text-stone-600 mt-2 italic">Notes: {doc.uploadDescription}</p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                {doc.fileUrl && (
+                                  <a
+                                    href={doc.fileUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1.5 text-xs font-semibold transition"
+                                  >
+                                    View
+                                  </a>
+                                )}
+                                <span className={`text-[9px] font-bold px-2 py-1 rounded-full ${
+                                  doc.uploadStatus === "completed"
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : doc.uploadStatus === "verified"
+                                    ? "bg-sky-100 text-sky-800"
+                                    : "bg-amber-100 text-amber-800"
+                                }`}>
+                                  {doc.uploadStatus === "completed"
+                                    ? "Completed"
+                                    : doc.uploadStatus === "verified"
+                                    ? "Verified"
+                                    : "Uploaded"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Due/WIP/Complete Tasks Modal */}
       {viewingTasksType && stats && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1c160c]/60 p-4 backdrop-blur-xs animate-fade-in">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#1c160c]/60 p-4 backdrop-blur-xs animate-fade-in">
           <div className="w-full max-w-5xl rounded-3xl border border-amber-200 bg-white p-6 shadow-2xl space-y-6 max-h-[85vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-amber-100 pb-4">
@@ -2446,17 +2565,17 @@ export default function AdminDashboard() {
                         </td>
                         <td className="py-4 px-4">
                           <div className="flex items-center justify-end gap-2">
-                            {task.userId && (
-                              <button
-                                type="button"
-                                onClick={() => handleViewUserFromTask(task.userId || "", task.userName, task.userEmail, task.userPhone)}
-                                className="rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-600 hover:text-white transition duration-150 shadow-xs"
-                              >
-                                Manage Client
-                              </button>
-                            )}
-
-                            {task.type === "document" ? (
+                          {task.type === "document" ? (
+                            <div className="flex gap-2 items-center justify-end">
+                              {task.userId && (
+                                <button
+                                  type="button"
+                                  onClick={() => loadServiceDocumentsForUser(task.userId as string, task.userName || "User")}
+                                  className="rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-800 px-2.5 py-1.5 text-xs font-semibold transition"
+                                >
+                                  View Docs
+                                </button>
+                              )}
                               <select
                                 value={task.status}
                                 onChange={async (e) => {
@@ -2485,7 +2604,8 @@ export default function AdminDashboard() {
                                 <option value="verified">Verified (WIP)</option>
                                 <option value="completed">Completed (ITR Filed)</option>
                               </select>
-                            ) : (
+                            </div>
+                          ) : (
                               <select
                                 value={task.status}
                                 onChange={async (e) => {

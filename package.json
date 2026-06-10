@@ -12,6 +12,9 @@
     "db:migrate:drizzle": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:admin": "node scripts/create-admin.cjs",
+    "validate:env": "node scripts/validate-env.cjs",
+    "test": "node --test tests/production.test.mjs",
+    "production:check": "node scripts/production-check.cjs",
     "migrate:storage-paths": "node scripts/migrate-storage-paths.cjs",
     "migrate:documents": "node scripts/migrate-documents-production.js",
     "inspect:bucket": "node scripts/list-bucket-contents.js"

@@ -5,6 +5,8 @@ import {
   type ConsultationRequestStatus,
 } from "../../../../../db/queries/consultationRequests";
 import { emitConsultationRequestEvent, emitAdminEvent, emitUserEvent } from "../../../../../lib/consultationRequestSocket";
+import { getDatabaseErrorMessage, getDatabaseErrorStatus } from "../../../../../lib/dbErrors";
+import { requireAdminSession } from "../../../../../lib/requireAdmin";
 
 const statusSchema = z.object({
   status: z.enum(["pending", "seen", "contacted"]),
@@ -19,6 +21,11 @@ type RouteContext = {
 export const dynamic = "force-dynamic";
 
 export async function PATCH(request: Request, { params }: RouteContext) {
+  const adminGuard = await requireAdminSession(request);
+  if (adminGuard.response) {
+    return adminGuard.response;
+  }
+
   try {
     const payload = await request.json();
     const parsed = statusSchema.safeParse(payload);
@@ -60,8 +67,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   } catch (error) {
     console.error("[api/admin/consultation-requests/[requestId]] PATCH failed", error);
     return NextResponse.json(
-      { message: "Unable to update consultation request." },
-      { status: 500 }
+      { message: getDatabaseErrorMessage(error) || "Unable to update consultation request." },
+      { status: getDatabaseErrorStatus(error) }
     );
   }
 }

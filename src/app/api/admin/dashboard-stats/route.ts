@@ -5,6 +5,7 @@ import { getAdminSessionFromRequest } from "../../../../lib/adminRequestSession"
 import { decodeServiceAccess } from "../../../../lib/serviceAccess";
 import { getFinancialYearLabel } from "../../../../lib/yearlyDocumentTypes";
 import { resolveSupabaseObjectUrl } from "../../../../lib/supabaseStorage";
+import { getDatabaseErrorMessage, getDatabaseErrorStatus } from "../../../../lib/dbErrors";
 import { and, eq, like } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
@@ -163,8 +164,8 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("[api/admin/dashboard-stats] GET failed", error);
     return NextResponse.json(
-      { message: "Unable to load dashboard statistics." },
-      { status: 500 }
+      { message: getDatabaseErrorMessage(error) || "Unable to load dashboard statistics." },
+      { status: getDatabaseErrorStatus(error) }
     );
   }
 }

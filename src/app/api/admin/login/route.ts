@@ -12,6 +12,7 @@ import {
   createAdminSessionRecord,
   findAdminByIdentifier,
 } from "../../../../db/queries/admin";
+import { getDatabaseErrorMessage, getDatabaseErrorStatus } from "../../../../lib/dbErrors";
 
 const loginSchema = z.object({
   usernameOrEmail: z.string().trim().min(1, "Username or email is required."),
@@ -67,8 +68,8 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[api/admin/login] POST failed", error);
     return NextResponse.json(
-      { message: "Unable to sign in right now." },
-      { status: 500 }
+      { message: getDatabaseErrorMessage(error) || "Unable to sign in right now." },
+      { status: getDatabaseErrorStatus(error) }
     );
   }
 }

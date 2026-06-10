@@ -219,11 +219,6 @@
 }
 
 @media (max-width: 1024px) {
-  .dashboard-shell--profile .dashboard-sidebar,
-  .dashboard-shell--profile .dashboard-topbar-wrap {
-    display: none !important;
-  }
-
   .dashboard-shell--profile {
     min-height: 100vh;
     height: auto !important;
@@ -232,10 +227,6 @@
 
   .dashboard-shell--profile .dashboard-main {
     width: 100%;
-  }
-
-  .dashboard-shell--profile .dashboard-profile-header {
-    display: none !important;
   }
 
   .dashboard-shell--profile .dashboard-profile {
@@ -247,6 +238,11 @@
 @media (max-width: 768px) {
   html {
     scroll-padding-top: 56px;
+  }
+
+  .site-user-avatar.desktop-avatar,
+  .dashboard-avatar {
+    display: none !important;
   }
 
   .page-content {
@@ -295,8 +291,14 @@
   .dashboard-sidebar {
     width: 100% !important;
     height: auto !important;
+    max-height: 42vh;
     min-height: unset !important;
     flex-shrink: 0;
+    overflow-y: auto;
+  }
+
+  .dashboard-sidebar nav {
+    padding-bottom: 12px;
   }
 
   .dashboard-main {

@@ -1,5 +1,6 @@
 import { Server as SocketIOServer } from "socket.io";
 import type { Server as HttpServer } from "http";
+import { getPublicAppUrl } from "./env";
 
 type RequestSocketServer = SocketIOServer | undefined;
 
@@ -28,9 +29,13 @@ export function getConsultationRequestRoomKey(email: string) {
 
 export function ensureConsultationRequestSocketServer(server: HttpServer) {
   if (!globalThis.consultationRequestSocketServer) {
+    const appOrigin = getPublicAppUrl();
     const io = new SocketIOServer(server, {
       cors: {
-        origin: true,
+        origin:
+          process.env.NODE_ENV === "production"
+            ? [appOrigin]
+            : [appOrigin, "http://localhost:3000", "http://127.0.0.1:3000"],
         credentials: true,
       },
     });

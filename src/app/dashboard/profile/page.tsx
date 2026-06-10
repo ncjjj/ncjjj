@@ -15,11 +15,32 @@ type ProfileForm = {
   firmName: string;
 };
 
+function sanitizeFirmName(value?: string | null): string {
+  if (typeof value === "string" && value.includes("@")) {
+    return "";
+  }
+
+  return typeof value === "string" ? value.trim() || "" : "";
+}
+
+
+type FullProfileData = ProfileForm & {
+  id?: string;
+  address?: string;
+  fatherName?: string;
+  panCard?: string;
+  aadhaarCard?: string;
+  dob?: string;
+  gender?: string;
+  citizen?: string;
+  residentialStatus?: string;
+  aadhaarOtpVerified?: boolean;
+  serviceAccess?: string;
+  createdAt?: string;
+};
+
 type ProfileApiResponse = {
-  user: {
-    name: string | null;
-    email: string | null;
-    firmName?: string | null;
+  user: FullProfileData & {
     mobileNumber: string;
   };
 };
@@ -64,6 +85,14 @@ export default function ProfileSettings() {
     phone: "",
     firmName: "",
   });
+
+  const [fullProfile, setFullProfile] = useState<FullProfileData>({
+    name: "",
+    email: "",
+    phone: "",
+    firmName: "",
+  });
+
   const [hasHydratedProfile, setHasHydratedProfile] = useState(false);
 
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
@@ -72,6 +101,7 @@ export default function ProfileSettings() {
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState("");
+  const [editingSection, setEditingSection] = useState<string | null>(null);
   const { profileImageUrl, applyAvatarPayload } = useProfileImage({
     userId: session?.user?.id ?? null,
   });
@@ -92,13 +122,12 @@ export default function ProfileSettings() {
         name: profileResponse.user.name || "",
         email: profileResponse.user.email || "",
         phone: profileResponse.user.mobileNumber || "",
-        firmName: profileResponse.user.firmName || "",
+        firmName: sanitizeFirmName(profileResponse.user.firmName),
       });
-      setHasHydratedProfile(true);
-      return;
-    }
-
-    if (hasHydratedProfile) {
+      setFullProfile({
+        ...profileResponse.user,
+        firmName: sanitizeFirmName(profileResponse.user.firmName),
+      } as FullProfileData);
       return;
     }
 
@@ -165,7 +194,7 @@ export default function ProfileSettings() {
         name: updatedUser?.name || "",
         email: updatedUser?.email || "",
         phone: updatedUser?.mobileNumber || "",
-        firmName: updatedUser?.firmName || "",
+        firmName: sanitizeFirmName(updatedUser?.firmName),
       });
 
       if (update) {
@@ -321,10 +350,19 @@ export default function ProfileSettings() {
         {/* Main Card */}
         <div className="dashboard-card-shell dashboard-profile-card bg-white/80 backdrop-blur-md p-6 rounded-3xl shadow border border-[#e8dcc0] space-y-6">
 
-          {/* Section Title */}
-          <h3 className="text-lg font-semibold text-[#3b2f1c]">
-            Personal Information
-          </h3>
+          {/* Section Title with Manage Button */}
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-[#3b2f1c]">
+              Personal Information
+            </h3>
+            <button
+              type="button"
+              onClick={() => setEditingSection(editingSection === 'personalInfo' ? null : 'personalInfo')}
+              className="px-3 py-1.5 text-xs rounded bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium transition"
+            >
+              {editingSection === 'personalInfo' ? 'Done Editing' : 'Manage'}
+            </button>
+          </div>
 
           {/* Grid */}
           <div className="dashboard-profile-grid grid grid-cols-2 gap-4">
@@ -427,6 +465,206 @@ export default function ProfileSettings() {
           ) : null}
 
         </div>
+
+        {/* Additional Details Section (Admin Set) */}
+        {fullProfile.address || fullProfile.panCard || fullProfile.aadhaarCard ? (
+          <div className="dashboard-card-shell dashboard-profile-details bg-white/80 backdrop-blur-md p-6 rounded-3xl shadow border border-[#e8dcc0] space-y-6">
+            
+            {/* Section Header with Manage Button */}
+            <div className="pb-4 border-b border-[#e5d7b6] flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-[#3b2f1c]">
+                Additional Details
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingSection(editingSection === 'additionalDetails' ? null : 'additionalDetails')}
+                className="px-3 py-1.5 text-xs rounded bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium transition"
+              >
+                {editingSection === 'additionalDetails' ? 'Done Editing' : 'Manage'}
+              </button>
+            </div>
+
+            {/* Address */}
+            {fullProfile.address && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-[#3b2f1c]">Address</label>
+                  <button
+                    type="button"
+                    onClick={() => setEditingSection(editingSection === 'address' ? null : 'address')}
+                    className="px-2 py-1 text-xs rounded bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium transition"
+                  >
+                    {editingSection === 'address' ? 'Done' : 'Manage'}
+                  </button>
+                </div>
+                <div className="px-4 py-3 rounded-xl border border-[#e5d7b6] bg-[#faf6ed] text-[#3b2f1c]">
+                  {fullProfile.address}
+                </div>
+              </div>
+            )}
+
+            {fullProfile.fatherName && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-[#3b2f1c]">Father's Name</label>
+                  <button
+                    type="button"
+                    onClick={() => setEditingSection(editingSection === 'fatherName' ? null : 'fatherName')}
+                    className="px-2 py-1 text-xs rounded bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium transition"
+                  >
+                    {editingSection === 'fatherName' ? 'Done' : 'Manage'}
+                  </button>
+                </div>
+                <div className="px-4 py-3 rounded-xl border border-[#e5d7b6] bg-[#faf6ed] text-[#3b2f1c]">
+                  {fullProfile.fatherName}
+                </div>
+              </div>
+            )}
+
+            {/* Grid for document numbers */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* PAN Card */}
+              {fullProfile.panCard && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-[#3b2f1c]">PAN Card</label>
+                    <button
+                      type="button"
+                      onClick={() => setEditingSection(editingSection === 'panCard' ? null : 'panCard')}
+                      className="px-2 py-0.5 text-xs rounded bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium transition"
+                    >
+                      {editingSection === 'panCard' ? 'Done' : 'Manage'}
+                    </button>
+                  </div>
+                  <div className="px-4 py-3 rounded-xl border border-[#e5d7b6] bg-[#faf6ed] text-[#3b2f1c] font-mono">
+                    {fullProfile.panCard}
+                  </div>
+                </div>
+              )}
+
+              {/* Aadhaar Card */}
+              {fullProfile.aadhaarCard && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-[#3b2f1c]">Aadhaar Card</label>
+                    <button
+                      type="button"
+                      onClick={() => setEditingSection(editingSection === 'aadhaarCard' ? null : 'aadhaarCard')}
+                      className="px-2 py-0.5 text-xs rounded bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium transition"
+                    >
+                      {editingSection === 'aadhaarCard' ? 'Done' : 'Manage'}
+                    </button>
+                  </div>
+                  <div className="px-4 py-3 rounded-xl border border-[#e5d7b6] bg-[#faf6ed] text-[#3b2f1c] font-mono">
+                    {fullProfile.aadhaarCard}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Personal Information Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Date of Birth */}
+              {fullProfile.dob && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-[#3b2f1c]">Date of Birth</label>
+                    <button
+                      type="button"
+                      onClick={() => setEditingSection(editingSection === 'dob' ? null : 'dob')}
+                      className="px-2 py-0.5 text-xs rounded bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium transition"
+                    >
+                      {editingSection === 'dob' ? 'Done' : 'Manage'}
+                    </button>
+                  </div>
+                  <div className="px-4 py-3 rounded-xl border border-[#e5d7b6] bg-[#faf6ed] text-[#3b2f1c]">
+                    {fullProfile.dob}
+                  </div>
+                </div>
+              )}
+
+              {/* Gender */}
+              {fullProfile.gender && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-[#3b2f1c]">Gender</label>
+                    <button
+                      type="button"
+                      onClick={() => setEditingSection(editingSection === 'gender' ? null : 'gender')}
+                      className="px-2 py-0.5 text-xs rounded bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium transition"
+                    >
+                      {editingSection === 'gender' ? 'Done' : 'Manage'}
+                    </button>
+                  </div>
+                  <div className="px-4 py-3 rounded-xl border border-[#e5d7b6] bg-[#faf6ed] text-[#3b2f1c]">
+                    {fullProfile.gender}
+                  </div>
+                </div>
+              )}
+
+              {/* Citizenship */}
+              {fullProfile.citizen && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-[#3b2f1c]">Citizenship</label>
+                    <button
+                      type="button"
+                      onClick={() => setEditingSection(editingSection === 'citizen' ? null : 'citizen')}
+                      className="px-2 py-0.5 text-xs rounded bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium transition"
+                    >
+                      {editingSection === 'citizen' ? 'Done' : 'Manage'}
+                    </button>
+                  </div>
+                  <div className="px-4 py-3 rounded-xl border border-[#e5d7b6] bg-[#faf6ed] text-[#3b2f1c]">
+                    {fullProfile.citizen}
+                  </div>
+                </div>
+              )}
+
+              {/* Residential Status */}
+              {fullProfile.residentialStatus && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-[#3b2f1c]">Residential Status</label>
+                    <button
+                      type="button"
+                      onClick={() => setEditingSection(editingSection === 'residentialStatus' ? null : 'residentialStatus')}
+                      className="px-2 py-0.5 text-xs rounded bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium transition"
+                    >
+                      {editingSection === 'residentialStatus' ? 'Done' : 'Manage'}
+                    </button>
+                  </div>
+                  <div className="px-4 py-3 rounded-xl border border-[#e5d7b6] bg-[#faf6ed] text-[#3b2f1c]">
+                    {fullProfile.residentialStatus}
+                  </div>
+                </div>
+              )}
+
+              {/* Account Created Date */}
+              {fullProfile.createdAt && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-[#3b2f1c]">Account Created</label>
+                    <button
+                      type="button"
+                      onClick={() => setEditingSection(editingSection === 'createdAt' ? null : 'createdAt')}
+                      className="px-2 py-0.5 text-xs rounded bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium transition"
+                    >
+                      {editingSection === 'createdAt' ? 'Done' : 'Manage'}
+                    </button>
+                  </div>
+                  <div className="px-4 py-3 rounded-xl border border-[#e5d7b6] bg-[#faf6ed] text-[#3b2f1c]">
+                    {new Date(fullProfile.createdAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

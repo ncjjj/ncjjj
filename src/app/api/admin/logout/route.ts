@@ -17,8 +17,12 @@ export async function POST(request: Request) {
   const token = readCookieValue(request.headers.get("cookie"), ADMIN_SESSION_COOKIE);
 
   if (token) {
-    const tokenHash = await hashAdminSessionToken(token);
-    await revokeAdminSessionByTokenHash(tokenHash);
+    try {
+      const tokenHash = await hashAdminSessionToken(token);
+      await revokeAdminSessionByTokenHash(tokenHash);
+    } catch (error) {
+      console.error("[api/admin/logout] session revoke failed", error);
+    }
   }
 
   const response = NextResponse.json({ message: "Signed out." });

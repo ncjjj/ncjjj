@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ADMIN_SESSION_COOKIE, hashAdminSessionToken } from "../../../../../lib/adminSession";
 import { findActiveAdminSessionByTokenHash } from "../../../../../db/queries/admin";
+import { getDatabaseErrorMessage, getDatabaseErrorStatus } from "../../../../../lib/dbErrors";
 
 function readCookieValue(cookieHeader: string | null, cookieName: string): string | null {
   if (!cookieHeader) {
@@ -20,19 +21,27 @@ export async function GET(request: Request) {
     return NextResponse.json({ valid: false }, { status: 401 });
   }
 
-  const tokenHash = await hashAdminSessionToken(token);
-  const session = await findActiveAdminSessionByTokenHash(tokenHash);
+  try {
+    const tokenHash = await hashAdminSessionToken(token);
+    const session = await findActiveAdminSessionByTokenHash(tokenHash);
 
-  if (!session) {
-    return NextResponse.json({ valid: false }, { status: 401 });
+    if (!session) {
+      return NextResponse.json({ valid: false }, { status: 401 });
+    }
+
+    return NextResponse.json({
+      valid: true,
+      admin: {
+        id: session.adminId,
+        username: session.username,
+        email: session.email,
+      },
+    });
+  } catch (error) {
+    console.error("[api/admin/session/verify] GET failed", error);
+    return NextResponse.json(
+      { valid: false, message: getDatabaseErrorMessage(error) },
+      { status: getDatabaseErrorStatus(error) }
+    );
   }
-
-  return NextResponse.json({
-    valid: true,
-    admin: {
-      id: session.adminId,
-      username: session.username,
-      email: session.email,
-    },
-  });
 }

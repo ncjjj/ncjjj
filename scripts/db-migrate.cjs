@@ -132,7 +132,7 @@ async function run() {
   const sql = postgres(databaseUrl, {
     ssl: "require",
     prepare: false,
-    connect_timeout: 15,
+    connect_timeout: 30,
     max: 1,
   });
 

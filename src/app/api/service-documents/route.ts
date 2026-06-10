@@ -4,8 +4,14 @@ import { NextResponse } from "next/server";
 import { authOptions } from "../../../lib/auth";
 import { getDb } from "../../../db/index";
 import { documents } from "../../../db/schema";
+import { findUserById } from "../../../db/queries/users";
 import { deleteSupabaseObjects, resolveSupabaseObjectUrl } from "../../../lib/supabaseStorage";
 import { emitAdminEvent, emitUserEvent } from "../../../lib/consultationRequestSocket";
+import { decodeServiceAccess, getDashboardServiceSectionByTypeKey } from "../../../lib/serviceAccess";
+import {
+  isFinancialYearAtLeast,
+  minServiceFinancialYearStartYear,
+} from "../../../lib/yearlyDocumentTypes";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -15,12 +21,32 @@ export async function GET(request: Request) {
   }
 
   try {
+    const user = await findUserById(session.user.id);
+
+    if (!user) {
+      return NextResponse.json({ message: "User not found." }, { status: 404 });
+    }
+
     const { searchParams } = new URL(request.url);
     const typeKey = String(searchParams.get("typeKey") || "").trim().toLowerCase();
     const financialYear = String(searchParams.get("financialYear") || "").trim();
 
     if (!typeKey) {
       return NextResponse.json({ message: "Document type is required." }, { status: 400 });
+    }
+
+    const section = getDashboardServiceSectionByTypeKey(typeKey);
+    const serviceKey = typeKey.split(":")[0] || "";
+
+    if (!section || !serviceKey) {
+      return NextResponse.json({ message: "Service document section is invalid." }, { status: 400 });
+    }
+
+    if (!decodeServiceAccess(user.serviceAccess).includes(serviceKey)) {
+      return NextResponse.json(
+        { message: "You do not have access to this service document section." },
+        { status: 403 }
+      );
     }
 
     const db = getDb();
@@ -49,11 +75,24 @@ export async function GET(request: Request) {
       .where(and(...conditions))
       .orderBy(desc(documents.createdAt));
 
-    const isLocked = rows.some((row) => row.uploadStatus === "completed");
+    const visibleRows = section?.requiresFinancialYear
+      ? rows.filter((row) => isFinancialYearAtLeast(row.documentSlot, minServiceFinancialYearStartYear))
+      : rows;
+    const isLocked = visibleRows.some((row) => row.uploadStatus === "completed");
 
     const resolvedUrls = await Promise.all(
-      rows.map(async (row) => {
-        const resolved = await resolveSupabaseObjectUrl({ path: row.storagePath, expiresIn: 3600 });
+      visibleRows.map(async (row) => {
+        let viewUrl: string | null = null;
+
+        try {
+          const resolved = await resolveSupabaseObjectUrl({ path: row.storagePath, expiresIn: 3600 });
+          viewUrl = resolved.avatarUrl;
+        } catch (error) {
+          console.warn("[api/service-documents] failed to resolve document URL", {
+            documentId: row.id,
+            error,
+          });
+        }
 
         return {
           id: row.id,
@@ -62,7 +101,7 @@ export async function GET(request: Request) {
           financialYear: row.documentSlot,
           uploadStatus: row.uploadStatus,
           createdAt: row.createdAt,
-          viewUrl: resolved.avatarUrl,
+          viewUrl,
         };
       })
     );

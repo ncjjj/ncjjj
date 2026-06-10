@@ -17,26 +17,26 @@ export const DASHBOARD_SERVICE_GROUPS: DashboardServiceGroup[] = [
     key: "income-tax",
     label: "Income Tax",
     sections: [
-      { key: "pan-registration", label: "Pan Registration" },
+      { key: "pan-registration", label: "Pan Registration", requiresFinancialYear: true },
       { key: "income-tax-return-filing", label: "Income Tax Return Filing", requiresFinancialYear: true },
-      { key: "financial-statements", label: "Financial Statements" },
+      { key: "financial-statements", label: "Financial Statements", requiresFinancialYear: true },
     ],
   },
   {
     key: "gst",
     label: "GST",
     sections: [
-      { key: "gst-registration", label: "GST Registration" },
-      { key: "gstr-1", label: "GSTR-1" },
-      { key: "gstr-3b", label: "GSTR-3B" },
-      { key: "gstr-9", label: "GSTR-9" },
+      { key: "gst-registration", label: "GST Registration", requiresFinancialYear: true },
+      { key: "gstr-1", label: "GSTR-1", requiresFinancialYear: true },
+      { key: "gstr-3b", label: "GSTR-3B", requiresFinancialYear: true },
+      { key: "gstr-9", label: "GSTR-9", requiresFinancialYear: true },
     ],
   },
   {
     key: "tds",
     label: "TDS",
     sections: [
-      { key: "tan-registration", label: "TAN Registration" },
+      { key: "tan-registration", label: "TAN Registration", requiresFinancialYear: true },
       { key: "tds-return-filing", label: "TDS Return Filing", requiresFinancialYear: true },
     ],
   },
@@ -76,4 +76,11 @@ export function getDashboardGroupsForAccess(serviceAccess: string[]): DashboardS
   const allowed = new Set(serviceAccess);
 
   return DASHBOARD_SERVICE_GROUPS.filter((group) => allowed.has(group.key));
+}
+
+export function getDashboardServiceSectionByTypeKey(typeKey: string): DashboardServiceSection | undefined {
+  const [serviceKey, sectionKey] = typeKey.split(":");
+  const service = DASHBOARD_SERVICE_GROUPS.find((group) => group.key === serviceKey);
+
+  return service?.sections.find((section) => section.key === sectionKey);
 }
